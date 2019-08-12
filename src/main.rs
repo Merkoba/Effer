@@ -534,11 +534,14 @@ fn delete_notes()
     else if ans.contains('-')
     {
         let mut split = ans.split('-').map(|n| n.trim());
+        let mut num1 = split.next().unwrap_or("0").parse::<usize>().unwrap_or(0);
+        let mut num2 = split.next().unwrap_or("0").parse::<usize>().unwrap_or(0);
+        
+        if num1 == 0 {num1 = 1}
+        if num2 == 0 {num2 = get_notes(false).lines().count()}
+        if num1 >= num2 {return}
 
-        numbers.extend(split.next()
-            .unwrap_or("0").parse::<usize>()
-            .unwrap_or(0)..=split.next().unwrap_or("0").parse::<usize>()
-            .unwrap_or(0));
+        numbers.extend(num1..=num2);
     }
 
     else
