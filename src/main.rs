@@ -149,18 +149,26 @@ fn main()
     show_notes(vec![]);
 }
 
-fn get_file_path() -> PathBuf
+fn get_home_path() -> PathBuf
 {
-    let home_path = match dirs::home_dir()
+    match dirs::home_dir()
     {
         Some(path) => path,
         None => 
         {
             p!("Can't get your Home path."); exit(0);
         }
-    };
+    }
+}
 
-    home_path.join(Path::new(".config/effer/effer.dat"))
+fn get_file_path() -> PathBuf
+{
+    get_home_path().join(Path::new(".config/effer/effer.dat"))
+}
+
+fn get_file_parent_path() -> PathBuf
+{
+    get_home_path().join(Path::new(".config/effer"))
 }
 
 fn file_path_check(path: PathBuf) -> FilePathCheckResult
@@ -265,6 +273,8 @@ fn create_file()
     }
 
     let encrypted = encrypt_text(s!(FIRST_LINE));
+    let parent_path = get_file_parent_path();
+    fs::create_dir_all(parent_path).unwrap();
     let file_path = get_file_path();
     let mut file = fs::File::create(&file_path).expect("Error creating the file.");
     file.write_all(encrypted.as_bytes()).expect("Unable to write initial text to file");
