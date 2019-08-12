@@ -24,7 +24,6 @@ use rand::prelude::*;
 use sha3::{Sha3_256, Digest};
 use std::sync::Mutex;
 use strum::IntoEnumIterator;
-use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
@@ -137,8 +136,7 @@ impl MenuAnswer
             MenuAnswer::Nothing =>
             {
                 show_notes(vec![]);
-            },
-            _ => {}
+            }
         }
     }
 }
@@ -343,7 +341,7 @@ fn show_notes(lines: Vec<String>)
     loop
     {
         p!("");
-        
+
         if lines.len() == 0
         {
             let notes = get_notes(false);
