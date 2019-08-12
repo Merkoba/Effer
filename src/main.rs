@@ -78,7 +78,7 @@ impl MenuAnswer
 
     fn get_label(&self) -> String
     {
-        return match self
+        match self
         {
             MenuAnswer::AddNote => s!("Add Note"),
             MenuAnswer::FindNotes => s!("Find Notes"),
@@ -352,7 +352,7 @@ fn show_notes(lines: Vec<String>)
     {
         p!(""); p!("---------------"); p!("");
 
-        if lines.len() == 0
+        if lines.is_empty()
         {
             let notes = get_notes(false);
 
@@ -471,7 +471,7 @@ fn delete_lines(numbers: Vec<usize>)
 fn add_note()
 {
     let note = ask_string(s!("New Note"), s!());
-    if note.len() == 0 {return}
+    if note.is_empty() {return}
     let new_text = format!("{}\n{}", get_notes(false), note);
     update_file(new_text);
 }
@@ -481,7 +481,7 @@ fn edit_note()
     let n = ask_int(s!("Note Number"));
     if n == 0 {return}
     let line = get_line(n);
-    if line == s!("") {return}
+    if line == "" {return}
     let edited = ask_string(s!("Edit Note"), line);
     replace_line(n, edited);
 }
@@ -509,7 +509,7 @@ fn find_notes() -> Vec<String>
         }
     }
 
-    if found.len() == 0
+    if found.is_empty()
     {
         found.push(s!("<No Results>"));
     }
@@ -526,14 +526,14 @@ fn delete_notes()
     let ans = ask_string(s!(), s!());
     let mut numbers: Vec<usize> = vec![];
 
-    if ans.contains(",")
+    if ans.contains(',')
     {
-        numbers.extend(ans.split(",").map(|n| n.trim().parse::<usize>().unwrap_or(0)).collect::<Vec<usize>>());
+        numbers.extend(ans.split(',').map(|n| n.trim().parse::<usize>().unwrap_or(0)).collect::<Vec<usize>>());
     }
 
-    else if ans.contains("-")
+    else if ans.contains('-')
     {
-        let mut split = ans.split("-").map(|n| n.trim());
+        let mut split = ans.split('-').map(|n| n.trim());
 
         numbers.extend(split.next()
             .unwrap_or("0").parse::<usize>()
@@ -546,9 +546,9 @@ fn delete_notes()
         numbers.push(ans.parse::<usize>().unwrap_or(0));
     }
 
-    numbers = numbers.iter().filter(|x| **x != 0).map(|x| *x).collect();
+    numbers = numbers.iter().filter(|x| **x != 0).copied().collect();
 
-    if numbers.len() > 0
+    if numbers.is_empty()
     {
         delete_lines(numbers);
     }
@@ -580,7 +580,7 @@ fn ask_string(message: String, initial: String) -> String
     let mut editor = Editor::<()>::new();
     let prompt = format!("{}: ", message);
 
-    let input = match editor.readline_with_initial(&prompt, (&initial, &s!()))
+    match editor.readline_with_initial(&prompt, (&initial, &s!()))
     {
         Ok(line) => 
         {
@@ -590,7 +590,5 @@ fn ask_string(message: String, initial: String) -> String
         {
             s!()
         }
-    };
-
-    input
+    }
 }
