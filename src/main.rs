@@ -350,7 +350,7 @@ fn show_notes(lines: Vec<String>)
 {
     loop
     {
-        p!("");
+        p!(""); p!("---------------"); p!("");
 
         if lines.len() == 0
         {
