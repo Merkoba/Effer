@@ -10,6 +10,6 @@ The password can be changed.
 It uses AES256 encryption.
 
 This is not to be taken as a real security tool. The encryption is relatively weak,
-somebody that knows what they're doing might be able to decrypt it with not much problem.
+somebody that knows what they're doing might be able to decrypt it with much trouble.
 
 Contributions are welcome.
