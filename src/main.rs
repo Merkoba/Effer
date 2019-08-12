@@ -14,7 +14,7 @@ mod macros;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::{self, Write};
+use std::io::{Write};
 use std::process::exit;
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
@@ -65,8 +65,7 @@ enum MenuAnswer
     FindNotes,
     DeleteNotes,
     RemakeFile,
-    ChangePassword,
-    Exit
+    ChangePassword
 }
 
 impl MenuAnswer
@@ -86,7 +85,6 @@ impl MenuAnswer
             MenuAnswer::DeleteNotes => s!("Delete Notes"),
             MenuAnswer::RemakeFile => s!("Remake File"),
             MenuAnswer::ChangePassword => s!("Change Password"),
-            MenuAnswer::Exit => s!("Exit"),
             _ => s!()
         }
     }
@@ -101,7 +99,7 @@ impl MenuAnswer
         }
     }
 
-    fn exec(&self)
+    fn exec(&self, full: bool)
     {
         match self
         {
@@ -129,13 +127,9 @@ impl MenuAnswer
             {
                 change_password();
             },
-            MenuAnswer::Exit =>
-            {
-                exit(0);
-            },
             MenuAnswer::Nothing =>
             {
-                show_notes(vec![]);
+                if full {exit(0)} else {show_notes(vec![])}
             }
         }
     }
@@ -214,33 +208,38 @@ fn handle_file_path_check(result: FilePathCheckResult)
     }
 }
 
-fn print(message: String)
+fn get_input<F, E, T>(message: String, initial: String, f_ok: F, f_err: E) -> T 
+where F: Fn(String) -> T, E: Fn() -> T
 {
-    pp!(message);
-    io::stdout().flush().unwrap();
-}
+    let mut editor = Editor::<()>::new();
+    let prompt = format!("{}: ", message);
 
-fn get_input<F, E, T>(f_ok: F, f_err: E) -> T where F: Fn(String) -> T, E: Fn() -> T
-{
-    let mut input = s!();
-
-    match io::stdin().read_line(&mut input)
+    match editor.readline_with_initial(&prompt, (&initial, &s!()))
     {
-        Ok(_) => f_ok(input),
-        Err(_) => f_err()
+        Ok(input) => 
+        {
+            f_ok(input)
+        },
+        Err(_) => 
+        {
+            f_err()
+        }
     }
 }
 
 fn ask_bool(message: String) -> bool
 {
-    print(message + " (y, n): ");
-    get_input(|a| a.trim().to_lowercase() == "y", || false)
+    get_input(message + " (y, n)", s!(), |a| a.trim().to_lowercase() == "y", || false)
 }
 
 fn ask_int(message: String) -> usize
 {
-    print(message + ": ");
-    get_input(|a| a.trim().parse::<usize>().unwrap_or_default(), || 0)
+    get_input(message, s!(), |a| a.trim().parse::<usize>().unwrap_or(0), || 0)
+}
+
+fn ask_string(message: String, initial: String) -> String
+{
+    get_input(message, initial, |a| a.trim().to_string(), || s!())
 }
 
 fn get_password() -> String
@@ -371,14 +370,14 @@ fn show_notes(lines: Vec<String>)
             {
                 p!(line);
             }
-
-            p!(""); p!("Press Enter To Show All");
         }
 
         p!("");
 
+        let full = lines.is_empty();
+        let prompt = if full {"Number (Empty To Exit)"} else {"Number (Empty To Show All)"};
         MenuAnswer::display_menu();
-        MenuAnswer::new(ask_int(s!("Option"))).exec();
+        MenuAnswer::new(ask_int(s!(prompt))).exec(full);
     }
 }
 
@@ -483,6 +482,7 @@ fn edit_note()
     let line = get_line(n);
     if line == "" {return}
     let edited = ask_string(s!("Edit Note"), line);
+    if edited.is_empty() {return}
     replace_line(n, edited);
 }
 
@@ -548,7 +548,7 @@ fn delete_notes()
 
     numbers = numbers.iter().filter(|x| **x != 0).copied().collect();
 
-    if numbers.is_empty()
+    if !numbers.is_empty()
     {
         delete_lines(numbers);
     }
@@ -573,22 +573,4 @@ fn change_password()
 {
     unset_password();
     update_file(get_notes(false));
-}
-
-fn ask_string(message: String, initial: String) -> String
-{
-    let mut editor = Editor::<()>::new();
-    let prompt = format!("{}: ", message);
-
-    match editor.readline_with_initial(&prompt, (&initial, &s!()))
-    {
-        Ok(line) => 
-        {
-            line
-        },
-        Err(_) => 
-        {
-            s!()
-        }
-    }
 }
