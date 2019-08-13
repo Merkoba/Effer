@@ -1,21 +1,20 @@
 #[macro_use]
-extern crate strum_macros;
-extern crate strum;
-#[macro_use]
 extern crate lazy_static;
 extern crate rpassword;
 extern crate aes_soft as aes;
 extern crate block_modes;
 extern crate hex;
 extern crate rustyline;
+extern crate termion;
 
 mod macros;
 
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::{Write};
+use std::io::{Write, stdout, stdin};
 use std::process::exit;
+use std::cmp::min;
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
 use aes::Aes256;
@@ -23,17 +22,22 @@ use dirs;
 use rand::prelude::*;
 use sha3::{Sha3_256, Digest};
 use std::sync::Mutex;
-use strum::IntoEnumIterator;
 use rustyline::Editor;
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 
 const FIRST_LINE: &str = "<Notes Unlocked>";
+const ITEMS_PER_LEVEL: usize = 10;
 
 lazy_static! 
 {
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
     static ref NOTES: Mutex<String> = Mutex::new(s!());
+    static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
+    static ref LEVEL: Mutex<usize> = Mutex::new(1);
 }
 
 enum FilePathCheckResult
@@ -56,81 +60,39 @@ impl FilePathCheckResult
     }
 }
 
-#[derive(EnumIter)]
+#[derive(Debug)]
 enum MenuAnswer
 {
     Nothing,
     AddNote,
     EditNote,
+    EditLast,
     FindNotes,
     DeleteNotes,
     RemakeFile,
-    ChangePassword
+    ChangePassword,
+    CycleLeft,
+    CycleRight,
+    Exit
 }
 
 impl MenuAnswer
 {
-    fn new(n: usize) -> MenuAnswer
-    {
-        MenuAnswer::iter().nth(n).unwrap_or(MenuAnswer::Nothing)
-    }
-
-    fn get_label(&self) -> String
+    fn exec(&self)
     {
         match self
         {
-            MenuAnswer::AddNote => s!("Add Note"),
-            MenuAnswer::FindNotes => s!("Find Notes"),
-            MenuAnswer::EditNote => s!("Edit Note"),
-            MenuAnswer::DeleteNotes => s!("Delete Notes"),
-            MenuAnswer::RemakeFile => s!("Remake File"),
-            MenuAnswer::ChangePassword => s!("Change Password"),
-            _ => s!()
-        }
-    }
-
-    fn display_menu()
-    {
-        for (i, a) in MenuAnswer::iter().enumerate()
-        {
-            if i == 0 {continue}
-            let s = format_item(i, &a.get_label());
-            if i % 3 == 0 {p!(s)} else {pp!("{} | ", s)}
-        }
-    }
-
-    fn exec(&self, full: bool)
-    {
-        match self
-        {
-            MenuAnswer::AddNote =>
-            {
-                add_note();
-            },
-            MenuAnswer::FindNotes =>
-            {
-                show_notes(find_notes());
-            },
-            MenuAnswer::EditNote =>
-            {
-                edit_note();
-            },
-            MenuAnswer::DeleteNotes =>
-            {
-                delete_notes();
-            },
-            MenuAnswer::RemakeFile =>
-            {
-                remake_file();
-            },
-            MenuAnswer::ChangePassword =>
-            {
-                change_password();
-            },
-            MenuAnswer::Nothing =>
-            {
-                if full {exit(0)} else {show_notes(vec![])}
-            }
+            MenuAnswer::AddNote => {add_note()},
+            MenuAnswer::FindNotes => {find_notes()},
+            MenuAnswer::EditNote => {edit_note(0)},
+            MenuAnswer::DeleteNotes => {delete_notes()},
+            MenuAnswer::RemakeFile => {remake_file()},
+            MenuAnswer::ChangePassword => {change_password()},
+            MenuAnswer::CycleLeft => {cycle_left()},
+            MenuAnswer::CycleRight => {cycle_right()},
+            MenuAnswer::EditLast => {edit_last_note()},
+            MenuAnswer::Exit => {exit(0)},
+            MenuAnswer::Nothing => {show_latest_notes()}
         }
     }
 }
@@ -140,7 +102,7 @@ fn main()
     handle_file_path_check(file_path_check(get_file_path()));
     get_password();
     check_password();
-    show_notes(vec![]);
+    show_latest_notes();
 }
 
 fn get_home_path() -> PathBuf
@@ -248,7 +210,7 @@ fn get_password() -> String
 
     if pw.chars().count() == 0
     {
-        let password = rpassword::prompt_password_stdout("Password: ").unwrap();
+        let password = rpassword::prompt_password_stdout("\nPassword: ").unwrap();
         if password.chars().count() == 0 {exit(0)}
         *pw = password;
     }
@@ -345,39 +307,35 @@ fn generate_iv(key: &[u8]) -> Vec<u8>
     hex::decode(chars.iter().collect::<String>()).unwrap()
 }
 
-fn show_notes(lines: Vec<String>)
+fn show_notes(level: usize, lines: Vec<String>)
 {
     loop
     {
         p!(""); p!("---------------"); p!("");
 
-        if lines.is_empty()
+        if level > 0
         {
-            let notes = get_notes(false);
-
-            for (i, line) in notes.lines().enumerate()
-            {
-                if i > 0
-                {
-                    p!(format_item(i, line));
-                }
-            }
+            for line in get_note_range(level).iter() {p!(line)}
         }
 
         else
         {
-            for line in lines.iter()
-            {
-                p!(line);
-            }
+            for line in lines.iter() {p!(line)}
         }
 
         p!("");
+        
+        { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
+        let prompt = s!("Action (Use Arrows To Cycle)");
+        
+        pp!("(a) Add Note | ");
+        pp!("(e) Edit Note | ");
+        p!("(f) Find Notes");
+        pp!("(d) Delete Notes | ");
+        pp!("(r) Remake File | ");
+        p!("(p) Change Password");
 
-        let full = lines.is_empty();
-        let prompt = if full {"Number (Empty To Exit)"} else {"Number (Empty To Show All)"};
-        MenuAnswer::display_menu();
-        MenuAnswer::new(ask_int(s!(prompt))).exec(full);
+        menu_input(prompt).exec();
     }
 }
 
@@ -407,15 +365,22 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
 fn get_notes(force_update: bool) -> String
 {
     let mut notes = NOTES.lock().unwrap();
+    let mut notes_length = NOTES_LENGTH.lock().unwrap();
 
-    if notes.chars().count() == 0 || force_update
+    if notes.is_empty() || force_update
     {
         let encrypted_text = get_file_text();
         let text = decrypt_text(encrypted_text);
-        *notes = text;
+        *notes_length = text.lines().count() - 1; *notes = text;
     }
 
     notes.to_string()
+}
+
+fn get_notes_length() -> usize
+{
+    get_notes(false);
+    *NOTES_LENGTH.lock().unwrap()
 }
 
 fn update_file(text: String)
@@ -473,11 +438,16 @@ fn add_note()
     if note.is_empty() {return}
     let new_text = format!("{}\n{}", get_notes(false), note);
     update_file(new_text);
+    show_latest_notes();
 }
 
-fn edit_note()
+fn edit_note(mut n: usize)
 {
-    let n = ask_int(s!("Note Number"));
+    if n == 0
+    {
+        n = ask_int(s!("Note Number"));
+    }
+
     if n == 0 {return}
     let line = get_line(n);
     if line == "" {return}
@@ -486,11 +456,11 @@ fn edit_note()
     replace_line(n, edited);
 }
 
-fn find_notes() -> Vec<String>
+fn find_notes()
 {
     let filter = ask_string(s!("Filter"), s!()).to_lowercase();
     let mut found: Vec<String> = vec![];
-    if filter == "" {return found}
+    if filter == "" {return}
     let filter_list: Vec<&str> = filter.split_whitespace().collect();
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
@@ -514,7 +484,17 @@ fn find_notes() -> Vec<String>
         found.push(s!("<No Results>"));
     }
 
-    found
+    else if found.len() == 1
+    {
+        found.push(s!("\n1 Result Found"));
+    }
+
+    else
+    {
+        found.push(format!("\n{} Results Found", found.len()));
+    }
+
+    show_notes(0, found);
 }
 
 fn delete_notes()
@@ -550,11 +530,12 @@ fn delete_notes()
     }
 
     numbers = numbers.iter().filter(|x| **x != 0).copied().collect();
+    if !numbers.is_empty() {delete_lines(numbers)}
+}
 
-    if !numbers.is_empty()
-    {
-        delete_lines(numbers);
-    }
+fn show_latest_notes()
+{
+    show_notes(get_max_level(), vec![]);
 }
 
 fn format_item(n: usize, s: &str) -> String
@@ -576,4 +557,99 @@ fn change_password()
 {
     unset_password();
     update_file(get_notes(false));
+}
+
+fn get_note_range(mut level: usize) -> Vec<String>
+{
+    level = min(level, get_max_level());
+    let mut result: Vec<String> = vec![];
+    if level < 1 {return result}
+    let notes = get_notes(false);
+    let lines: Vec<&str> = notes.lines().collect();
+    if lines.is_empty() {return result}
+
+    let a = if level > 1 {((level - 1) * ITEMS_PER_LEVEL) + 1} else {1};
+    let b = min(level * ITEMS_PER_LEVEL, lines.len() - 1);
+    
+    let selected: Vec<&str> = lines[a..=b].iter().copied().collect();
+    let mut n = a;
+
+    for line in selected.iter()
+    {
+        result.push(format_item(n, line)); n += 1;
+    }
+
+    result
+}
+
+fn menu_input(prompt: String) -> MenuAnswer
+{
+    let stdin = stdin();
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    write!(stdout, "{}: ", prompt).unwrap();
+    stdout.flush().unwrap();
+
+    let ans = match stdin.keys().next().unwrap().unwrap()
+    {
+        Key::Left => MenuAnswer::CycleLeft,
+        Key::Right => MenuAnswer::CycleRight,
+        Key::Up => MenuAnswer::EditLast,
+        Key::Esc => MenuAnswer::Exit,
+        Key::Ctrl('c') => MenuAnswer::Exit,
+        Key::Char('a') => MenuAnswer::AddNote,
+        Key::Char('e') => MenuAnswer::EditNote,
+        Key::Char('f') => MenuAnswer::FindNotes,
+        Key::Char('d') => MenuAnswer::DeleteNotes,
+        Key::Char('r') => MenuAnswer::RemakeFile,
+        Key::Char('p') => MenuAnswer::ChangePassword,
+        _ => MenuAnswer::Nothing
+    };
+
+    stdout.flush().unwrap();
+
+    ans
+}
+
+fn get_max_level() -> usize
+{
+    let notes_length = get_notes_length();
+    let n = notes_length as f64 / ITEMS_PER_LEVEL as f64;
+    n.ceil() as usize
+}
+
+fn cycle_left()
+{   
+    let lvl: usize;
+
+    {
+        let level = LEVEL.lock().unwrap();
+        let max_level = get_max_level();
+        lvl = if *level <= 1 {max_level} else {*level - 1};
+    }
+
+    show_notes(lvl, vec![]);
+}
+
+fn cycle_right()
+{
+    let lvl: usize;
+
+    {
+        let level = LEVEL.lock().unwrap();
+        let max_level = get_max_level();
+        lvl = if *level >= max_level {1} else {*level + 1};
+    }
+
+    show_notes(lvl, vec![]);
+}
+
+fn edit_last_note()
+{
+    let n: usize;
+
+    {
+        n = *NOTES_LENGTH.lock().unwrap();
+    }
+
+    edit_note(n);
 }
