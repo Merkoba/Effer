@@ -24,7 +24,7 @@ use lazy_static::lazy_static;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
-const ITEMS_PER_LEVEL: usize = 10;
+const ITEMS_PER_LEVEL: usize = 20;
 
 lazy_static! 
 {
