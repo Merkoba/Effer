@@ -1,14 +1,4 @@
-#[macro_use]
-extern crate lazy_static;
-extern crate rpassword;
-extern crate aes_soft as aes;
-extern crate block_modes;
-extern crate hex;
-extern crate rustyline;
-extern crate termion;
-
 mod macros;
-
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -17,7 +7,7 @@ use std::process::exit;
 use std::cmp::min;
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
-use aes::Aes256;
+use aes_soft::Aes256;
 use dirs;
 use rand::prelude::*;
 use sha3::{Sha3_256, Digest};
@@ -26,9 +16,9 @@ use rustyline::Editor;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
+use lazy_static::lazy_static;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
-
 const FIRST_LINE: &str = "<Notes Unlocked>";
 const ITEMS_PER_LEVEL: usize = 10;
 
