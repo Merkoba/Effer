@@ -37,10 +37,10 @@ lazy_static!
 
 fn main() 
 {
-    change_screen();
     handle_file_path_check(file_path_check(get_file_path()));
     get_password(false);
     check_password();
+    change_screen();
     goto_last_page();
 }
 
@@ -162,7 +162,7 @@ fn get_password(change: bool) -> String
 {
     let mut pw = PASSWORD.lock().unwrap();
 
-    if pw.chars().count() == 0
+    if pw.is_empty() || change
     {
         let password: String;
 
@@ -179,27 +179,15 @@ fn get_password(change: bool) -> String
             .interact().expect("Password Input Error");
         }
 
-        if password.chars().count() == 0 {exit()}; *pw = password;
+        *pw = password;
     }
 
     pw.to_string()
 }
 
-fn unset_password()
-{
-    let mut password = PASSWORD.lock().unwrap();
-    *password = s!();
-}
-
 fn create_file()
 {
-    let password = get_password(false);
-
-    if password.chars().count() == 0
-    {
-        exit();
-    }
-
+    get_password(false);
     let encrypted = encrypt_text(s!(FIRST_LINE));
     let parent_path = get_file_parent_path();
     fs::create_dir_all(parent_path).unwrap();
@@ -596,7 +584,7 @@ fn remake_file()
 
 fn change_password()
 {
-    unset_password(); get_password(true);
+    get_password(true);
     update_file(get_notes(false));
 }
 
