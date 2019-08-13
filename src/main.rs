@@ -327,7 +327,6 @@ fn show_notes(level: usize, lines: Vec<String>)
         p!("");
         
         { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
-        let prompt = s!("Action (Use Arrows To Cycle)");
         
         pp!("(a) Add Note | ");
         pp!("(e) Edit Note | ");
@@ -335,8 +334,10 @@ fn show_notes(level: usize, lines: Vec<String>)
         pp!("(d) Delete Notes | ");
         pp!("(r) Remake File | ");
         p!("(p) Change Password");
+        pp!("(Left/Right) Cycle Notes | ");
+        p!("(Up) Edit Last Note");
 
-        menu_input(prompt).exec();
+        menu_input().exec();
     }
 }
 
@@ -583,11 +584,11 @@ fn get_note_range(mut level: usize) -> Vec<String>
     result
 }
 
-fn menu_input(prompt: String) -> MenuAnswer
+fn menu_input() -> MenuAnswer
 {
     let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
-    write!(stdout, "{}: ", prompt).unwrap();
+    write!(stdout, "{}", termion::cursor::Hide).unwrap();
     stdout.flush().unwrap();
 
     let ans = match stdin.keys().next().unwrap().unwrap()
@@ -607,7 +608,7 @@ fn menu_input(prompt: String) -> MenuAnswer
     };
 
     stdout.flush().unwrap();
-
+    write!(stdout, "{}", termion::cursor::Show).unwrap();
     ans
 }
 
