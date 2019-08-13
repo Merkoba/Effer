@@ -100,7 +100,7 @@ impl MenuAnswer
 fn main() 
 {
     handle_file_path_check(file_path_check(get_file_path()));
-    get_password();
+    get_password(false);
     check_password();
     show_latest_notes();
 }
@@ -204,13 +204,14 @@ fn ask_string(message: String, initial: String) -> String
     get_input(message, initial, |a| a.trim().to_string(), || s!())
 }
 
-fn get_password() -> String
+fn get_password(change: bool) -> String
 {
     let mut pw = PASSWORD.lock().unwrap();
 
     if pw.chars().count() == 0
     {
-        let password = rpassword::prompt_password_stdout("\nPassword: ").unwrap();
+        let prompt = if change {"\nNew Password: "} else {"\nPassword: "};
+        let password = rpassword::prompt_password_stdout(prompt).unwrap();
         if password.chars().count() == 0 {exit(0)}
         *pw = password;
     }
@@ -226,7 +227,7 @@ fn unset_password()
 
 fn create_file()
 {
-    let password = get_password();
+    let password = get_password(false);
 
     if password.chars().count() == 0
     {
@@ -244,7 +245,7 @@ fn create_file()
 
 fn encrypt_text(plain_text: String) -> String
 {
-    let password = get_password();
+    let password = get_password(false);
     let text = plain_text.trim().to_string();
     let mut hasher = Sha3_256::new();
     hasher.input(password.as_bytes());
@@ -262,7 +263,7 @@ fn decrypt_text(encrypted_text: String) -> String
         return s!();
     }
 
-    let password = get_password();
+    let password = get_password(false);
     let mut hasher = Sha3_256::new();
     hasher.input(password.as_bytes());
     let key = hasher.result();
@@ -555,7 +556,7 @@ fn remake_file()
 
 fn change_password()
 {
-    unset_password();
+    unset_password(); get_password(true);
     update_file(get_notes(false));
 }
 
