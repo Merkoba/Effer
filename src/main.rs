@@ -45,6 +45,9 @@ fn main()
 fn change_screen()
 {
     p!("\x1b[?1049h");
+    let size = termion::terminal_size().unwrap();
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    write!(stdout, "{}", termion::cursor::Goto(1, size.1)).unwrap();
 }
 
 fn exit() -> !
