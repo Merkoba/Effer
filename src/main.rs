@@ -444,7 +444,7 @@ fn find_notes()
 {
     let filter = ask_string(s!("Filter"), s!()).to_lowercase();
     let mut found: Vec<String> = vec![];
-    if filter == "" {return}
+    if filter.is_empty() {return}
     let filter_list: Vec<&str> = filter.split_whitespace().collect();
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
@@ -488,6 +488,7 @@ fn delete_notes()
     p!("Or Note Range (e.g 1-3)");
 
     let ans = ask_string(s!(), s!());
+    if ans.is_empty() {return}
     let mut numbers: Vec<usize> = vec![];
 
     if ans.contains(',')
