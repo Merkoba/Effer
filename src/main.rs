@@ -44,6 +44,7 @@ fn main()
 
 fn change_screen()
 {
+    // Switch to the alternative screen
     p!("\x1b[?1049h");
     let size = termion::terminal_size().unwrap();
     let mut stdout = stdout().into_raw_mode().unwrap();
@@ -52,6 +53,7 @@ fn change_screen()
 
 fn exit() -> !
 {
+    // Switch back to main screen
     p!("\x1b[?1049l"); process::exit(0)
 }
 
@@ -262,6 +264,7 @@ fn show_notes(level: usize, lines: Vec<String>)
 {
     loop
     {
+        // Clear the screen
         p!("\x1b[2J");
         
         if level > 0
