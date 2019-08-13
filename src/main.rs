@@ -1,4 +1,5 @@
 mod macros;
+mod structs;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -17,6 +18,8 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use lazy_static::lazy_static;
+use structs::FilePathCheckResult;
+use structs::MenuAnswer;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
@@ -28,63 +31,6 @@ lazy_static!
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
     static ref LEVEL: Mutex<usize> = Mutex::new(1);
-}
-
-enum FilePathCheckResult
-{
-    DoesNotExist,
-    NotAFile,
-    Exists
-}
-
-impl FilePathCheckResult
-{
-    fn message(&self) -> &str
-    {
-        match *self
-        {
-            FilePathCheckResult::Exists => "File exists.",
-            FilePathCheckResult::DoesNotExist => "File doesn't exist.",
-            FilePathCheckResult::NotAFile => "The path exists but it's not a file."
-        }
-    }
-}
-
-#[derive(Debug)]
-enum MenuAnswer
-{
-    Nothing,
-    AddNote,
-    EditNote,
-    EditLast,
-    FindNotes,
-    DeleteNotes,
-    RemakeFile,
-    ChangePassword,
-    CycleLeft,
-    CycleRight,
-    Exit
-}
-
-impl MenuAnswer
-{
-    fn exec(&self)
-    {
-        match self
-        {
-            MenuAnswer::AddNote => {add_note()},
-            MenuAnswer::FindNotes => {find_notes()},
-            MenuAnswer::EditNote => {edit_note(0)},
-            MenuAnswer::DeleteNotes => {delete_notes()},
-            MenuAnswer::RemakeFile => {remake_file()},
-            MenuAnswer::ChangePassword => {change_password()},
-            MenuAnswer::CycleLeft => {cycle_left()},
-            MenuAnswer::CycleRight => {cycle_right()},
-            MenuAnswer::EditLast => {edit_last_note()},
-            MenuAnswer::Exit => {exit(0)},
-            MenuAnswer::Nothing => {show_latest_notes()}
-        }
-    }
 }
 
 fn main() 
@@ -327,7 +273,53 @@ fn show_notes(level: usize, lines: Vec<String>)
         pp!("(Left/Right) Cycle Notes | ");
         p!("(Up) Edit Last Note");
 
-        menu_input().exec();
+        menu_action(menu_input());
+    }
+}
+
+fn menu_input() -> MenuAnswer
+{
+    let stdin = stdin();
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    write!(stdout, "{}", termion::cursor::Hide).unwrap();
+    stdout.flush().unwrap();
+
+    let ans = match stdin.keys().next().unwrap().unwrap()
+    {
+        Key::Left => MenuAnswer::CycleLeft,
+        Key::Right => MenuAnswer::CycleRight,
+        Key::Up => MenuAnswer::EditLast,
+        Key::Esc => MenuAnswer::Exit,
+        Key::Ctrl('c') => MenuAnswer::Exit,
+        Key::Char('a') => MenuAnswer::AddNote,
+        Key::Char('e') => MenuAnswer::EditNote,
+        Key::Char('f') => MenuAnswer::FindNotes,
+        Key::Char('d') => MenuAnswer::DeleteNotes,
+        Key::Char('r') => MenuAnswer::RemakeFile,
+        Key::Char('p') => MenuAnswer::ChangePassword,
+        _ => MenuAnswer::Nothing
+    };
+
+    stdout.flush().unwrap();
+    write!(stdout, "{}", termion::cursor::Show).unwrap();
+    ans
+}
+
+fn menu_action(ans: MenuAnswer)
+{
+    match ans
+    {
+        MenuAnswer::AddNote => {add_note()},
+        MenuAnswer::FindNotes => {find_notes()},
+        MenuAnswer::EditNote => {edit_note(0)},
+        MenuAnswer::DeleteNotes => {delete_notes()},
+        MenuAnswer::RemakeFile => {remake_file()},
+        MenuAnswer::ChangePassword => {change_password()},
+        MenuAnswer::CycleLeft => {cycle_left()},
+        MenuAnswer::CycleRight => {cycle_right()},
+        MenuAnswer::EditLast => {edit_last_note()},
+        MenuAnswer::Exit => {exit(0)},
+        MenuAnswer::Nothing => {show_latest_notes()}
     }
 }
 
@@ -572,34 +564,6 @@ fn get_note_range(mut level: usize) -> Vec<String>
     }
 
     result
-}
-
-fn menu_input() -> MenuAnswer
-{
-    let stdin = stdin();
-    let mut stdout = stdout().into_raw_mode().unwrap();
-    write!(stdout, "{}", termion::cursor::Hide).unwrap();
-    stdout.flush().unwrap();
-
-    let ans = match stdin.keys().next().unwrap().unwrap()
-    {
-        Key::Left => MenuAnswer::CycleLeft,
-        Key::Right => MenuAnswer::CycleRight,
-        Key::Up => MenuAnswer::EditLast,
-        Key::Esc => MenuAnswer::Exit,
-        Key::Ctrl('c') => MenuAnswer::Exit,
-        Key::Char('a') => MenuAnswer::AddNote,
-        Key::Char('e') => MenuAnswer::EditNote,
-        Key::Char('f') => MenuAnswer::FindNotes,
-        Key::Char('d') => MenuAnswer::DeleteNotes,
-        Key::Char('r') => MenuAnswer::RemakeFile,
-        Key::Char('p') => MenuAnswer::ChangePassword,
-        _ => MenuAnswer::Nothing
-    };
-
-    stdout.flush().unwrap();
-    write!(stdout, "{}", termion::cursor::Show).unwrap();
-    ans
 }
 
 fn get_max_level() -> usize
