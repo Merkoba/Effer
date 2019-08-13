@@ -21,6 +21,7 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use lazy_static::lazy_static;
+use dialoguer::PasswordInput;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
@@ -163,10 +164,22 @@ fn get_password(change: bool) -> String
 
     if pw.chars().count() == 0
     {
-        let prompt = if change {"\nNew Password: "} else {"\nPassword: "};
-        let password = rpassword::prompt_password_stdout(prompt).unwrap();
-        if password.chars().count() == 0 {exit()}
-        *pw = password;
+        let password: String;
+
+        if change
+        {
+            password = PasswordInput::new().with_prompt("New Password")
+            .with_confirmation("Confirm Password", "Passwords Mismatching")
+            .interact().expect("Password Input Error");
+        }
+
+        else
+        {
+            password = PasswordInput::new().with_prompt("Password")
+            .interact().expect("Password Input Error");
+        }
+
+        if password.chars().count() == 0 {exit()}; *pw = password;
     }
 
     pw.to_string()
