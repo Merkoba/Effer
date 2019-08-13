@@ -1,10 +1,12 @@
 mod macros;
 mod structs;
+use structs::FilePathCheckResult;
+use structs::MenuAnswer;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::io::{Write, stdout, stdin};
-use std::process::exit;
+use std::process;
 use std::cmp::min;
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
@@ -18,8 +20,6 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use lazy_static::lazy_static;
-use structs::FilePathCheckResult;
-use structs::MenuAnswer;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
@@ -35,10 +35,21 @@ lazy_static!
 
 fn main() 
 {
+    change_screen();
     handle_file_path_check(file_path_check(get_file_path()));
     get_password(false);
     check_password();
     show_latest_notes();
+}
+
+fn change_screen()
+{
+    p!("\x1b[?1049h");
+}
+
+fn exit() -> !
+{
+    p!("\x1b[?1049l"); process::exit(0)
 }
 
 fn get_home_path() -> PathBuf
@@ -48,7 +59,7 @@ fn get_home_path() -> PathBuf
         Some(path) => path,
         None => 
         {
-            p!("Can't get your Home path."); exit(0);
+            p!("Can't get your Home path."); exit();
         }
     }
 }
@@ -95,13 +106,13 @@ fn handle_file_path_check(result: FilePathCheckResult)
         {
             p!(result.message());
             let answer = ask_bool(s!("Do you want to make the file now?"));
-            if answer {create_file()} else {exit(0)}
+            if answer {create_file()} else {exit()}
         },
         FilePathCheckResult::NotAFile =>
         {
             p!(result.message());
             let answer = ask_bool(s!("Do you want to re-make the file?"));
-            if answer {create_file()} else {exit(0)}
+            if answer {create_file()} else {exit()}
         }
     }
 }
@@ -148,7 +159,7 @@ fn get_password(change: bool) -> String
     {
         let prompt = if change {"\nNew Password: "} else {"\nPassword: "};
         let password = rpassword::prompt_password_stdout(prompt).unwrap();
-        if password.chars().count() == 0 {exit(0)}
+        if password.chars().count() == 0 {exit()}
         *pw = password;
     }
 
@@ -167,7 +178,7 @@ fn create_file()
 
     if password.chars().count() == 0
     {
-        exit(0);
+        exit();
     }
 
     let encrypted = encrypt_text(s!(FIRST_LINE));
@@ -213,7 +224,7 @@ fn decrypt_text(encrypted_text: String) -> String
         Ok(_) => (),
         Err(_) => 
         {
-            p!("Wrong password."); exit(0);
+            p!("Wrong password."); exit();
         }
     }
     
@@ -248,8 +259,8 @@ fn show_notes(level: usize, lines: Vec<String>)
 {
     loop
     {
-        p!(""); p!("---------------"); p!("");
-
+        p!("\x1b[2J");
+        
         if level > 0
         {
             for line in get_note_range(level).iter() {p!(line)}
@@ -259,21 +270,21 @@ fn show_notes(level: usize, lines: Vec<String>)
         {
             for line in lines.iter() {p!(line)}
         }
-
-        p!("");
         
         { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
-        
-        pp!("(a) Add Note | ");
-        pp!("(e) Edit Note | ");
-        p!("(f) Find Notes");
-        pp!("(d) Delete Notes | ");
-        pp!("(r) Remake File | ");
-        p!("(p) Change Password");
-        pp!("(Left/Right) Cycle Notes | ");
-        p!("(Up) Edit Last Note");
 
-        menu_action(menu_input());
+        let mut s = s!();
+        
+        s +="\n(a) Add Note | ";
+        s +="(e) Edit Note | ";
+        s +="(f) Find Notes";
+        s +="\n(d) Delete Notes | ";
+        s +="(r) Remake File | ";
+        s +="(p) Change Password";
+        s +="\n(Left/Right) Cycle Notes | ";
+        s +="(Up) Edit Last Note";
+
+        p!(s); menu_action(menu_input());
     }
 }
 
@@ -318,7 +329,7 @@ fn menu_action(ans: MenuAnswer)
         MenuAnswer::CycleLeft => {cycle_left()},
         MenuAnswer::CycleRight => {cycle_right()},
         MenuAnswer::EditLast => {edit_last_note()},
-        MenuAnswer::Exit => {exit(0)},
+        MenuAnswer::Exit => {exit()},
         MenuAnswer::Nothing => {show_latest_notes()}
     }
 }
@@ -335,7 +346,7 @@ fn check_password()
 
     if first_line != FIRST_LINE
     {
-        p!("Wrong password."); exit(0);
+        p!("Wrong password."); exit();
     }
 }
 
