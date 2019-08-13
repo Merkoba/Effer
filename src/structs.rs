@@ -31,5 +31,8 @@ pub enum MenuAnswer
     ChangePassword,
     CycleLeft,
     CycleRight,
+    FirstPage,
+    LastPage,
+    PageNumber,
     Exit
 }

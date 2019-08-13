@@ -7,6 +7,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::io::{Write, stdout, stdin};
 use std::process;
+use std::cmp::max;
 use std::cmp::min;
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
@@ -39,7 +40,7 @@ fn main()
     handle_file_path_check(file_path_check(get_file_path()));
     get_password(false);
     check_password();
-    show_latest_notes();
+    goto_last_page();
 }
 
 fn change_screen()
@@ -287,44 +288,61 @@ fn show_notes(level: usize, lines: Vec<String>)
         s +="\n(d) Delete Notes | ";
         s +="(r) Remake File | ";
         s +="(p) Change Password";
-        s +="\n(Left/Right) Cycle Notes | ";
+        s +="\n(Left/Right) Cycle Pages | ";
         s +="(Up) Edit Last Note";
+        s +="\n(Home) First Page | (End) Last Page";
 
         p!(s); menu_action(menu_input());
     }
 }
 
-fn menu_input() -> MenuAnswer
+fn menu_input() -> (MenuAnswer, usize)
 {
     let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(stdout, "{}", termion::cursor::Hide).unwrap();
     stdout.flush().unwrap();
 
+    let mut data = 0;
+
     let ans = match stdin.keys().next().unwrap().unwrap()
     {
         Key::Left => MenuAnswer::CycleLeft,
         Key::Right => MenuAnswer::CycleRight,
         Key::Up => MenuAnswer::EditLast,
+        Key::Home => MenuAnswer::FirstPage,
+        Key::End => MenuAnswer::LastPage,
+        Key::Char(ch) =>
+        {
+            match ch
+            {
+                d if d.is_digit(10) => 
+                {
+                    data = d.to_digit(10).unwrap() as usize; 
+                    MenuAnswer::PageNumber
+                }
+                'a' => MenuAnswer::AddNote,
+                'e' => MenuAnswer::EditNote,
+                'f' => MenuAnswer::FindNotes,
+                'd' => MenuAnswer::DeleteNotes,
+                'r' => MenuAnswer::RemakeFile,
+                'p' => MenuAnswer::ChangePassword,
+                _ => MenuAnswer::Nothing
+            }
+        }
         Key::Esc => MenuAnswer::Exit,
         Key::Ctrl('c') => MenuAnswer::Exit,
-        Key::Char('a') => MenuAnswer::AddNote,
-        Key::Char('e') => MenuAnswer::EditNote,
-        Key::Char('f') => MenuAnswer::FindNotes,
-        Key::Char('d') => MenuAnswer::DeleteNotes,
-        Key::Char('r') => MenuAnswer::RemakeFile,
-        Key::Char('p') => MenuAnswer::ChangePassword,
         _ => MenuAnswer::Nothing
     };
 
     stdout.flush().unwrap();
-    write!(stdout, "{}", termion::cursor::Show).unwrap();
-    ans
+    write!(stdout, "{}", termion::cursor::Show).unwrap(); 
+    (ans, data)
 }
 
-fn menu_action(ans: MenuAnswer)
+fn menu_action(ans: (MenuAnswer, usize))
 {
-    match ans
+    match ans.0
     {
         MenuAnswer::AddNote => {add_note()},
         MenuAnswer::FindNotes => {find_notes()},
@@ -334,9 +352,12 @@ fn menu_action(ans: MenuAnswer)
         MenuAnswer::ChangePassword => {change_password()},
         MenuAnswer::CycleLeft => {cycle_left()},
         MenuAnswer::CycleRight => {cycle_right()},
+        MenuAnswer::FirstPage => {goto_first_page()},
+        MenuAnswer::LastPage => {goto_last_page()},
         MenuAnswer::EditLast => {edit_last_note()},
+        MenuAnswer::PageNumber => {show_notes(max(1, ans.1), vec![])},
         MenuAnswer::Exit => {exit()},
-        MenuAnswer::Nothing => {show_latest_notes()}
+        MenuAnswer::Nothing => {goto_last_page()}
     }
 }
 
@@ -439,7 +460,7 @@ fn add_note()
     if note.is_empty() {return}
     let new_text = format!("{}\n{}", get_notes(false), note);
     update_file(new_text);
-    show_latest_notes();
+    goto_last_page();
 }
 
 fn edit_note(mut n: usize)
@@ -535,7 +556,12 @@ fn delete_notes()
     if !numbers.is_empty() {delete_lines(numbers)}
 }
 
-fn show_latest_notes()
+fn goto_first_page()
+{
+    show_notes(1, vec![]);
+}
+
+fn goto_last_page()
 {
     show_notes(get_max_level(), vec![]);
 }
@@ -563,9 +589,8 @@ fn change_password()
 
 fn get_note_range(mut level: usize) -> Vec<String>
 {
-    level = min(level, get_max_level());
+    level = max(1, min(level, get_max_level()));
     let mut result: Vec<String> = vec![];
-    if level < 1 {return result}
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
     if lines.is_empty() {return result}
