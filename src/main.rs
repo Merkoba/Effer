@@ -16,7 +16,7 @@ use dirs;
 use rand::prelude::*;
 use sha3::{Sha3_256, Digest};
 use std::sync::Mutex;
-use rustyline::Editor;
+use rustyline::{Editor, Cmd, KeyPress};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -128,6 +128,7 @@ fn get_input<F, E, T>(message: String, initial: String, f_ok: F, f_err: E) -> T
 where F: Fn(String) -> T, E: Fn() -> T
 {
     let mut editor = Editor::<()>::new();
+    editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);
     let prompt = format!("{}: ", message);
 
     match editor.readline_with_initial(&prompt, (&initial, &s!()))
@@ -296,11 +297,13 @@ fn show_notes(mut level: usize, lines: Vec<String>)
         s += "(e) Edit Note | ";
         s += "(f) Find Notes";
         s += "\n(d) Delete Notes | ";
-        s += "(R) Remake File | ";
-        s += "(P) Change Password";
+        s += "(R) Remake | ";
+        s += "(P) Password";
         s += "\n(Left/Right) Cycle Pages | ";
         s += "(Up) Edit Last Note";
-        s += "\n(Home) First Page | (End) Last Page";
+        s += "\n(Home) First Page | ";
+        s += "(End) Last Page | ";
+        s += "(X) Exit";
 
 
         p!(s); menu_action(menu_input());
@@ -339,11 +342,11 @@ fn menu_input() -> (MenuAnswer, usize)
                 'd' => MenuAnswer::DeleteNotes,
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
+                'X' => MenuAnswer::Exit,
                 '\n' => MenuAnswer::RefreshPage,
                 _ => MenuAnswer::Nothing
             }
         }
-        Key::Esc => MenuAnswer::Exit,
         Key::Ctrl('c') => MenuAnswer::Exit,
         _ => MenuAnswer::Nothing
     };
@@ -515,19 +518,21 @@ fn find_notes()
         }
     }
 
+    let msg = "| (Enter) Go Back";
+
     if found.is_empty()
     {
-        found.push(s!("< No Results | Press Enter To Go Back >"));
+        found.push(format!("< No Results {} >", msg));
     }
 
     else if found.len() == 1
     {
-        found.push(s!("\n< 1 Result Found | Press Enter To Go Back >"));
+        found.push(format!("\n< 1 Result Found {} >", msg));
     }
 
     else
     {
-        found.push(format!("\n< {} Results Found | Press Enter To Go Back >", found.len()));
+        found.push(format!("\n< {} Results Found {} >", found.len(), msg));
     }
 
     show_notes(0, found);
