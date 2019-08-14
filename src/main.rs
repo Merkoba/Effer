@@ -187,7 +187,7 @@ fn get_password(change: bool) -> String
 
 fn create_file()
 {
-    get_password(false);
+    get_password(true);
     let encrypted = encrypt_text(s!(FIRST_LINE));
     let parent_path = get_file_parent_path();
     fs::create_dir_all(parent_path).unwrap();
@@ -643,7 +643,7 @@ fn get_max_level() -> usize
 {
     let notes_length = get_notes_length();
     let n = notes_length as f64 / ITEMS_PER_LEVEL as f64;
-    n.ceil() as usize
+    max(1, n.ceil() as usize)
 }
 
 fn cycle_left()
