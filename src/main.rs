@@ -287,8 +287,8 @@ fn show_notes(level: usize, lines: Vec<String>)
         s +="(e) Edit Note | ";
         s +="(f) Find Notes";
         s +="\n(d) Delete Notes | ";
-        s +="(r) Remake File | ";
-        s +="(p) Change Password";
+        s +="(R) Remake File | ";
+        s +="(P) Change Password";
         s +="\n(Left/Right) Cycle Pages | ";
         s +="(Up) Edit Last Note";
         s +="\n(Home) First Page | (End) Last Page";
@@ -326,8 +326,8 @@ fn menu_input() -> (MenuAnswer, usize)
                 'e' => MenuAnswer::EditNote,
                 'f' => MenuAnswer::FindNotes,
                 'd' => MenuAnswer::DeleteNotes,
-                'r' => MenuAnswer::RemakeFile,
-                'p' => MenuAnswer::ChangePassword,
+                'R' => MenuAnswer::RemakeFile,
+                'P' => MenuAnswer::ChangePassword,
                 _ => MenuAnswer::Nothing
             }
         }
