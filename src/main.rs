@@ -262,12 +262,14 @@ fn generate_iv(key: &[u8]) -> Vec<u8>
     hex::decode(chars.iter().collect::<String>()).unwrap()
 }
 
-fn show_notes(level: usize, lines: Vec<String>)
+fn show_notes(mut level: usize, lines: Vec<String>)
 {
     loop
     {
         // Clear the screen
         p!("\x1b[2J");
+
+        level = check_level(level, true);
         
         if level > 0
         {
@@ -278,8 +280,11 @@ fn show_notes(level: usize, lines: Vec<String>)
         {
             for line in lines.iter() {p!(line)}
         }
-        
-        { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
+
+        if level > 0
+        {
+            { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
+        }
 
         let mut s = s!();
         
@@ -311,6 +316,7 @@ fn menu_input() -> (MenuAnswer, usize)
         Key::Left => MenuAnswer::CycleLeft,
         Key::Right => MenuAnswer::CycleRight,
         Key::Up => MenuAnswer::EditLast,
+        Key::Down => MenuAnswer::LastPage,
         Key::Home => MenuAnswer::FirstPage,
         Key::End => MenuAnswer::LastPage,
         Key::Char(ch) =>
@@ -328,6 +334,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 'd' => MenuAnswer::DeleteNotes,
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
+                '\n' => MenuAnswer::RefreshPage,
                 _ => MenuAnswer::Nothing
             }
         }
@@ -355,10 +362,11 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::CycleRight => {cycle_right()},
         MenuAnswer::FirstPage => {goto_first_page()},
         MenuAnswer::LastPage => {goto_last_page()},
+        MenuAnswer::RefreshPage => {refresh_page()},
         MenuAnswer::EditLast => {edit_last_note()},
         MenuAnswer::PageNumber => {show_notes(max(1, ans.1), vec![])},
         MenuAnswer::Exit => {exit()},
-        MenuAnswer::Nothing => {goto_last_page()}
+        MenuAnswer::Nothing => {}
     }
 }
 
@@ -567,6 +575,17 @@ fn goto_last_page()
     show_notes(get_max_level(), vec![]);
 }
 
+fn refresh_page()
+{
+    let lvl;
+
+    {
+        lvl = *LEVEL.lock().unwrap();
+    }
+
+    show_notes(lvl, vec![]);
+}
+
 fn format_item(n: usize, s: &str) -> String
 {
     format!("({}) {}", n, s)
@@ -588,9 +607,14 @@ fn change_password()
     update_file(get_notes(false));
 }
 
-fn get_note_range(mut level: usize) -> Vec<String>
+fn check_level(level: usize, allow_zero: bool) -> usize
 {
-    level = max(1, min(level, get_max_level()));
+    if allow_zero && level == 0 {return 0}
+    max(1, min(level, get_max_level()))
+}
+
+fn get_note_range(level: usize) -> Vec<String>
+{
     let mut result: Vec<String> = vec![];
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();

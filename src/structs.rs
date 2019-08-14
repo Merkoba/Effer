@@ -33,6 +33,7 @@ pub enum MenuAnswer
     CycleRight,
     FirstPage,
     LastPage,
+    RefreshPage,
     PageNumber,
     Exit
 }
