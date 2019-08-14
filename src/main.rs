@@ -523,12 +523,12 @@ fn find_notes()
 
     else if found.len() == 1
     {
-        found.push(format!("\n< 1 Result Found {} >", msg));
+        found.push(format!("\n< 1 Result {} >", msg));
     }
 
     else
     {
-        found.push(format!("\n< {} Results Found {} >", found.len(), msg));
+        found.push(format!("\n< {} Results {} >", found.len(), msg));
     }
 
     show_notes(0, found);
