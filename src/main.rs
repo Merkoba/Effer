@@ -25,7 +25,7 @@ use dialoguer::PasswordInput;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
-const ITEMS_PER_LEVEL: usize = 10;
+const ITEMS_PER_LEVEL: usize = 20;
 
 lazy_static! 
 {
@@ -38,7 +38,7 @@ lazy_static!
 fn main() 
 {
     handle_file_path_check(file_path_check(get_file_path()));
-    get_password(false); update_notes_static(get_notes(true));
+    get_password(false); update_notes_static(get_notes(false));
     check_password(); change_screen(); goto_last_page();
 }
 
