@@ -29,3 +29,13 @@ No other files are created for decryption. This means the notes file is portable
 should be able to be opened with the same program on another machine using the same password.
 
 Contributions are welcome.
+
+# Installation
+
+Install Rust: https://www.rust-lang.org/tools/install
+
+To check using a debug version:
+>cargo run
+
+To build an optimized binary
+>cargo build --release
