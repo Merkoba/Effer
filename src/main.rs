@@ -25,7 +25,7 @@ use dialoguer::PasswordInput;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
-const ITEMS_PER_LEVEL: usize = 20;
+const ITEMS_PER_LEVEL: usize = 15;
 
 lazy_static! 
 {
