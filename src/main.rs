@@ -284,19 +284,24 @@ fn show_notes(mut level: usize, lines: Vec<String>)
         if level > 0
         {
             { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
+            p!(format!("\n< Page {} of {} >", level, get_max_level()));
         }
 
+        if level > 0
+        {
+        }
         let mut s = s!();
         
-        s +="\n(a) Add Note | ";
-        s +="(e) Edit Note | ";
-        s +="(f) Find Notes";
-        s +="\n(d) Delete Notes | ";
-        s +="(R) Remake File | ";
-        s +="(P) Change Password";
-        s +="\n(Left/Right) Cycle Pages | ";
-        s +="(Up) Edit Last Note";
-        s +="\n(Home) First Page | (End) Last Page";
+        s += "\n(a) Add Note | ";
+        s += "(e) Edit Note | ";
+        s += "(f) Find Notes";
+        s += "\n(d) Delete Notes | ";
+        s += "(R) Remake File | ";
+        s += "(P) Change Password";
+        s += "\n(Left/Right) Cycle Pages | ";
+        s += "(Up) Edit Last Note";
+        s += "\n(Home) First Page | (End) Last Page";
+
 
         p!(s); menu_action(menu_input());
     }
@@ -512,17 +517,17 @@ fn find_notes()
 
     if found.is_empty()
     {
-        found.push(s!("<No Results>"));
+        found.push(s!("< No Results | Press Enter To Go Back >"));
     }
 
     else if found.len() == 1
     {
-        found.push(s!("\n1 Result Found"));
+        found.push(s!("\n< 1 Result Found | Press Enter To Go Back >"));
     }
 
     else
     {
-        found.push(format!("\n{} Results Found", found.len()));
+        found.push(format!("\n< {} Results Found | Press Enter To Go Back >", found.len()));
     }
 
     show_notes(0, found);
