@@ -25,7 +25,7 @@ use dialoguer::PasswordInput;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
-const ITEMS_PER_LEVEL: usize = 20;
+const ITEMS_PER_LEVEL: usize = 10;
 
 lazy_static! 
 {
@@ -38,10 +38,8 @@ lazy_static!
 fn main() 
 {
     handle_file_path_check(file_path_check(get_file_path()));
-    get_password(false);
-    check_password();
-    change_screen();
-    goto_last_page();
+    get_password(false); update_notes_static(get_notes(true));
+    check_password(); change_screen(); goto_last_page();
 }
 
 fn change_screen()
@@ -385,7 +383,7 @@ fn get_file_text() -> String
 
 fn check_password()
 {
-    let text = decrypt_text(get_file_text());
+    let text = get_notes(false);
     let first_line = text.lines().nth(0).expect("Can't read last line from the file.");
 
     if first_line != FIRST_LINE
@@ -403,29 +401,37 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
 
 fn get_notes(force_update: bool) -> String
 {
-    let mut notes = NOTES.lock().unwrap();
-    let mut notes_length = NOTES_LENGTH.lock().unwrap();
+    let notes = NOTES.lock().unwrap(); let ans;
 
     if notes.is_empty() || force_update
     {
-        let encrypted_text = get_file_text();
-        let text = decrypt_text(encrypted_text);
-        *notes_length = text.lines().count() - 1; *notes = text;
+        ans = decrypt_text(get_file_text());
     }
 
-    notes.to_string()
+    else
+    {
+        ans = notes.to_string();
+    }
+
+    ans
 }
 
 fn get_notes_length() -> usize
 {
-    get_notes(false);
-    *NOTES_LENGTH.lock().unwrap()
+    get_notes(false); *NOTES_LENGTH.lock().unwrap()
 }
 
 fn update_file(text: String)
 {
-    fs::write(get_file_path(), encrypt_text(s!(text)).as_bytes()).expect("Unable to write new text to file");
-    *NOTES.lock().unwrap() = text;
+    fs::write(get_file_path(), encrypt_text(update_notes_static(text))
+        .as_bytes()).expect("Unable to write new text to file");
+}
+
+fn update_notes_static(text: String) -> String
+{
+    let mut notes = NOTES.lock().unwrap();
+    let mut length = NOTES_LENGTH.lock().unwrap();
+    *length = text.lines().count() - 1; *notes = text; notes.to_string()
 }
 
 fn get_line(n: usize) -> String
@@ -602,15 +608,13 @@ fn remake_file()
     if ask_bool(s!("Are you sure you want to replace the file with an empty one?"))
     {
         fs::remove_file(get_file_path()).unwrap();
-        create_file();
-        get_notes(true);
+        create_file(); get_notes(true);
     }
 }
 
 fn change_password()
 {
-    get_password(true);
-    update_file(get_notes(false));
+    get_password(true); update_file(get_notes(false));
 }
 
 fn check_level(level: usize, allow_zero: bool) -> usize
