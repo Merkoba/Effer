@@ -424,8 +424,8 @@ fn get_notes_length() -> usize
 
 fn update_file(text: String)
 {
-    fs::write(get_file_path(), encrypt_text(text).as_bytes()).expect("Unable to write new text to file");
-    get_notes(true);
+    fs::write(get_file_path(), encrypt_text(s!(text)).as_bytes()).expect("Unable to write new text to file");
+    *NOTES.lock().unwrap() = text;
 }
 
 fn get_line(n: usize) -> String
@@ -446,8 +446,6 @@ fn replace_line(n: usize, new_text: String)
     update_file(lines.iter()
         .map(|l| l.to_string())
         .collect::<Vec<String>>().join("\n"));
-
-    get_notes(true);
 }
 
 fn delete_lines(numbers: Vec<usize>)
@@ -467,8 +465,6 @@ fn delete_lines(numbers: Vec<usize>)
     update_file(new_lines.iter()
         .map(|l| l.to_string())
         .collect::<Vec<String>>().join("\n"));
-
-    get_notes(true);
 }
 
 fn add_note()
