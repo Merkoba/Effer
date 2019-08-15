@@ -536,7 +536,7 @@ fn edit_note(mut n: usize)
 {
     if n == 0
     {
-        n = ask_int(s!("Note Number"));
+        n = ask_note_number("Edit");
     }
 
     if !check_line_exists(n) {return}
@@ -592,9 +592,9 @@ fn find_notes()
 
 fn swap_notes()
 {
-    let n1 = ask_int(s!("First Note Number"));
+    let n1 = ask_note_number("First Swap Item");
     if !check_line_exists(n1) {return}
-    let n2 = ask_int(s!("Second Note Number"));
+    let n2 = ask_note_number("Second Swap Item");
     if !check_line_exists(n2) {return}
     swap_lines(n1, n2);
 }
@@ -605,7 +605,7 @@ fn delete_notes()
     p!("Or Note List (e.g 1,2,3)");
     p!("Or Note Range (e.g 1-3)");
 
-    let ans = ask_string(s!(), s!());
+    let ans = ask_string(s!("Delete"), s!());
     if ans.is_empty() {return}
     let mut numbers: Vec<usize> = vec![];
 
@@ -753,4 +753,30 @@ fn check_line_exists(n: usize) -> bool
     if n <= 0 {return false}
     let length = get_notes_length();
     n <= length
+}
+
+fn ask_note_number(message: &str) -> usize
+{
+    let n; let ans = ask_string(format!("{} #|first|last", message), s!());
+
+    if ans == "first" 
+    {
+        n = 1
+    } 
+        
+    else if ans == "last" 
+    {
+        n = get_notes_length()
+    }
+
+    else
+    {
+        n = match ans.parse::<usize>()
+        {
+            Ok(i) => i,
+            Err(_) => 0
+        }
+    }
+
+    n
 }
