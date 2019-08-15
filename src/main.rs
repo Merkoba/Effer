@@ -2,6 +2,7 @@ mod macros;
 mod structs;
 use structs::FilePathCheckResult;
 use structs::MenuAnswer;
+use structs::MaskingHighlighter;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -20,11 +21,10 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use lazy_static::lazy_static;
-use dialoguer::PasswordInput;
 use rustyline::
 {
     Editor, Cmd, KeyPress,
-    Config, OutputStreamType, 
+    Config, OutputStreamType
 };
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
@@ -42,7 +42,8 @@ lazy_static!
 fn main() 
 {
     handle_file_path_check(file_path_check(get_file_path()));
-    get_password(false); update_notes_static(get_notes(false));
+    if get_password(false).is_empty() {exit()};
+    update_notes_static(get_notes(false));
     check_password(); change_screen(); goto_last_page();
 }
 
@@ -115,18 +116,18 @@ fn handle_file_path_check(result: FilePathCheckResult)
         {
             p!(result.message());
             let answer = ask_bool(s!("Do you want to make the file now?"));
-            if answer {create_file()} else {exit()}
+            if answer {if !create_file() {exit()}} else {exit()}
         },
         FilePathCheckResult::NotAFile =>
         {
             p!(result.message());
             let answer = ask_bool(s!("Do you want to re-make the file?"));
-            if answer {create_file()} else {exit()}
+            if answer {if !create_file() {exit()}} else {exit()}
         }
     }
 }
 
-fn get_input<F, E, T>(message: String, initial: String, f_ok: F, f_err: E) -> T 
+fn get_input<F, E, T>(message: String, initial: String, f_ok: F, f_err: E, mask: bool) -> T 
 where F: Fn(String) -> T, E: Fn() -> T
 {
     let config: Config = Config::builder()
@@ -134,11 +135,18 @@ where F: Fn(String) -> T, E: Fn() -> T
         .output_stream(OutputStreamType::Stdout)
         .build();
 
-    let mut editor = Editor::<()>::with_config(config);
+    let h = MaskingHighlighter {masking: mask};
+    let mut editor = Editor::with_config(config);
+    editor.set_helper(Some(h));
     editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);
     let prompt = format!("{}: ", message);
 
-    match editor.readline_with_initial(&prompt, (&initial, &s!()))
+    if mask
+    {
+        write!(stdout(), "{}", termion::cursor::Hide).unwrap();
+    }
+
+    let ans = match editor.readline_with_initial(&prompt, (&initial, &s!()))
     {
         Ok(input) => 
         {
@@ -148,22 +156,29 @@ where F: Fn(String) -> T, E: Fn() -> T
         {
             f_err()
         }
+    };
+
+    if mask
+    {
+        write!(stdout(), "{}", termion::cursor::Show).unwrap();
     }
+
+    ans
 }
 
 fn ask_bool(message: String) -> bool
 {
-    get_input(message + " (y, n)", s!(), |a| a.trim().to_lowercase() == "y", || false)
+    get_input(message + " (y, n)", s!(), |a| a.trim().to_lowercase() == "y", || false, false)
 }
 
 fn ask_int(message: String) -> usize
 {
-    get_input(message, s!(), |a| a.trim().parse::<usize>().unwrap_or(0), || 0)
+    get_input(message, s!(), |a| a.trim().parse::<usize>().unwrap_or(0), || 0, false)
 }
 
 fn ask_string(message: String, initial: String) -> String
 {
-    get_input(message, initial, |a| a.trim().to_string(), || s!())
+    get_input(message, initial, |a| a.trim().to_string(), || s!(), false)
 }
 
 fn get_password(change: bool) -> String
@@ -176,15 +191,27 @@ fn get_password(change: bool) -> String
 
         if change
         {
-            password = PasswordInput::new().with_prompt("New Password")
-            .with_confirmation("Confirm Password", "Passwords Mismatching")
-            .interact().expect("Password Input Error");
+            loop
+            {
+                let new_password = get_input(s!("New Password"), s!(), |a| a, || s!(), true);
+                if new_password.is_empty() {return s!()}
+                let confirmation = get_input(s!("Confirm Password"), s!(), |a| a, || s!(), true);
+
+                if new_password != confirmation
+                {
+                    p!("Error: Passwords Don't Match.");
+                }
+
+                else
+                {
+                    password = new_password; break;
+                }
+            }
         }
 
         else
         {
-            password = PasswordInput::new().with_prompt("Password")
-            .interact().expect("Password Input Error");
+            password = get_input(s!("Password"), s!(), |a| a, || s!(), true);
         }
 
         *pw = password;
@@ -193,9 +220,9 @@ fn get_password(change: bool) -> String
     pw.to_string()
 }
 
-fn create_file()
+fn create_file() -> bool
 {
-    get_password(true);
+    if get_password(true).is_empty() {return false}
     let encrypted = encrypt_text(s!(FIRST_LINE));
     let parent_path = get_file_parent_path();
     fs::create_dir_all(parent_path).unwrap();
@@ -203,6 +230,7 @@ fn create_file()
     let mut file = fs::File::create(&file_path).expect("Error creating the file.");
     file.write_all(encrypted.as_bytes()).expect("Unable to write initial text to file");
     p!("File created at {}", &file_path.display());
+    return true;
 }
 
 fn encrypt_text(plain_text: String) -> String
@@ -617,7 +645,7 @@ fn remake_file()
     if ask_bool(s!("Are you sure you want to replace the file with an empty one?"))
     {
         fs::remove_file(get_file_path()).unwrap();
-        create_file(); get_notes(true);
+        if !create_file() {exit()} get_notes(true);
     }
 }
 
