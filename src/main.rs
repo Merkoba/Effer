@@ -115,19 +115,19 @@ fn handle_file_path_check(result: FilePathCheckResult)
         FilePathCheckResult::DoesNotExist =>
         {
             p!(result.message());
-            let answer = ask_bool(s!("Do you want to make the file now?"));
+            let answer = ask_bool("Do you want to make the file now?");
             if answer {if !create_file() {exit()}} else {exit()}
         },
         FilePathCheckResult::NotAFile =>
         {
             p!(result.message());
-            let answer = ask_bool(s!("Do you want to re-make the file?"));
+            let answer = ask_bool("Do you want to re-make the file?");
             if answer {if !create_file() {exit()}} else {exit()}
         }
     }
 }
 
-fn get_input<F, E, T>(message: String, initial: String, f_ok: F, f_err: E, mask: bool) -> T 
+fn get_input<F, E, T>(message: &str, initial: &str, f_ok: F, f_err: E, mask: bool) -> T 
 where F: Fn(String) -> T, E: Fn() -> T
 {
     let config: Config = Config::builder()
@@ -146,7 +146,7 @@ where F: Fn(String) -> T, E: Fn() -> T
         write!(stdout(), "{}", termion::cursor::Hide).unwrap();
     }
 
-    let ans = match editor.readline_with_initial(&prompt, (&initial, &s!()))
+    let ans = match editor.readline_with_initial(&prompt, (initial, &s!()))
     {
         Ok(input) => 
         {
@@ -166,17 +166,17 @@ where F: Fn(String) -> T, E: Fn() -> T
     ans
 }
 
-fn ask_bool(message: String) -> bool
+fn ask_bool(message: &str) -> bool
 {
-    get_input(message + " (y, n)", s!(), |a| a.trim().to_lowercase() == "y", || false, false)
+    get_input(&[message, " (y, n)"].concat(), "", |a| a.trim().to_lowercase() == "y", || false, false)
 }
 
-fn ask_int(message: String) -> usize
+fn ask_int(message: &str) -> usize
 {
-    get_input(message, s!(), |a| a.trim().parse::<usize>().unwrap_or(0), || 0, false)
+    get_input(message, "", |a| a.trim().parse::<usize>().unwrap_or(0), || 0, false)
 }
 
-fn ask_string(message: String, initial: String) -> String
+fn ask_string(message: &str, initial: &str) -> String
 {
     get_input(message, initial, |a| a.trim().to_string(), || s!(), false)
 }
@@ -193,9 +193,9 @@ fn get_password(change: bool) -> String
         {
             loop
             {
-                let new_password = get_input(s!("New Password"), s!(), |a| a, || s!(), true);
+                let new_password = get_input("New Password", "", |a| a, || s!(), true);
                 if new_password.is_empty() {return s!()}
-                let confirmation = get_input(s!("Confirm Password"), s!(), |a| a, || s!(), true);
+                let confirmation = get_input("Confirm Password", "", |a| a, || s!(), true);
 
                 if new_password != confirmation
                 {
@@ -211,7 +211,7 @@ fn get_password(change: bool) -> String
 
         else
         {
-            password = get_input(s!("Password"), s!(), |a| a, || s!(), true);
+            password = get_input("Password", "", |a| a, || s!(), true);
         }
 
         *pw = password;
@@ -525,7 +525,7 @@ fn delete_lines(numbers: Vec<usize>)
 
 fn add_note()
 {
-    let note = ask_string(s!("New Note"), s!());
+    let note = ask_string("New Note", "");
     if note.is_empty() {return}
     let new_text = format!("{}\n{}", get_notes(false), note);
     update_file(new_text);
@@ -536,17 +536,17 @@ fn edit_note(mut n: usize)
 {
     if n == 0
     {
-        n = ask_note_number("Edit");
+        n = parse_note_ans(&ask_string("Edit", ""));
     }
 
     if !check_line_exists(n) {return}
-    let edited = ask_string(s!("Edit Note"), get_line(n));
+    let edited = ask_string("Edit Note", &get_line(n));
     if edited.is_empty() {return} replace_line(n, edited);
 }
 
 fn find_notes()
 {
-    let filter = ask_string(s!("Filter"), s!()).to_lowercase();
+    let filter = ask_string("Filter", "").to_lowercase();
     let mut found: Vec<String> = vec![];
     if filter.is_empty() {return}
     let filter_list: Vec<&str> = filter.split_whitespace().collect();
@@ -589,10 +589,11 @@ fn find_notes()
 
 fn swap_notes()
 {
-    let n1 = ask_note_number("First Swap Item");
-    if !check_line_exists(n1) {return}
-    let n2 = ask_note_number("Second Swap Item");
-    if !check_line_exists(n2) {return}
+    let ans = ask_string("Swap (n1 n2)", "");
+    let mut split = ans.split_whitespace().map(|s| s.trim());
+    let n1 = parse_note_ans(split.next().unwrap_or("0"));
+    let n2 = parse_note_ans(split.next().unwrap_or("0"));
+    if !check_line_exists(n1) || !check_line_exists(n2) {return}
     swap_lines(n1, n2);
 }
 
@@ -602,7 +603,7 @@ fn delete_notes()
     p!("Or Note List (e.g 1,2,3)");
     p!("Or Note Range (e.g 1-3)");
 
-    let ans = ask_string(s!("Delete"), s!());
+    let ans = ask_string("Delete", "");
     if ans.is_empty() {return}
     let mut numbers: Vec<usize> = vec![];
 
@@ -661,7 +662,7 @@ fn format_item(n: usize, s: &str) -> String
 
 fn remake_file()
 {
-    if ask_bool(s!("Are you sure you want to replace the file with an empty one?"))
+    if ask_bool("Are you sure you want to replace the file with an empty one?")
     {
         fs::remove_file(get_file_path()).unwrap();
         if !create_file() {exit()} 
@@ -752,28 +753,12 @@ fn check_line_exists(n: usize) -> bool
     n <= length
 }
 
-fn ask_note_number(message: &str) -> usize
+fn parse_note_ans(ans: &str) -> usize
 {
-    let n; let ans = ask_string(format!("{} #|first|last", message), s!());
-
-    if ans == "first" 
+    match ans
     {
-        n = 1
-    } 
-        
-    else if ans == "last" 
-    {
-        n = get_notes_length()
+        "first" => 1,
+        "last" => get_notes_length(),
+        _ => ans.parse().unwrap_or(0)
     }
-
-    else
-    {
-        n = match ans.parse::<usize>()
-        {
-            Ok(i) => i,
-            Err(_) => 0
-        }
-    }
-
-    n
 }
