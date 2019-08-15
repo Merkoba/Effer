@@ -308,9 +308,6 @@ fn show_notes(mut level: usize, lines: Vec<String>)
             p!(format!("\n< Page {} of {} >", level, get_max_level()));
         }
 
-        if level > 0
-        {
-        }
         let mut s = s!();
         
         s += "\n(a) Add | ";
@@ -325,7 +322,6 @@ fn show_notes(mut level: usize, lines: Vec<String>)
         s += "\n(Home) First Page | ";
         s += "(End) Last Page | ";
         s += "(X) Exit";
-
 
         p!(s); menu_action(menu_input());
     }
