@@ -16,12 +16,16 @@ use dirs;
 use rand::prelude::*;
 use sha3::{Sha3_256, Digest};
 use std::sync::Mutex;
-use rustyline::{Editor, Cmd, KeyPress};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use lazy_static::lazy_static;
 use dialoguer::PasswordInput;
+use rustyline::
+{
+    Editor, Cmd, KeyPress,
+    Config, OutputStreamType, 
+};
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
@@ -125,7 +129,12 @@ fn handle_file_path_check(result: FilePathCheckResult)
 fn get_input<F, E, T>(message: String, initial: String, f_ok: F, f_err: E) -> T 
 where F: Fn(String) -> T, E: Fn() -> T
 {
-    let mut editor = Editor::<()>::new();
+    let config: Config = Config::builder()
+        .keyseq_timeout(50)
+        .output_stream(OutputStreamType::Stdout)
+        .build();
+
+    let mut editor = Editor::<()>::with_config(config);
     editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);
     let prompt = format!("{}: ", message);
 
