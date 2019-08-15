@@ -140,7 +140,7 @@ where F: Fn(String) -> T, E: Fn() -> T
     editor.set_helper(Some(h));
     editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);
     let prompt = format!("{}: ", message);
-    if mask {p!("{}", termion::cursor::Hide)}
+    if mask {pp!("{}", termion::cursor::Hide)}
 
     let ans = match editor.readline_with_initial(&prompt, (initial, &s!()))
     {
@@ -154,7 +154,7 @@ where F: Fn(String) -> T, E: Fn() -> T
         }
     };
 
-    if mask {p!("{}", termion::cursor::Show)} ans
+    if mask {pp!("{}", termion::cursor::Show)} ans
 }
 
 fn ask_bool(message: &str) -> bool
@@ -307,21 +307,22 @@ fn show_notes(mut level: usize, lines: Vec<String>)
             { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
             p!(format!("\n< Page {} of {} >", level, get_max_level()));
         }
-
-        let mut s = s!();
         
-        s += "\n(a) Add | ";
-        s += "(e) Edit | ";
-        s += "(f) Find | ";
-        s += "(s) Swap";
-        s += "\n(d) Delete | ";
-        s += "(R) Remake | ";
-        s += "(P) Change Password";
-        s += "\n(Left/Right) Cycle Pages | ";
-        s += "(Up) Edit Last Note";
-        s += "\n(Home) First Page | ";
-        s += "(End) Last Page | ";
-        s += "(X) Exit";
+        let s = 
+        [
+            "\n(a) Add | ",
+            "(e) Edit | ",
+            "(f) Find | ",
+            "(s) Swap",
+            "\n(d) Delete | ",
+            "(R) Remake | ",
+            "(P) Change Password",
+            "\n(Left/Right) Cycle Pages | ",
+            "(Up) Edit Last Note",
+            "\n(Home) First Page | ",
+            "(End) Last Page | ",
+            "(X) Exit",
+        ].concat();
 
         p!(s); menu_action(menu_input());
     }
