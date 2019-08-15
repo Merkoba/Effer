@@ -645,7 +645,8 @@ fn remake_file()
     if ask_bool(s!("Are you sure you want to replace the file with an empty one?"))
     {
         fs::remove_file(get_file_path()).unwrap();
-        if !create_file() {exit()} get_notes(true);
+        if !create_file() {exit()} 
+        update_notes_static(get_notes(true));
     }
 }
 
