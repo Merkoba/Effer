@@ -540,11 +540,8 @@ fn edit_note(mut n: usize)
     }
 
     if !check_line_exists(n) {return}
-    let line = get_line(n);
-    if line == "" {return}
-    let edited = ask_string(s!("Edit Note"), line);
-    if edited.is_empty() {return}
-    replace_line(n, edited);
+    let edited = ask_string(s!("Edit Note"), get_line(n));
+    if edited.is_empty() {return} replace_line(n, edited);
 }
 
 fn find_notes()
