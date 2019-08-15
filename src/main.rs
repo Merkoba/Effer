@@ -328,12 +328,13 @@ fn show_notes(mut level: usize, lines: Vec<String>)
         }
         let mut s = s!();
         
-        s += "\n(a) Add Note | ";
-        s += "(e) Edit Note | ";
-        s += "(f) Find Notes";
-        s += "\n(d) Delete Notes | ";
+        s += "\n(a) Add | ";
+        s += "(e) Edit | ";
+        s += "(f) Find | ";
+        s += "(s) Swap";
+        s += "\n(d) Delete | ";
         s += "(R) Remake | ";
-        s += "(P) Password";
+        s += "(P) Change Password";
         s += "\n(Left/Right) Cycle Pages | ";
         s += "(Up) Edit Last Note";
         s += "\n(Home) First Page | ";
@@ -358,7 +359,7 @@ fn menu_input() -> (MenuAnswer, usize)
     {
         Key::Left => MenuAnswer::CycleLeft,
         Key::Right => MenuAnswer::CycleRight,
-        Key::Up => MenuAnswer::EditLast,
+        Key::Up => MenuAnswer::EditLastNote,
         Key::Down => MenuAnswer::LastPage,
         Key::Home => MenuAnswer::FirstPage,
         Key::End => MenuAnswer::LastPage,
@@ -374,6 +375,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 'a' => MenuAnswer::AddNote,
                 'e' => MenuAnswer::EditNote,
                 'f' => MenuAnswer::FindNotes,
+                's' => MenuAnswer::SwapNotes,
                 'd' => MenuAnswer::DeleteNotes,
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
@@ -396,8 +398,9 @@ fn menu_action(ans: (MenuAnswer, usize))
     match ans.0
     {
         MenuAnswer::AddNote => {add_note()},
-        MenuAnswer::FindNotes => {find_notes()},
         MenuAnswer::EditNote => {edit_note(0)},
+        MenuAnswer::FindNotes => {find_notes()},
+        MenuAnswer::SwapNotes => {swap_notes()},
         MenuAnswer::DeleteNotes => {delete_notes()},
         MenuAnswer::RemakeFile => {remake_file()},
         MenuAnswer::ChangePassword => {change_password()},
@@ -406,7 +409,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::FirstPage => {goto_first_page()},
         MenuAnswer::LastPage => {goto_last_page()},
         MenuAnswer::RefreshPage => {refresh_page()},
-        MenuAnswer::EditLast => {edit_last_note()},
+        MenuAnswer::EditLastNote => {edit_last_note()},
         MenuAnswer::PageNumber => {show_notes(max(1, ans.1), vec![])},
         MenuAnswer::Exit => {exit()},
         MenuAnswer::Nothing => {}
@@ -483,8 +486,18 @@ fn replace_line(n: usize, new_text: String)
 {
     let notes = get_notes(false);
     let mut lines: Vec<&str> = notes.lines().collect();
-    if n >= lines.len() {return}
     lines[n] = &new_text[..];
+
+    update_file(lines.iter()
+        .map(|l| l.to_string())
+        .collect::<Vec<String>>().join("\n"));
+}
+
+fn swap_lines(n1: usize, n2: usize)
+{
+    let notes = get_notes(false);
+    let mut lines: Vec<&str> = notes.lines().collect();
+    lines.swap(n1, n2);
 
     update_file(lines.iter()
         .map(|l| l.to_string())
@@ -526,7 +539,7 @@ fn edit_note(mut n: usize)
         n = ask_int(s!("Note Number"));
     }
 
-    if n == 0 {return}
+    if !check_line_exists(n) {return}
     let line = get_line(n);
     if line == "" {return}
     let edited = ask_string(s!("Edit Note"), line);
@@ -575,6 +588,15 @@ fn find_notes()
     }
 
     show_notes(0, found);
+}
+
+fn swap_notes()
+{
+    let n1 = ask_int(s!("First Note Number"));
+    if !check_line_exists(n1) {return}
+    let n2 = ask_int(s!("Second Note Number"));
+    if !check_line_exists(n2) {return}
+    swap_lines(n1, n2);
 }
 
 fn delete_notes()
@@ -724,4 +746,11 @@ fn edit_last_note()
     }
 
     edit_note(n);
+}
+
+fn check_line_exists(n: usize) -> bool
+{
+    if n <= 0 {return false}
+    let length = get_notes_length();
+    n <= length
 }
