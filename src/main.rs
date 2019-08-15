@@ -31,6 +31,7 @@ type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
 const ITEMS_PER_LEVEL: usize = 15;
 
+// Global variables
 lazy_static! 
 {
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
@@ -39,6 +40,7 @@ lazy_static!
     static ref LEVEL: Mutex<usize> = Mutex::new(1);
 }
 
+// First function to execute
 fn main() 
 {
     handle_file_path_check(file_path_check(get_file_path()));
@@ -47,21 +49,24 @@ fn main()
     check_password(); change_screen(); goto_last_page();
 }
 
+// Switch to the alternative screen
+// Place the cursor at the bottom left
 fn change_screen()
 {
-    // Switch to the alternative screen
     p!("\x1b[?1049h");
     let size = termion::terminal_size().unwrap();
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(stdout, "{}", termion::cursor::Goto(1, size.1)).unwrap();
 }
 
+// Centralized function to exit the program
+// Switches back to main screen before exiting
 fn exit() -> !
 {
-    // Switch back to main screen
     p!("\x1b[?1049l"); process::exit(0)
 }
 
+// Tries to get the user's home path
 fn get_home_path() -> PathBuf
 {
     match dirs::home_dir()
@@ -74,16 +79,19 @@ fn get_home_path() -> PathBuf
     }
 }
 
+// Gets the path of the notes file
 fn get_file_path() -> PathBuf
 {
     get_home_path().join(Path::new(".config/effer/effer.dat"))
 }
 
+// Gets the path of the notes file's parent
 fn get_file_parent_path() -> PathBuf
 {
     get_home_path().join(Path::new(".config/effer"))
 }
 
+// Checks the existence of the notes file
 fn file_path_check(path: PathBuf) -> FilePathCheckResult
 {
     match fs::metadata(path)
@@ -104,6 +112,7 @@ fn file_path_check(path: PathBuf) -> FilePathCheckResult
     FilePathCheckResult::Exists
 }
 
+// Reacts to previous check of notes file existence
 fn handle_file_path_check(result: FilePathCheckResult)
 {
     match result
@@ -127,6 +136,10 @@ fn handle_file_path_check(result: FilePathCheckResult)
     }
 }
 
+// Centralized function to handle user input
+// It's generic and can return different types
+// Closures are supplied to react on success or failure
+// Can make typing invisible for cases like password input
 fn get_input<F, E, T>(message: &str, initial: &str, f_ok: F, f_err: E, mask: bool) -> T 
 where F: Fn(String) -> T, E: Fn() -> T
 {
@@ -157,16 +170,20 @@ where F: Fn(String) -> T, E: Fn() -> T
     if mask {pp!("{}", termion::cursor::Show)} ans
 }
 
+// Asks the user for a yes/no answer
 fn ask_bool(message: &str) -> bool
 {
     get_input(&[message, " (y, n)"].concat(), "", |a| a.trim().to_lowercase() == "y", || false, false)
 }
 
+// Asks the user to input a string
 fn ask_string(message: &str, initial: &str) -> String
 {
     get_input(message, initial, |a| a.trim().to_string(), String::new, false)
 }
 
+// Gets the file's password saved globally
+// Or changes the file's password
 fn get_password(change: bool) -> String
 {
     let mut pw = PASSWORD.lock().unwrap();
@@ -206,6 +223,9 @@ fn get_password(change: bool) -> String
     pw.to_string()
 }
 
+// Attempts to create the notes file
+// It adds FIRST_LINE as its only initial content
+// The content is encrypted using the password
 fn create_file() -> bool
 {
     if get_password(true).is_empty() {return false}
@@ -218,6 +238,8 @@ fn create_file() -> bool
     p!("File created at {}", &file_path.display()); true
 }
 
+// Encrypts the notes using Aes256
+// Turns the encrypted data into hex
 fn encrypt_text(plain_text: String) -> String
 {
     let password = get_password(false);
@@ -231,6 +253,7 @@ fn encrypt_text(plain_text: String) -> String
     hex::encode(&encrypted)
 }
 
+// Decodes the hex data and decrypts it
 fn decrypt_text(encrypted_text: String) -> String
 {
     if encrypted_text.trim() == ""
@@ -269,6 +292,7 @@ fn decrypt_text(encrypted_text: String) -> String
 // ciphertext to make sure it hasn't been maliciously modified. This can be done with HMAC, poly1305 
 // or other algorithms. Or, you can use AES-GCM instead of AES-CBC, which authenticates the ciphertext for you.
 
+// Generates the IV used to encrypt and decrypt the notes file
 fn generate_iv(key: &[u8]) -> Vec<u8>
 {
     let hex_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
@@ -283,6 +307,9 @@ fn generate_iv(key: &[u8]) -> Vec<u8>
     hex::decode(chars.iter().collect::<String>()).unwrap()
 }
 
+// Main renderer function
+// Shows the notes and the menu at the bottom
+// Then waits and reacts for input
 fn show_notes(mut level: usize, lines: Vec<String>)
 {
     loop
@@ -328,6 +355,7 @@ fn show_notes(mut level: usize, lines: Vec<String>)
     }
 }
 
+// Listens and interprets live keyboard input from the main menu
 fn menu_input() -> (MenuAnswer, usize)
 {
     let stdin = stdin();
@@ -374,6 +402,7 @@ fn menu_input() -> (MenuAnswer, usize)
     write!(stdout, "{}", termion::cursor::Show).unwrap(); (ans, data)
 }
 
+// Reacts to the live keyboard input from the main menu
 fn menu_action(ans: (MenuAnswer, usize))
 {
     match ans.0
@@ -397,11 +426,15 @@ fn menu_action(ans: (MenuAnswer, usize))
     }
 }
 
+// Reads the notes file
 fn get_file_text() -> String
 {
     fs::read_to_string(get_file_path()).expect("Can't read file content.")
 }
 
+// Checks if the first line was decrypted correctly
+// This is a simple password and file integrity check
+// If it fails the program exits
 fn check_password()
 {
     let text = get_notes(false);
@@ -413,6 +446,7 @@ fn check_password()
     }
 }
 
+// Fills and array based on the key to generate the IV
 fn get_seed_array(source: &[u8]) -> [u8; 32]
 {
     let mut array = [0; 32];
@@ -420,23 +454,27 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
     array.copy_from_slice(items); array
 }
 
+// Gets the notes form the global variable or reads them from the file
 fn get_notes(update: bool) -> String
 {
     let notes = NOTES.lock().unwrap();
     if notes.is_empty() || update {decrypt_text(get_file_text())} else {notes.to_string()}
 }
 
+// Retrieves the value of the global variable that holds the current amount of notes
 fn get_notes_length() -> usize
 {
     get_notes(false); *NOTES_LENGTH.lock().unwrap()
 }
 
+// Encrypts and saves the updated notes to the file
 fn update_file(text: String)
 {
     fs::write(get_file_path(), encrypt_text(update_notes_static(text))
         .as_bytes()).expect("Unable to write new text to file");
 }
 
+// Updates the notes and notes length global variables
 fn update_notes_static(text: String) -> String
 {
     let mut notes = NOTES.lock().unwrap();
@@ -444,6 +482,7 @@ fn update_notes_static(text: String) -> String
     *length = text.lines().count() - 1; *notes = text; notes.to_string()
 }
 
+// Gets a specific line from the notes
 fn get_line(n: usize) -> String
 {
     let notes = get_notes(false);
@@ -452,6 +491,7 @@ fn get_line(n: usize) -> String
     lines[n].to_string()
 }
 
+// Replaces a line from the notes with a new line
 fn replace_line(n: usize, new_text: String)
 {
     let notes = get_notes(false);
@@ -463,6 +503,7 @@ fn replace_line(n: usize, new_text: String)
         .collect::<Vec<String>>().join("\n"));
 }
 
+// Swaps two lines from the notes
 fn swap_lines(n1: usize, n2: usize)
 {
     let notes = get_notes(false);
@@ -474,6 +515,7 @@ fn swap_lines(n1: usize, n2: usize)
         .collect::<Vec<String>>().join("\n"));
 }
 
+// Deletes a line from the notes then updates the file
 fn delete_lines(numbers: Vec<usize>)
 {
     let notes = get_notes(false);
@@ -493,6 +535,7 @@ fn delete_lines(numbers: Vec<usize>)
         .collect::<Vec<String>>().join("\n"));
 }
 
+// Provides an input to add a new note
 fn add_note()
 {
     let note = ask_string("New Note", "");
@@ -502,6 +545,8 @@ fn add_note()
     goto_last_page();
 }
 
+// Asks for a note number to edit
+// The note is then showed and editable
 fn edit_note(mut n: usize)
 {
     if n == 0
@@ -514,6 +559,9 @@ fn edit_note(mut n: usize)
     if edited.is_empty() {return} replace_line(n, edited);
 }
 
+// Finds a note by a filter
+// Case insensitive
+// Substrings are counted
 fn find_notes()
 {
     let filter = ask_string("Filter", "").to_lowercase();
@@ -557,6 +605,7 @@ fn find_notes()
     show_notes(0, found);
 }
 
+// Swaps 2 notes specified by 2 numbers separated by whitespace (1 10)
 fn swap_notes()
 {
     let ans = ask_string("Swap (n1 n2)", "");
@@ -567,6 +616,10 @@ fn swap_notes()
     swap_lines(n1, n2);
 }
 
+// Deletes 1 or more notes
+// Can delete by a specific note number (3)
+// Or a comma separated list (1,2,3)
+// Or a range (1-3)
 fn delete_notes()
 {
     p!("Note Number");
@@ -604,16 +657,20 @@ fn delete_notes()
     if !numbers.is_empty() {delete_lines(numbers)}
 }
 
+// Goes to the first page
 fn goto_first_page()
 {
     show_notes(1, vec![]);
 }
 
+// Goes to the last page
 fn goto_last_page()
 {
     show_notes(get_max_level(), vec![]);
 }
 
+// Refreshes the current page (notes, menu, etc)
+// This doesn't provoke a change unless on a different mode like Find results
 fn refresh_page()
 {
     let lvl;
@@ -625,11 +682,15 @@ fn refresh_page()
     show_notes(lvl, vec![]);
 }
 
+// Generic format for note items
 fn format_item(n: usize, s: &str) -> String
 {
     format!("({}) {}", n, s)
 }
 
+// Asks the user if it wants to delete the current file and make a new one
+// Then does it if response was positive
+// Variables are then updated to reflect change
 fn remake_file()
 {
     if ask_bool("Are you sure you want to replace the file with an empty one?")
@@ -640,17 +701,20 @@ fn remake_file()
     }
 }
 
+// Changes the password and updates the file with it
 fn change_password()
 {
-    get_password(true); update_file(get_notes(false));
+    if !get_password(true).is_empty() {update_file(get_notes(false))};
 }
 
+// Checks if a supplied level (page) exists
 fn check_level(level: usize, allow_zero: bool) -> usize
 {
     if allow_zero && level == 0 {return 0}
     max(1, min(level, get_max_level()))
 }
 
+// Gets notes the fall under a certain level
 fn get_note_range(level: usize) -> Vec<String>
 {
     let mut result: Vec<String> = vec![];
@@ -672,6 +736,7 @@ fn get_note_range(level: usize) -> Vec<String>
     result
 }
 
+// Gets the maximum number of levels
 fn get_max_level() -> usize
 {
     let notes_length = get_notes_length();
@@ -679,6 +744,8 @@ fn get_max_level() -> usize
     max(1, n.ceil() as usize)
 }
 
+// Goes to the previous page
+// It can wrap to the last one
 fn cycle_left()
 {   
     let lvl: usize;
@@ -692,6 +759,8 @@ fn cycle_left()
     show_notes(lvl, vec![]);
 }
 
+// Goes to the next page
+// It can wrap to the first one
 fn cycle_right()
 {
     let lvl: usize;
@@ -705,6 +774,7 @@ fn cycle_right()
     show_notes(lvl, vec![]);
 }
 
+// Edits the most recent note
 fn edit_last_note()
 {
     let n: usize;
@@ -716,11 +786,14 @@ fn edit_last_note()
     edit_note(n);
 }
 
+// Checks a line number from the notes exist
 fn check_line_exists(n: usize) -> bool
 {
     n > 0 && n <= get_notes_length()
 }
 
+// Replaces keywords to note numbers
+// Or parses the string to a number
 fn parse_note_ans(ans: &str) -> usize
 {
     match ans
