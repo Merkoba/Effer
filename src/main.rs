@@ -140,11 +140,7 @@ where F: Fn(String) -> T, E: Fn() -> T
     editor.set_helper(Some(h));
     editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);
     let prompt = format!("{}: ", message);
-
-    if mask
-    {
-        write!(stdout(), "{}", termion::cursor::Hide).unwrap();
-    }
+    if mask {p!("{}", termion::cursor::Hide)}
 
     let ans = match editor.readline_with_initial(&prompt, (initial, &s!()))
     {
@@ -158,12 +154,7 @@ where F: Fn(String) -> T, E: Fn() -> T
         }
     };
 
-    if mask
-    {
-        write!(stdout(), "{}", termion::cursor::Show).unwrap();
-    }
-
-    ans
+    if mask {p!("{}", termion::cursor::Show)} ans
 }
 
 fn ask_bool(message: &str) -> bool
@@ -171,14 +162,9 @@ fn ask_bool(message: &str) -> bool
     get_input(&[message, " (y, n)"].concat(), "", |a| a.trim().to_lowercase() == "y", || false, false)
 }
 
-fn ask_int(message: &str) -> usize
-{
-    get_input(message, "", |a| a.trim().parse::<usize>().unwrap_or(0), || 0, false)
-}
-
 fn ask_string(message: &str, initial: &str) -> String
 {
-    get_input(message, initial, |a| a.trim().to_string(), || s!(), false)
+    get_input(message, initial, |a| a.trim().to_string(), String::new, false)
 }
 
 fn get_password(change: bool) -> String
@@ -193,9 +179,9 @@ fn get_password(change: bool) -> String
         {
             loop
             {
-                let new_password = get_input("New Password", "", |a| a, || s!(), true);
+                let new_password = get_input("New Password", "", |a| a, String::new, true);
                 if new_password.is_empty() {return s!()}
-                let confirmation = get_input("Confirm Password", "", |a| a, || s!(), true);
+                let confirmation = get_input("Confirm Password", "", |a| a, String::new, true);
 
                 if new_password != confirmation
                 {
@@ -211,7 +197,7 @@ fn get_password(change: bool) -> String
 
         else
         {
-            password = get_input("Password", "", |a| a, || s!(), true);
+            password = get_input("Password", "", |a| a, String::new, true);
         }
 
         *pw = password;
@@ -229,8 +215,7 @@ fn create_file() -> bool
     let file_path = get_file_path();
     let mut file = fs::File::create(&file_path).expect("Error creating the file.");
     file.write_all(encrypted.as_bytes()).expect("Unable to write initial text to file");
-    p!("File created at {}", &file_path.display());
-    return true;
+    p!("File created at {}", &file_path.display()); true
 }
 
 fn encrypt_text(plain_text: String) -> String
@@ -389,8 +374,7 @@ fn menu_input() -> (MenuAnswer, usize)
     };
 
     stdout.flush().unwrap();
-    write!(stdout, "{}", termion::cursor::Show).unwrap(); 
-    (ans, data)
+    write!(stdout, "{}", termion::cursor::Show).unwrap(); (ans, data)
 }
 
 fn menu_action(ans: (MenuAnswer, usize))
@@ -439,21 +423,10 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
     array.copy_from_slice(items); array
 }
 
-fn get_notes(force_update: bool) -> String
+fn get_notes(update: bool) -> String
 {
-    let notes = NOTES.lock().unwrap(); let ans;
-
-    if notes.is_empty() || force_update
-    {
-        ans = decrypt_text(get_file_text());
-    }
-
-    else
-    {
-        ans = notes.to_string();
-    }
-
-    ans
+    let notes = NOTES.lock().unwrap();
+    if notes.is_empty() || update {decrypt_text(get_file_text())} else {notes.to_string()}
 }
 
 fn get_notes_length() -> usize
@@ -536,7 +509,7 @@ fn edit_note(mut n: usize)
 {
     if n == 0
     {
-        n = parse_note_ans(&ask_string("Edit", ""));
+        n = parse_note_ans(&ask_string("Edit #", ""));
     }
 
     if !check_line_exists(n) {return}
@@ -748,9 +721,7 @@ fn edit_last_note()
 
 fn check_line_exists(n: usize) -> bool
 {
-    if n <= 0 {return false}
-    let length = get_notes_length();
-    n <= length
+    n > 0 && n <= get_notes_length()
 }
 
 fn parse_note_ans(ans: &str) -> usize
