@@ -48,7 +48,7 @@ fn main()
 {
     handle_file_path_check(file_path_check(get_file_path()));
     if get_password(false).is_empty() {exit()};
-    update_notes_statics(get_notes(false));
+    update_notes_statics(get_notes(false)); update_setting_statics();
     check_password(); change_screen(); goto_last_page();
 }
 
@@ -332,7 +332,7 @@ fn show_notes(mut page: usize, lines: Vec<String>)
                     "\n(Left/Right) Cycle Pages | ",
                     "(Up) Edit Last Note",
                     "\n(H) Show All | ",
-                    "(B) About | ",
+                    "(?) About | ",
                     "(q) Exit | ",
                     "(Space) >"
                 ].concat()
@@ -392,7 +392,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
                 'H' => MenuAnswer::ShowAllNotes,
-                'B' => MenuAnswer::ShowAbout,
+                '?' => MenuAnswer::ShowAbout,
                 'q' => MenuAnswer::Exit,
                 '+' => MenuAnswer::IncreasePageSize,
                 '-' => MenuAnswer::DecreasePageSize,
@@ -491,10 +491,14 @@ fn update_notes_statics(text: String) -> String
 {
     let mut notes = NOTES.lock().unwrap();
     let mut length = NOTES_LENGTH.lock().unwrap();
-    let mut page_size = PAGE_SIZE.lock().unwrap();
+    *length = text.lines().count() - 1; *notes = text;
+    notes.to_string()
+}
 
-    // Get settings from the first line of the file
-    let first_line = text.lines().nth(0).unwrap();
+fn update_setting_statics()
+{
+    let notes = get_notes(false);
+    let first_line = notes.lines().nth(0).unwrap();
     let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
     let caps = re.captures(first_line);
 
@@ -503,13 +507,10 @@ fn update_notes_statics(text: String) -> String
         Some(cps) =>
         {
             let ps = &cps["page_size"]; 
-            *page_size = ps.parse::<usize>().unwrap_or(15);
+            *PAGE_SIZE.lock().unwrap() = ps.parse::<usize>().unwrap_or(15);
         },
         None => {}
     }
-
-    *length = text.lines().count() - 1; *notes = text;
-    notes.to_string()
 }
 
 // Gets a specific line from the notes
@@ -662,28 +663,26 @@ fn delete_notes()
 
     if ans.contains(',')
     {
-        numbers.extend(ans.split(',').map(|n| n.trim().parse::<usize>().unwrap_or(0)).collect::<Vec<usize>>());
+        numbers.extend(ans.split(',').map(|n| parse_note_ans(n.trim())).collect::<Vec<usize>>());
     }
 
     else if ans.contains('-')
     {
+        if ans.matches('-').count() > 1 {return}
         let mut split = ans.split('-').map(|n| n.trim());
-        let mut num1 = split.next().unwrap_or("0").parse::<usize>().unwrap_or(0);
-        let mut num2 = split.next().unwrap_or("0").parse::<usize>().unwrap_or(0);
-        
-        if num1 == 0 {num1 = 1}
-        if num2 == 0 {num2 = get_notes(false).lines().count()}
+        let num1 = parse_note_ans(split.next().unwrap_or("0"));
+        let num2 = parse_note_ans(split.next().unwrap_or("0"));
+        if num1 == 0 || num2 == 0 {return}
         if num1 >= num2 {return}
-
         numbers.extend(num1..=num2);
     }
 
     else
     {
-        numbers.push(ans.parse::<usize>().unwrap_or(0));
+        numbers.push(parse_note_ans(&ans));
     }
 
-    numbers = numbers.iter().filter(|x| **x != 0).copied().collect();
+    numbers = numbers.iter().filter(|n| check_line_exists(**n)).copied().collect();
     if !numbers.is_empty() {delete_lines(numbers)}
 }
 
