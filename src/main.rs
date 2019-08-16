@@ -94,14 +94,11 @@ fn check_arguments()
         {
             if i == 0 {continue}
 
-            if mode == "print"
+            match mode
             {
-                result.push(format_item(i, line));
-            }
-
-            else
-            {
-                result.push(s!(line));
+                "print" => result.push(format_item(i, line)),
+                "print2" => result.push(s!(line)),
+                _ => {}
             }
         }
 
