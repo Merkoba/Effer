@@ -683,6 +683,16 @@ fn delete_notes()
     }
 
     numbers = numbers.iter().filter(|n| check_line_exists(**n)).copied().collect();
+    let length = numbers.len();
+
+    if length >= 5
+    {
+        if !ask_bool(&format!("Are you sure you want to delete {} notes?", length))
+        {
+            return;
+        }
+    }
+
     if !numbers.is_empty() {delete_lines(numbers)}
 }
 
