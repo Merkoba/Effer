@@ -909,13 +909,25 @@ fn goto_page()
 
 // Changes how many items appear per page
 // It increases or decreases by 5
+// Maximum number is 100
+// Minimum number is 5
 fn change_page_size(increase: bool)
 {
     let ps;
 
     {
         let mut page = PAGE_SIZE.lock().unwrap();
-        if increase {*page += 5} else if *page >= 10 {*page -= 5}
+
+        if increase
+        {
+            if *page < 100 {*page += 5}
+        }
+
+        else
+        {
+            if *page >= 10 {*page -= 5}
+        }
+
         ps = *page;
     }
 
