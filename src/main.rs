@@ -913,19 +913,19 @@ fn goto_page()
 // Minimum number is 5
 fn change_page_size(increase: bool)
 {
-    let ps;
+    let max_page = get_max_page_number(); let ps;
 
     {
         let mut page = PAGE_SIZE.lock().unwrap();
 
         if increase
         {
-            if *page < 100 {*page += 5}
+            if *page < 100 && max_page > 1 {*page += 5} else {return}
         }
 
         else
         {
-            if *page >= 10 {*page -= 5}
+            if *page >= 10 {*page -= 5} else {return}
         }
 
         ps = *page;
