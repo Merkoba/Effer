@@ -234,30 +234,19 @@ fn create_file() -> bool
 // Turns the encrypted data into hex
 fn encrypt_text(plain_text: String) -> String
 {
-    let password = get_password(false);
     let text = plain_text.trim().to_string();
-    let mut hasher = Sha3_256::new();
-    hasher.input(password.as_bytes());
-    let key = hasher.result();
-    let iv = generate_iv(&key);
+    let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
+    let key = hasher.result(); let iv = generate_iv(&key);
     let cipher = Aes256Cbc::new_var(&key, &iv).expect("Can't init the encrypt cipher.");
-    let encrypted = cipher.encrypt_vec(text.as_bytes());
-    hex::encode(&encrypted)
+    let encrypted = cipher.encrypt_vec(text.as_bytes()); hex::encode(&encrypted)
 }
 
 // Decodes the hex data and decrypts it
 fn decrypt_text(encrypted_text: String) -> String
 {
-    if encrypted_text.trim() == ""
-    {
-        return s!();
-    }
-
-    let password = get_password(false);
-    let mut hasher = Sha3_256::new();
-    hasher.input(password.as_bytes());
-    let key = hasher.result();
-    let iv = generate_iv(&key);
+    if encrypted_text.trim().is_empty() {return s!()}
+    let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
+    let key = hasher.result(); let iv = generate_iv(&key);
     let ciphertext = hex::decode(encrypted_text).expect("Can't decode the hex text to decrypt.");
     let cipher = Aes256Cbc::new_var(&key, &iv).expect("Can't init the decrypt cipher.");
     let decrypted = cipher.decrypt_vec(&ciphertext);
