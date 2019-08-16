@@ -79,19 +79,19 @@ fn get_home_path() -> PathBuf
     }
 }
 
-// Gets the path of the notes file
+// Gets the path of the file
 fn get_file_path() -> PathBuf
 {
     get_home_path().join(Path::new(".config/effer/effer.dat"))
 }
 
-// Gets the path of the notes file's parent
+// Gets the path of the file's parent
 fn get_file_parent_path() -> PathBuf
 {
     get_home_path().join(Path::new(".config/effer"))
 }
 
-// Checks the existence of the notes file
+// Checks the existence of the file
 fn file_path_check(path: PathBuf) -> FilePathCheckResult
 {
     match fs::metadata(path)
@@ -112,7 +112,7 @@ fn file_path_check(path: PathBuf) -> FilePathCheckResult
     FilePathCheckResult::Exists
 }
 
-// Reacts to previous check of notes file existence
+// Reacts to previous check of file existence
 fn handle_file_path_check(result: FilePathCheckResult)
 {
     match result
@@ -215,7 +215,7 @@ fn get_password(change: bool) -> String
     pw.to_string()
 }
 
-// Attempts to create the notes file
+// Attempts to create the file
 // It adds FIRST_LINE as its only initial content
 // The content is encrypted using the password
 fn create_file() -> bool
@@ -273,7 +273,7 @@ fn decrypt_text(encrypted_text: String) -> String
 // ciphertext to make sure it hasn't been maliciously modified. This can be done with HMAC, poly1305 
 // or other algorithms. Or, you can use AES-GCM instead of AES-CBC, which authenticates the ciphertext for you.
 
-// Generates the IV used to encrypt and decrypt the notes file
+// Generates the IV used to encrypt and decrypt the file
 fn generate_iv(key: &[u8]) -> Vec<u8>
 {
     let hex_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
@@ -407,7 +407,7 @@ fn menu_action(ans: (MenuAnswer, usize))
     }
 }
 
-// Reads the notes file
+// Reads the file
 fn get_file_text() -> String
 {
     fs::read_to_string(get_file_path()).expect("Can't read file content.")
