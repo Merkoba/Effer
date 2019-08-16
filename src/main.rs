@@ -183,7 +183,7 @@ fn ask_string(message: &str, initial: &str) -> String
 }
 
 // Gets the file's password saved globally
-// Or asks the user for the password
+// Or asks the user for the file's password
 // Or changes the file's password
 fn get_password(change: bool) -> String
 {
