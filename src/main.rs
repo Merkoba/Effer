@@ -21,6 +21,7 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use lazy_static::lazy_static;
+use regex::Regex;
 use rustyline::
 {
     Editor, Cmd, KeyPress,
@@ -28,8 +29,7 @@ use rustyline::
 };
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
-const FIRST_LINE: &str = "<Notes Unlocked>";
-const ITEMS_PER_LEVEL: usize = 15;
+const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 const VERSION: &str = "v1.0.0";
 
 // Global variables
@@ -38,8 +38,9 @@ lazy_static!
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
-    static ref LEVEL: Mutex<usize> = Mutex::new(1);
+    static ref PAGE: Mutex<usize> = Mutex::new(1);
     static ref CURRENT_MENU: Mutex<usize> = Mutex::new(1);
+    static ref PAGE_SIZE: Mutex<usize> = Mutex::new(15);
 }
 
 // First function to execute
@@ -47,7 +48,7 @@ fn main()
 {
     handle_file_path_check(file_path_check(get_file_path()));
     if get_password(false).is_empty() {exit()};
-    update_notes_static(get_notes(false));
+    update_notes_statics(get_notes(false));
     check_password(); change_screen(); goto_last_page();
 }
 
@@ -218,12 +219,12 @@ fn get_password(change: bool) -> String
 }
 
 // Attempts to create the file
-// It adds FIRST_LINE as its only initial content
+// It adds UNLOCK_CHECK as its only initial content
 // The content is encrypted using the password
 fn create_file() -> bool
 {
     if get_password(true).is_empty() {return false}
-    let encrypted = encrypt_text(s!(FIRST_LINE));
+    let encrypted = encrypt_text(s!(UNLOCK_CHECK));
     let parent_path = get_file_parent_path();
     fs::create_dir_all(parent_path).unwrap();
     let file_path = get_file_path();
@@ -293,18 +294,18 @@ fn generate_iv(key: &[u8]) -> Vec<u8>
 // Main renderer function
 // Shows the notes and the menu at the bottom
 // Then waits and reacts for input
-fn show_notes(mut level: usize, lines: Vec<String>)
+fn show_notes(mut page: usize, lines: Vec<String>)
 {
     loop
     {
         // Clear the screen
         p!("\x1b[2J");
 
-        level = check_level(level, true);
+        page = check_page_number(page, true);
         
-        if level > 0
+        if page > 0
         {
-            for line in get_note_range(level).iter() {p!(line)}
+            for line in get_page_notes(page).iter() {p!(line)}
         }
 
         else
@@ -312,10 +313,10 @@ fn show_notes(mut level: usize, lines: Vec<String>)
             for line in lines.iter() {p!(line)}
         }
 
-        if level > 0
+        if page > 0
         {
-            { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
-            p!(format!("\n< Page {} of {} >", level, get_max_level()));
+            { let mut pg = PAGE.lock().unwrap(); *pg = page }
+            p!(format!("\n< Page {} of {} >", page, get_max_page_number()));
         }
 
         let s = match *CURRENT_MENU.lock().unwrap()
@@ -323,29 +324,27 @@ fn show_notes(mut level: usize, lines: Vec<String>)
             1 =>
             {
                 [
-                    "\n(a) Add | ",
-                    "(e) Edit | ",
-                    "(f) Find | ",
-                    "(s) Swap",
-                    "\n(d) Delete | ",
-                    "(R) Remake | ",
-                    "(P) Change Password",
+                    "\n(a)dd | ",
+                    "(e)dit | ",
+                    "(f)ind | ",
+                    "(s)wap | ",
+                    "(d)elete",
                     "\n(Left/Right) Cycle Pages | ",
                     "(Up) Edit Last Note",
-                    "\n(Home) First Page | ",
-                    "(End) Last Page | ",
+                    "\n(0) Show All | ",
+                    "(B) About | ",
+                    "(q) Exit | ",
                     "(Space) >"
                 ].concat()
             },
             2 =>
             {
                 [
-                    "\n(Enter) Return | ",
-                    "(Esc) Cancel | ",
-                    "(1-9) Page",
-                    "\n(0) Show All | ",
-                    "(B) About | ",
-                    "(q) Exit | ",
+                    "\n(+/-) Increase/Decrease Page Size",
+                    "\n(R) Remake File | ",
+                    "(P) Change Password",
+                    "\n(Home) First Page | ",
+                    "(End) Last Page | ",
                     "(Space) >"
                 ].concat()
             },
@@ -390,10 +389,13 @@ fn menu_input() -> (MenuAnswer, usize)
                 'f' => MenuAnswer::FindNotes,
                 's' => MenuAnswer::SwapNotes,
                 'd' => MenuAnswer::DeleteNotes,
+                'g' => MenuAnswer::GotoPage,
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
                 'B' => MenuAnswer::ShowAbout,
                 'q' => MenuAnswer::Exit,
+                '+' => MenuAnswer::IncreasePageSize,
+                '-' => MenuAnswer::DecreasePageSize,
                 '\n' => MenuAnswer::RefreshPage,
                 ' ' => MenuAnswer::ChangeMenu,
                 _ => MenuAnswer::Nothing
@@ -428,6 +430,9 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::ChangeMenu => {change_menu()},
         MenuAnswer::ShowAllNotes => {show_all_notes()},
         MenuAnswer::ShowAbout => {show_about()},
+        MenuAnswer::GotoPage => {goto_page()},
+        MenuAnswer::IncreasePageSize => {change_page_size(true)},
+        MenuAnswer::DecreasePageSize => {change_page_size(false)},
         MenuAnswer::Exit => {exit()},
         MenuAnswer::Nothing => {}
     }
@@ -447,7 +452,7 @@ fn check_password()
     let text = get_notes(false);
     let first_line = text.lines().nth(0).expect("Can't read last line from the file.");
 
-    if first_line != FIRST_LINE
+    if !first_line.starts_with(UNLOCK_CHECK)
     {
         p!("Wrong password."); exit();
     }
@@ -477,16 +482,34 @@ fn get_notes_length() -> usize
 // Encrypts and saves the updated notes to the file
 fn update_file(text: String)
 {
-    fs::write(get_file_path(), encrypt_text(update_notes_static(text))
+    fs::write(get_file_path(), encrypt_text(update_notes_statics(text))
         .as_bytes()).expect("Unable to write new text to file");
 }
 
 // Updates the notes and notes length global variables
-fn update_notes_static(text: String) -> String
+fn update_notes_statics(text: String) -> String
 {
     let mut notes = NOTES.lock().unwrap();
     let mut length = NOTES_LENGTH.lock().unwrap();
-    *length = text.lines().count() - 1; *notes = text; notes.to_string()
+    let mut page_size = PAGE_SIZE.lock().unwrap();
+
+    // Get settings from the first line of the file
+    let first_line = text.lines().nth(0).unwrap();
+    let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
+    let caps = re.captures(first_line);
+
+    match caps
+    {
+        Some(cps) =>
+        {
+            let ps = &cps["page_size"]; 
+            *page_size = ps.parse::<usize>().unwrap_or(15);
+        },
+        None => {}
+    }
+
+    *length = text.lines().count() - 1; *notes = text;
+    notes.to_string()
 }
 
 // Gets a specific line from the notes
@@ -673,20 +696,20 @@ fn goto_first_page()
 // Goes to the last page
 fn goto_last_page()
 {
-    show_notes(get_max_level(), vec![]);
+    show_notes(get_max_page_number(), vec![]);
 }
 
 // Refreshes the current page (notes, menu, etc)
 // This doesn't provoke a change unless on a different mode like Find results
 fn refresh_page()
 {
-    let lvl;
+    let pg;
 
     {
-        lvl = *LEVEL.lock().unwrap();
+        pg = *PAGE.lock().unwrap();
     }
 
-    show_notes(lvl, vec![]);
+    show_notes(pg, vec![]);
 }
 
 // Generic format for note items
@@ -704,7 +727,7 @@ fn remake_file()
     {
         fs::remove_file(get_file_path()).unwrap();
         if !create_file() {exit()} 
-        update_notes_static(get_notes(true));
+        update_notes_statics(get_notes(true));
     }
 }
 
@@ -714,23 +737,23 @@ fn change_password()
     if !get_password(true).is_empty() {update_file(get_notes(false))};
 }
 
-// Checks if a supplied level (page) exists
-fn check_level(level: usize, allow_zero: bool) -> usize
+// Checks if a supplied page exists
+fn check_page_number(page: usize, allow_zero: bool) -> usize
 {
-    if allow_zero && level == 0 {return 0}
-    max(1, min(level, get_max_level()))
+    if allow_zero && page == 0 {return 0}
+    max(1, min(page, get_max_page_number()))
 }
 
-// Gets notes the fall under a certain level
-fn get_note_range(level: usize) -> Vec<String>
+// Gets notes that belong to a certain page
+fn get_page_notes(page: usize) -> Vec<String>
 {
     let mut result: Vec<String> = vec![];
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
     if lines.is_empty() {return result}
-
-    let a = if level > 1 {((level - 1) * ITEMS_PER_LEVEL) + 1} else {1};
-    let b = min(level * ITEMS_PER_LEVEL, lines.len() - 1);
+    let page_size = PAGE_SIZE.lock().unwrap();
+    let a = if page > 1 {((page - 1) * *page_size) + 1} else {1};
+    let b = min(page * *page_size, lines.len() - 1);
     
     let selected: Vec<&str> = lines[a..=b].iter().copied().collect();
     let mut n = a;
@@ -743,11 +766,11 @@ fn get_note_range(level: usize) -> Vec<String>
     result
 }
 
-// Gets the maximum number of levels
-fn get_max_level() -> usize
+// Gets the maximum number of pages
+fn get_max_page_number() -> usize
 {
     let notes_length = get_notes_length();
-    let n = notes_length as f64 / ITEMS_PER_LEVEL as f64;
+    let n = notes_length as f64 / *PAGE_SIZE.lock().unwrap() as f64;
     max(1, n.ceil() as usize)
 }
 
@@ -755,30 +778,30 @@ fn get_max_level() -> usize
 // It can wrap to the last one
 fn cycle_left()
 {   
-    let lvl: usize;
+    let pg: usize;
 
     {
-        let level = LEVEL.lock().unwrap();
-        let max_level = get_max_level();
-        lvl = if *level <= 1 {max_level} else {*level - 1};
+        let page = PAGE.lock().unwrap();
+        let max_page = get_max_page_number();
+        pg = if *page <= 1 {max_page} else {*page - 1};
     }
 
-    show_notes(lvl, vec![]);
+    show_notes(pg, vec![]);
 }
 
 // Goes to the next page
 // It can wrap to the first one
 fn cycle_right()
 {
-    let lvl: usize;
+    let pg: usize;
 
     {
-        let level = LEVEL.lock().unwrap();
-        let max_level = get_max_level();
-        lvl = if *level >= max_level {1} else {*level + 1};
+        let page = PAGE.lock().unwrap();
+        let max_page = get_max_page_number();
+        pg = if *page >= max_page {1} else {*page + 1};
     }
 
-    show_notes(lvl, vec![]);
+    show_notes(pg, vec![]);
 }
 
 // Edits the most recent note
@@ -811,6 +834,18 @@ fn parse_note_ans(ans: &str) -> usize
     }
 }
 
+// Replaces keywords to page numbers
+// Or parses the string to a number
+fn parse_page_ans(ans: &str) -> usize
+{
+    match ans
+    {
+        "first" => 1,
+        "last" => get_max_page_number(),
+        _ => ans.parse().unwrap_or(0)
+    }
+}
+
 // Cycles the menus
 // Wraps if at the end
 fn change_menu()
@@ -823,6 +858,7 @@ fn change_menu()
     refresh_page();
 }
 
+// Shows all notes at once
 fn show_all_notes()
 {
     let notes = get_notes(false);
@@ -838,6 +874,7 @@ fn show_all_notes()
     show_notes(0, notes);
 }
 
+// Information about the program
 fn show_about()
 {
     let art = 
@@ -862,14 +899,32 @@ L/_____/--------\\_//W-------\_____\J"#;
     show_notes(0, vec![s]);
 }
 
-fn scroll_up()
+// Asks the user to input a page number to go to
+fn goto_page()
 {
-    p!("uppp");
-    p!("\x1bS");
+    let n = parse_page_ans(&ask_string("Page #", ""));
+    if n < 1 || n > get_max_page_number() {return}
+    show_notes(n, vec![]);
 }
 
-fn scroll_down()
+// Changes how many items appear per page
+// It increases or decreases by 5
+fn change_page_size(increase: bool)
 {
-    p!("downn");
-    p!("\x1bT");
+    let ps;
+
+    {
+        let mut page = PAGE_SIZE.lock().unwrap();
+        if increase {*page += 5} else if *page >= 10 {*page -= 5}
+        ps = *page;
+    }
+
+    edit_first_line(ps);
+}
+
+// Modifies the first line with new settings
+fn edit_first_line(page_size: usize)
+{
+    let s = format!("{} page_size={}", UNLOCK_CHECK, page_size);
+    replace_line(0, s);
 }

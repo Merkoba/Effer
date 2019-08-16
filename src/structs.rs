@@ -32,7 +32,8 @@ pub enum MenuAnswer
     FindNotes, SwapNotes, DeleteNotes, RemakeFile,
     ChangePassword, CycleLeft, CycleRight, FirstPage,
     LastPage, RefreshPage, PageNumber, ChangeMenu,
-    ShowAllNotes, ShowAbout, Exit
+    ShowAllNotes, ShowAbout, GotoPage, Exit,
+    IncreasePageSize, DecreasePageSize
 }
 
 pub struct MaskingHighlighter 
