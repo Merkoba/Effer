@@ -42,6 +42,17 @@ macro_rules! e {
 }
 
 #[macro_export]
+macro_rules! ee {
+    ($left:expr, $right:expr) => {
+        eprint!($left, $right);
+    };
+
+    ($left:expr) => {
+        eprint!($left);
+    };
+}
+
+#[macro_export]
 macro_rules! s {
     ($s: expr) => {
         $s.to_string()

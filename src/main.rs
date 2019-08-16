@@ -22,6 +22,7 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use lazy_static::lazy_static;
 use regex::Regex;
+use clap::{App, Arg};
 use rustyline::
 {
     Editor, Cmd, KeyPress,
@@ -46,10 +47,64 @@ lazy_static!
 // First function to execute
 fn main() 
 {
+    check_arguments();
     handle_file_path_check(file_path_check(get_file_path()));
     if get_password(false).is_empty() {exit()};
     update_notes_statics(get_notes(false)); update_setting_statics();
     check_password(); change_screen(); goto_last_page();
+}
+
+// Starts the argument system and responds to actions
+fn check_arguments()
+{
+    let matches = App::new("Effer")
+    .version(VERSION)
+    .author("madprops")
+    .about("Encrypted note taking program")
+    .arg(Arg::with_name("print")
+        .long("print")
+        .multiple(false)
+        .help("Prints all the notes instead of entering the program"))
+    .arg(Arg::with_name("print2")
+        .long("print2")
+        .multiple(false)
+        .help("Same as print but doesn't show the numbers"))
+    .get_matches();
+
+    let mut mode = "";
+
+    if matches.occurrences_of("print") > 0
+    {
+        mode = "print";
+    }
+
+    else if matches.occurrences_of("print2") > 0
+    {
+        mode = "print2";
+    }
+
+    if mode == "print" || mode == "print2"
+    {
+        let notes = get_notes(false);
+        let lines: Vec<&str> = notes.lines().collect();
+
+        for (i, line) in lines.iter().enumerate()
+        {
+            if i == 0 {continue}
+
+            if mode == "print"
+            {
+                p!(format_item(i, line));
+            }
+
+            else
+            {
+                p!(line);
+            }
+        }
+
+        exit();
+    }
 }
 
 // Switch to the alternative screen
@@ -148,7 +203,7 @@ where F: Fn(String) -> T, E: Fn() -> T
 {
     let config: Config = Config::builder()
         .keyseq_timeout(50)
-        .output_stream(OutputStreamType::Stdout)
+        .output_stream(OutputStreamType::Stderr)
         .build();
 
     let h = MaskingHighlighter {masking: mask};
@@ -156,7 +211,7 @@ where F: Fn(String) -> T, E: Fn() -> T
     editor.set_helper(Some(h));
     editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);
     let prompt = format!("{}: ", message);
-    if mask {pp!("{}", termion::cursor::Hide)}
+    if mask {ee!("{}", termion::cursor::Hide)}
 
     let ans = match editor.readline_with_initial(&prompt, (initial, &s!()))
     {
@@ -170,7 +225,7 @@ where F: Fn(String) -> T, E: Fn() -> T
         }
     };
 
-    if mask {pp!("{}", termion::cursor::Show)} ans
+    if mask {ee!("{}", termion::cursor::Show)} ans
 }
 
 // Asks the user for a yes/no answer
