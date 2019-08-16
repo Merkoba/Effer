@@ -331,7 +331,7 @@ fn show_notes(mut page: usize, lines: Vec<String>)
                     "(d)elete",
                     "\n(Left/Right) Cycle Pages | ",
                     "(Up) Edit Last Note",
-                    "\n(0) Show All | ",
+                    "\n(H) Show All | ",
                     "(B) About | ",
                     "(q) Exit | ",
                     "(Space) >"
@@ -378,7 +378,6 @@ fn menu_input() -> (MenuAnswer, usize)
         {
             match ch
             {
-                '0' => MenuAnswer::ShowAllNotes,
                 d if d.is_digit(10) => 
                 {
                     data = d.to_digit(10).unwrap() as usize; 
@@ -392,6 +391,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 'g' => MenuAnswer::GotoPage,
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
+                'H' => MenuAnswer::ShowAllNotes,
                 'B' => MenuAnswer::ShowAbout,
                 'q' => MenuAnswer::Exit,
                 '+' => MenuAnswer::IncreasePageSize,
