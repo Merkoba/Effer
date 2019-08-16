@@ -191,25 +191,16 @@ fn get_password(change: bool) -> String
 
     if pw.is_empty() || change
     {
-        let password: String;
+        let mut password: String;
 
         if change
         {
             loop
             {
-                let new_password = get_input("New Password", "", |a| a, String::new, true);
-                if new_password.is_empty() {return s!()}
+                password = get_input("New Password", "", |a| a, String::new, true);
+                if password.is_empty() {return s!()}
                 let confirmation = get_input("Confirm Password", "", |a| a, String::new, true);
-
-                if new_password != confirmation
-                {
-                    p!("Error: Passwords Don't Match.");
-                }
-
-                else
-                {
-                    password = new_password; break;
-                }
+                if password != confirmation {p!("Error: Passwords Don't Match.")} else {break}
             }
         }
 
