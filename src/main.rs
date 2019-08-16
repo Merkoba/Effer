@@ -87,6 +87,8 @@ fn check_arguments()
     {
         let notes = get_notes(false);
         let lines: Vec<&str> = notes.lines().collect();
+        if lines.len() == 0 {exit()}
+        let mut result: Vec<String> = vec![];
 
         for (i, line) in lines.iter().enumerate()
         {
@@ -94,16 +96,16 @@ fn check_arguments()
 
             if mode == "print"
             {
-                p!(format_item(i, line));
+                result.push(format_item(i, line));
             }
 
             else
             {
-                p!(line);
+                result.push(s!(line));
             }
         }
 
-        exit();
+        pp!(result.join("\n")); exit();
     }
 }
 
