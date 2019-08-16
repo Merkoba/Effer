@@ -922,7 +922,7 @@ fn change_page_size(increase: bool)
         {
             if *page < 100 && max_page > 1 {*page += 5} else {return}
         }
-
+        
         else
         {
             if *page >= 10 {*page -= 5} else {return}
