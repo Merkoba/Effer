@@ -362,7 +362,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 {
                     data = d.to_digit(10).unwrap() as usize; 
                     MenuAnswer::PageNumber
-                }
+                },
                 'a' => MenuAnswer::AddNote,
                 'e' => MenuAnswer::EditNote,
                 'f' => MenuAnswer::FindNotes,
@@ -494,7 +494,7 @@ fn swap_lines(n1: usize, n2: usize)
     update_file(lines.iter()
         .map(|l| l.to_string())
         .collect::<Vec<String>>().join("\n"));
-}
+    }
 
 // Deletes a line from the notes then updates the file
 fn delete_lines(numbers: Vec<usize>)
