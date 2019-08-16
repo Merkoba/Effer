@@ -30,6 +30,7 @@ use rustyline::
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const FIRST_LINE: &str = "<Notes Unlocked>";
 const ITEMS_PER_LEVEL: usize = 15;
+const VERSION: &str = "v1.0.0";
 
 // Global variables
 lazy_static! 
@@ -38,6 +39,7 @@ lazy_static!
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
     static ref LEVEL: Mutex<usize> = Mutex::new(1);
+    static ref CURRENT_MENU: Mutex<usize> = Mutex::new(1);
 }
 
 // First function to execute
@@ -53,7 +55,7 @@ fn main()
 // Place the cursor at the bottom left
 fn change_screen()
 {
-    p!("\x1b[?1049h");
+    p!("\x1b[?1049h"); p!("\x1b[r");
     let size = termion::terminal_size().unwrap();
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(stdout, "{}", termion::cursor::Goto(1, size.1)).unwrap();
@@ -315,22 +317,40 @@ fn show_notes(mut level: usize, lines: Vec<String>)
             { let mut lvl = LEVEL.lock().unwrap(); *lvl = level }
             p!(format!("\n< Page {} of {} >", level, get_max_level()));
         }
-        
-        let s = 
-        [
-            "\n(a) Add | ",
-            "(e) Edit | ",
-            "(f) Find | ",
-            "(s) Swap",
-            "\n(d) Delete | ",
-            "(R) Remake | ",
-            "(P) Change Password",
-            "\n(Left/Right) Cycle Pages | ",
-            "(Up) Edit Last Note",
-            "\n(Home) First Page | ",
-            "(End) Last Page | ",
-            "(X) Exit",
-        ].concat();
+
+        let s = match *CURRENT_MENU.lock().unwrap()
+        {
+            1 =>
+            {
+                [
+                    "\n(a) Add | ",
+                    "(e) Edit | ",
+                    "(f) Find | ",
+                    "(s) Swap",
+                    "\n(d) Delete | ",
+                    "(R) Remake | ",
+                    "(P) Change Password",
+                    "\n(Left/Right) Cycle Pages | ",
+                    "(Up) Edit Last Note",
+                    "\n(Home) First Page | ",
+                    "(End) Last Page | ",
+                    "(Space) >"
+                ].concat()
+            },
+            2 =>
+            {
+                [
+                    "\n(Enter) Return | ",
+                    "(Esc) Cancel | ",
+                    "(1-9) Page",
+                    "\n(0) Show All | ",
+                    "(B) About | ",
+                    "(q) Exit | ",
+                    "(Space) >"
+                ].concat()
+            },
+            _ => s!("Error")
+        };
 
         p!(s); menu_action(menu_input());
     }
@@ -354,10 +374,12 @@ fn menu_input() -> (MenuAnswer, usize)
         Key::Down => MenuAnswer::LastPage,
         Key::Home => MenuAnswer::FirstPage,
         Key::End => MenuAnswer::LastPage,
+        Key::Esc => MenuAnswer::RefreshPage,
         Key::Char(ch) =>
         {
             match ch
             {
+                '0' => MenuAnswer::ShowAllNotes,
                 d if d.is_digit(10) => 
                 {
                     data = d.to_digit(10).unwrap() as usize; 
@@ -370,12 +392,13 @@ fn menu_input() -> (MenuAnswer, usize)
                 'd' => MenuAnswer::DeleteNotes,
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
-                'X' => MenuAnswer::Exit,
+                'B' => MenuAnswer::ShowAbout,
+                'q' => MenuAnswer::Exit,
                 '\n' => MenuAnswer::RefreshPage,
+                ' ' => MenuAnswer::ChangeMenu,
                 _ => MenuAnswer::Nothing
             }
         }
-        Key::Ctrl('c') => MenuAnswer::Exit,
         _ => MenuAnswer::Nothing
     };
 
@@ -402,6 +425,9 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::RefreshPage => {refresh_page()},
         MenuAnswer::EditLastNote => {edit_last_note()},
         MenuAnswer::PageNumber => {show_notes(max(1, ans.1), vec![])},
+        MenuAnswer::ChangeMenu => {change_menu()},
+        MenuAnswer::ShowAllNotes => {show_all_notes()},
+        MenuAnswer::ShowAbout => {show_about()},
         MenuAnswer::Exit => {exit()},
         MenuAnswer::Nothing => {}
     }
@@ -566,7 +592,7 @@ fn find_notes()
         }
     }
 
-    let msg = "| (Enter) Go Back";
+    let msg = "| (Enter) Return";
 
     if found.is_empty()
     {
@@ -783,4 +809,67 @@ fn parse_note_ans(ans: &str) -> usize
         "last" => get_notes_length(),
         _ => ans.parse().unwrap_or(0)
     }
+}
+
+// Cycles the menus
+// Wraps if at the end
+fn change_menu()
+{
+    {
+        let mut menu = CURRENT_MENU.lock().unwrap();
+        if *menu >= 2 {*menu = 1} else {*menu += 1}
+    }
+
+    refresh_page();
+}
+
+fn show_all_notes()
+{
+    let notes = get_notes(false);
+    let lines: Vec<&str> = notes.lines().collect();
+    let mut notes: Vec<String> = vec![];
+
+    for (i, line) in lines.iter().enumerate()
+    {
+        if i == 0 {continue}
+        notes.push(format_item(i, line));
+    }
+
+    show_notes(0, notes);
+}
+
+fn show_about()
+{
+    let art = 
+r#"
+_________   _________
+____/      452\ /     453 \____
+/| ------------- |  ------------ |\
+||| ------------- | ------------- |||
+||| ------------- | ------------- |||
+||| ------- ----- | ------------- |||
+||| ------------- | ------------- |||
+||| ------------- | ------------- |||
+|||  ------------ | ----------    |||
+||| ------------- |  ------------ |||
+||| ------------- | ------------- |||
+||| ------------- | ------ -----  |||
+||| ------------  | ------------- |||
+|||_____________  |  _____________|||
+L/_____/--------\\_//W-------\_____\J"#;
+
+    let s = format!("{}\n\n< Effer {} >", art, VERSION);
+    show_notes(0, vec![s]);
+}
+
+fn scroll_up()
+{
+    p!("uppp");
+    p!("\x1bS");
+}
+
+fn scroll_down()
+{
+    p!("downn");
+    p!("\x1bT");
 }

@@ -28,22 +28,11 @@ impl FilePathCheckResult
 #[derive(Debug)]
 pub enum MenuAnswer
 {
-    Nothing,
-    AddNote,
-    EditNote,
-    EditLastNote,
-    FindNotes,
-    SwapNotes,
-    DeleteNotes,
-    RemakeFile,
-    ChangePassword,
-    CycleLeft,
-    CycleRight,
-    FirstPage,
-    LastPage,
-    RefreshPage,
-    PageNumber,
-    Exit
+    Nothing, AddNote, EditNote, EditLastNote,
+    FindNotes, SwapNotes, DeleteNotes, RemakeFile,
+    ChangePassword, CycleLeft, CycleRight, FirstPage,
+    LastPage, RefreshPage, PageNumber, ChangeMenu,
+    ShowAllNotes, ShowAbout, Exit
 }
 
 pub struct MaskingHighlighter 
