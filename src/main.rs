@@ -995,7 +995,8 @@ L/_____/--------\\_//W-------\_____\J"#;
     [
         "Info: Different major versions are not compatible",
         "\nTip: You can use 'first' and 'last' as note numbers",
-        "\nTip: 1-9 can be used to navigate the first 9 pages"
+        "\nTip: 1-9 can be used to navigate the first 9 pages",
+        "\nTip: Start the program with --help to check arguments"
     ].concat();
 
     let s = format!("{}\n\n{}\n\n{}", art, name, info);
