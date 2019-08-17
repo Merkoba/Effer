@@ -36,6 +36,7 @@ const VERSION: &str = "v1.0.0";
 // Global variables
 lazy_static! 
 {
+    static ref FILE_PATH: Mutex<String> = Mutex::new(s!());
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
@@ -69,21 +70,29 @@ fn check_arguments()
         .long("print2")
         .multiple(false)
         .help("Same as print but doesn't show the numbers"))
+    .arg(Arg::with_name("path")
+        .long("path")
+        .value_name("PATH")
+        .help("Sets a custom file path")
+        .takes_value(true))
     .get_matches();
 
-    let mut mode = "";
+    *FILE_PATH.lock().unwrap() = s!(matches.value_of("path")
+        .unwrap_or(get_home_path().join(".config/effer/effer.dat").to_str().unwrap()));
+
+    let mut print_mode = "";
 
     if matches.occurrences_of("print") > 0
     {
-        mode = "print";
+        print_mode = "print";
     }
 
     else if matches.occurrences_of("print2") > 0
     {
-        mode = "print2";
+        print_mode = "print2";
     }
 
-    if mode == "print" || mode == "print2"
+    if print_mode == "print" || print_mode == "print2"
     {
         let notes = get_notes(false);
         let lines: Vec<&str> = notes.lines().collect();
@@ -94,7 +103,7 @@ fn check_arguments()
         {
             if i == 0 {continue}
 
-            match mode
+            match print_mode
             {
                 "print" => result.push(format_item(i, line)),
                 "print2" => result.push(s!(line)),
@@ -139,13 +148,13 @@ fn get_home_path() -> PathBuf
 // Gets the path of the file
 fn get_file_path() -> PathBuf
 {
-    get_home_path().join(Path::new(".config/effer/effer.dat"))
+    Path::new(&*FILE_PATH.lock().unwrap()).to_path_buf()
 }
 
 // Gets the path of the file's parent
 fn get_file_parent_path() -> PathBuf
 {
-    get_home_path().join(Path::new(".config/effer"))
+    get_file_path().parent().unwrap().to_path_buf()
 }
 
 // Checks the existence of the file
@@ -279,8 +288,7 @@ fn create_file() -> bool
 {
     if get_password(true).is_empty() {return false}
     let encrypted = encrypt_text(s!(UNLOCK_CHECK));
-    let parent_path = get_file_parent_path();
-    fs::create_dir_all(parent_path).unwrap();
+    fs::create_dir_all(get_file_parent_path()).unwrap();
     let file_path = get_file_path();
     let mut file = fs::File::create(&file_path).expect("Error creating the file.");
     file.write_all(encrypted.as_bytes()).expect("Unable to write initial text to file");
