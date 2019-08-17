@@ -60,8 +60,7 @@ fn check_arguments()
 {
     let matches = App::new("Effer")
     .version(VERSION)
-    .author("madprops")
-    .about("Encrypted note taking program")
+    .about("Encrypted CLI Notepad")
     .arg(Arg::with_name("print")
         .long("print")
         .multiple(false)
@@ -730,11 +729,13 @@ fn delete_notes()
 
     else if ans.contains('-')
     {
+        let note_length = get_notes_length();
         if ans.matches('-').count() > 1 {return}
         let mut split = ans.split('-').map(|n| n.trim());
         let num1 = parse_note_ans(split.next().unwrap_or("0"));
-        let num2 = parse_note_ans(split.next().unwrap_or("0"));
+        let mut num2 = parse_note_ans(split.next().unwrap_or("0"));
         if num1 == 0 || num2 == 0 {return}
+        if num2 > note_length {num2 = note_length}
         if num1 >= num2 {return}
         numbers.extend(num1..=num2);
     }
