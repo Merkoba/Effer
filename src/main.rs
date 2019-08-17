@@ -291,7 +291,7 @@ fn create_file() -> bool
     let file_path = get_file_path();
     let mut file = fs::File::create(&file_path).expect("Error creating the file.");
     file.write_all(encrypted.as_bytes()).expect("Unable to write initial text to file");
-    p!("File created at {}", &file_path.display()); true
+    true
 }
 
 // Encrypts the notes using Aes256
