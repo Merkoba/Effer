@@ -51,8 +51,8 @@ fn main()
     check_arguments();
     handle_file_path_check(file_path_check(get_file_path()));
     if get_password(false).is_empty() {exit()};
-    update_notes_statics(get_notes(false)); update_setting_statics();
-    check_password(); change_screen(); goto_last_page();
+    update_notes_statics(get_notes(false)); get_settings();
+    change_screen(); goto_last_page();
 }
 
 // Starts the argument system and responds to actions
@@ -93,7 +93,7 @@ fn check_arguments()
 
     if print_mode == "print" || print_mode == "print2"
     {
-        let notes = get_notes(false); check_password();
+        let notes = get_notes(false);
         let lines: Vec<&str> = notes.lines().collect();
         if lines.len() == 0 {exit()}
         let mut result: Vec<String> = vec![];
@@ -323,8 +323,18 @@ fn decrypt_text(encrypted_text: String) -> String
             p!("Wrong password."); exit();
         }
     }
-    
-    String::from_utf8(decrypted.unwrap()).expect("Can't turn the decrypted data into a string.")
+
+    let text = String::from_utf8(decrypted.unwrap())
+        .expect("Can't turn the decrypted data into a string.");
+
+    let header = text.lines().nth(0).expect("Can't read last line from the file.");
+
+    if !header.starts_with(UNLOCK_CHECK)
+    {
+        p!("Wrong password."); exit();
+    }
+
+    text
 }
 
 // <Alipha> madprops: an IV is an Initialization Vector and (generally) must be randomly-generated 
@@ -394,14 +404,15 @@ fn show_notes(mut page: usize, lines: Vec<String>)
                     "(Up) Edit Last Note",
                     "\n(H) Show All | ",
                     "(?) About | ",
-                    "(q) Exit | ",
+                    "(Q) Exit | ",
                     "(Space) >"
                 ].concat()
             },
             2 =>
             {
                 [
-                    "\n(+/-) Increase/Decrease Page Size",
+                    "\n(+/-) Change Page Size | ",
+                    "(T) Stats",
                     "\n(R) Remake File | ",
                     "(P) Change Password",
                     "\n(Home) First Page | ",
@@ -453,8 +464,9 @@ fn menu_input() -> (MenuAnswer, usize)
                 'R' => MenuAnswer::RemakeFile,
                 'P' => MenuAnswer::ChangePassword,
                 'H' => MenuAnswer::ShowAllNotes,
+                'T' => MenuAnswer::ShowStats,
                 '?' => MenuAnswer::ShowAbout,
-                'q' => MenuAnswer::Exit,
+                'Q' => MenuAnswer::Exit,
                 '+' => MenuAnswer::IncreasePageSize,
                 '-' => MenuAnswer::DecreasePageSize,
                 '\n' => MenuAnswer::RefreshPage,
@@ -495,6 +507,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::GotoPage => {goto_page()},
         MenuAnswer::IncreasePageSize => {change_page_size(true)},
         MenuAnswer::DecreasePageSize => {change_page_size(false)},
+        MenuAnswer::ShowStats => {show_stats()},
         MenuAnswer::Exit => {exit()},
         MenuAnswer::Nothing => {}
     }
@@ -504,20 +517,6 @@ fn menu_action(ans: (MenuAnswer, usize))
 fn get_file_text() -> String
 {
     fs::read_to_string(get_file_path()).expect("Can't read file content.")
-}
-
-// Checks if the first line was decrypted correctly
-// This is a simple password and file integrity check
-// If it fails the program exits
-fn check_password()
-{
-    let text = get_notes(false);
-    let first_line = text.lines().nth(0).expect("Can't read last line from the file.");
-
-    if !first_line.starts_with(UNLOCK_CHECK)
-    {
-        p!("Wrong password."); exit();
-    }
 }
 
 // Fills and array based on the key to generate the IV
@@ -557,12 +556,12 @@ fn update_notes_statics(text: String) -> String
     notes.to_string()
 }
 
-fn update_setting_statics()
+fn get_settings()
 {
     let notes = get_notes(false);
-    let first_line = notes.lines().nth(0).unwrap();
+    let header = notes.lines().nth(0).unwrap();
     let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
-    let caps = re.captures(first_line);
+    let caps = re.captures(header);
 
     match caps
     {
@@ -1017,7 +1016,7 @@ fn goto_page()
 // Minimum number is 5
 fn change_page_size(increase: bool)
 {
-    let max_page = get_max_page_number(); let ps;
+    let max_page = get_max_page_number();
 
     {
         let mut page = PAGE_SIZE.lock().unwrap();
@@ -1031,21 +1030,44 @@ fn change_page_size(increase: bool)
         {
             if *page >= 10 {*page -= 5} else {return}
         }
-
-        ps = *page;
     }
 
-    edit_first_line(ps);
+    update_header();
 }
 
-// Modifies the first line with new settings
-fn edit_first_line(page_size: usize)
+// Modifies the header (first line) with new settings
+fn update_header()
 {
-    let s = format!("{} page_size={}", UNLOCK_CHECK, page_size);
+    let s = format!("{} page_size={}", UNLOCK_CHECK, *PAGE_SIZE.lock().unwrap());
     replace_line(0, s);
 }
 
+// Generic function to show a message instead of notes
 fn show_message(message: &str)
 {
     show_notes(0, vec![s!(message)]);
+}
+
+// Show some statistics
+fn show_stats()
+{   
+    let notes = get_notes(false);
+    let len = get_notes_length();
+    let mut wcount = 0;
+    let mut lcount = 0;
+
+    for (i, line) in notes.lines().enumerate()
+    {   
+        if i == 0 {continue}
+        wcount += line.split_whitespace().count();
+        lcount += line.chars().filter(|c| *c != ' ').count();
+    }
+
+    let enc_size = get_file_text().as_bytes().len();
+    let dec_size = notes.as_bytes().len();
+
+    let s = format!("Notes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes", 
+        len, wcount, lcount, enc_size, dec_size);
+
+    show_message(&s);
 }

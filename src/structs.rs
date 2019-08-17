@@ -33,7 +33,7 @@ pub enum MenuAnswer
     ChangePassword, CycleLeft, CycleRight, FirstPage,
     LastPage, RefreshPage, PageNumber, ChangeMenu,
     ShowAllNotes, ShowAbout, GotoPage, Exit,
-    IncreasePageSize, DecreasePageSize
+    IncreasePageSize, DecreasePageSize, ShowStats
 }
 
 pub struct MaskingHighlighter 
