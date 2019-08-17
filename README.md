@@ -8,9 +8,11 @@ This is a small CLI program to store notes that will be saved to a text file in 
 
 To read the notes you need to use the password used to encrypt the file within the program.
 
-It can, edit, and delete notes.
+It can, edit, find, and delete notes.
 
-It can delete using a single number, a list, range, or regex.
+It finds using a case insensitive regex.
+
+It can delete using a single number, a list, a range, or a case insensitive regex.
 
 The file can be remade (replaced with an empty one).
 
