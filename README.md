@@ -38,10 +38,8 @@ This allows piping output to other programs like grep.
 This is not to be taken as a real security tool. The encryption is relatively weak.
 Somebody that knows what they're doing might be able to decrypt it without much trouble.
 But still it's an upgrade from saving notes in plain text.
-No other files are created for decryption. This means the notes file is portable and 
+No other files are created for decryption. This means the note files are portable and 
 should be able to be opened with the same program on another machine using the same password.
-
-Contributions are welcome.
 
 # Installation
 
@@ -55,3 +53,9 @@ To build an optimized binary
 
 # Arguments
 Check --help to find out about arguments that can be used.
+
+# Contributing
+Contributions are welcome. Making it more secure can be a way to improve it.
+If the encryption method changes, the program gets a new major release.
+Major release jumps (like 1.0.0 to 2.0.0) means files created in one can't
+be opened in another one.
