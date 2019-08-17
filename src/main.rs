@@ -718,12 +718,31 @@ fn delete_notes()
     p!("Note Number");
     p!("Or Note List (e.g 1,2,3)");
     p!("Or Note Range (e.g 1-3)");
+    p!("Or Regex (re:\\d+)");
 
     let ans = ask_string("Delete", "");
     if ans.is_empty() {return}
     let mut numbers: Vec<usize> = vec![];
+    let notes = get_notes(false);
 
-    if ans.contains(',')
+    if ans.starts_with("re:")
+    {
+        if let Ok(re) = Regex::new(&ans.replace("re:", "").trim())
+        {
+            for (i, line) in notes.lines().enumerate()
+            {
+                if i == 0 {continue}
+                if re.is_match(line) {numbers.push(i)}
+            }
+        }
+
+        else 
+        {
+            return show_message("< Invalid Regex | (Enter) Return >");
+        }
+    }
+
+    else if ans.contains(',')
     {
         numbers.extend(ans.split(',').map(|n| parse_note_ans(n.trim())).collect::<Vec<usize>>());
     }
@@ -757,7 +776,12 @@ fn delete_notes()
         }
     }
 
-    if !numbers.is_empty() {delete_lines(numbers)}
+    if numbers.is_empty()
+    {
+        return show_message("< No messages were deleted >")
+    }
+
+    delete_lines(numbers);
 }
 
 // Goes to the first page
@@ -978,7 +1002,7 @@ L/_____/--------\\_//W-------\_____\J"#;
     ].concat();
 
     let s = format!("{}\n\n{}\n\n{}", art, name, info);
-    show_notes(0, vec![s]);
+    show_message(&s);
 }
 
 // Asks the user to input a page number to go to
@@ -1021,4 +1045,9 @@ fn edit_first_line(page_size: usize)
 {
     let s = format!("{} page_size={}", UNLOCK_CHECK, page_size);
     replace_line(0, s);
+}
+
+fn show_message(message: &str)
+{
+    show_notes(0, vec![s!(message)]);
 }
