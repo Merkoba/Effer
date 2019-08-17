@@ -713,10 +713,10 @@ fn swap_notes()
 // Or a range (1-3)
 fn delete_notes()
 {
-    p!("Note Number");
-    p!("Or Note List (e.g 1,2,3)");
-    p!("Or Note Range (e.g 1-3)");
-    p!("Or Regex (re:\\d+)");
+    p!("Enter Note Number");
+    p!("Or Note List (1,2,3)");
+    p!("Or Note Range (1-3)");
+    p!("Or Regex Filter (re:\\d+)");
 
     let ans = ask_string("Delete", "");
     if ans.is_empty() {return}
