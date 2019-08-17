@@ -657,25 +657,23 @@ fn edit_note(mut n: usize)
 // Substrings are counted
 fn find_notes()
 {
-    let filter = ask_string("Filter", "").to_lowercase();
+    let filter = ask_string("Regex Filter", "").to_lowercase();
     let mut found: Vec<String> = vec![];
     if filter.is_empty() {return}
-    let filter_list: Vec<&str> = filter.split_whitespace().collect();
     let notes = get_notes(false);
-    let lines: Vec<&str> = notes.lines().collect();
 
-    for (i, line) in lines.iter().enumerate()
+    if let Ok(re) = Regex::new(&format!("(?i){}", filter))
     {
-        if i == 0 {continue}
-
-        for word in filter_list.iter()
+        for (i, line) in notes.lines().enumerate()
         {
-            if line.to_lowercase().contains(word)
-            {
-                found.push(format_item(i, line));
-                break;
-            }
+            if i == 0 {continue}
+            if re.is_match(line) {found.push(format_item(i, line))}
         }
+    }
+
+    else
+    {
+        return show_message("< Invalid Regex | (Enter) Return >");
     }
 
     let msg = "| (Enter) Return";
@@ -727,7 +725,7 @@ fn delete_notes()
 
     if ans.starts_with("re:")
     {
-        if let Ok(re) = Regex::new(&ans.replace("re:", "").trim())
+        if let Ok(re) = Regex::new(format!("(?i){}", ans.replace("re:", "")).trim())
         {
             for (i, line) in notes.lines().enumerate()
             {
