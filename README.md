@@ -10,7 +10,7 @@ To read the notes you need to use the password used to encrypt the file within t
 
 It can, edit, and delete notes.
 
-It can delete using a single number, a list, or a range.
+It can delete using a single number, a list, range, or regex.
 
 The file can be remade (replaced with an empty one).
 
