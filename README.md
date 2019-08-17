@@ -58,6 +58,11 @@ Check --help to find out about arguments that can be used.
 
 # Contributing
 Contributions are welcome. Making it more secure can be a way to improve it.
+The only restriction to the encryption algorithm is that it can't use multiple files,
+for instance to save salts or IV's. The idea is to make it easy to move files around,
+and open them in other machines where the user might have this program. Also since the 
+note files are saved locally it would be easy anyway to gather those other extra files
+if access to the file system is possible.
 If the encryption method changes, the program gets a new major release.
 Major-release-jumps (like 1.0.0 to 2.0.0) mean that files created in one can't
 be opened in the other.
