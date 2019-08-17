@@ -1,4 +1,8 @@
-![](http://i.imgur.com/a7ZRuii.png)
+![](http://i.imgur.com/XriIvL7.png)
+
+![](http://i.imgur.com/9Xmz8We.png)
+
+![](http://i.imgur.com/6Dbs9Rj.png)
 
 This is a small CLI program to store notes that will be saved to a text file in gibberish hex format.
 
@@ -20,6 +24,15 @@ Up arrow is a shortcut to edit the last note.
 
 It goes into an alternative screen to not flood your terminal.
 
+Notes can be swapped.
+
+The number of displayed notes per page can be configured.
+
+All notes can be shown at once.
+
+Arguments allow the program to just output note terminal (with the correct password).
+This allows piping output to other programs like grep.
+
 # About Security
 
 This is not to be taken as a real security tool. The encryption is relatively weak.
@@ -39,3 +52,6 @@ To check using a debug version:
 
 To build an optimized binary
 >cargo build --release
+
+# Arguments
+Check --help to find out about arguments that can be used.

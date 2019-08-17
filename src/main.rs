@@ -465,8 +465,9 @@ fn menu_input() -> (MenuAnswer, usize)
         _ => MenuAnswer::Nothing
     };
 
-    stdout.flush().unwrap();
-    write!(stdout, "{}", termion::cursor::Show).unwrap(); (ans, data)
+    
+    write!(stdout, "{}", termion::cursor::Show).unwrap(); 
+    stdout.flush().unwrap(); (ans, data)
 }
 
 // Reacts to the live keyboard input from the main menu
@@ -967,7 +968,16 @@ ____/      452\ /     453 \____
 |||_____________  |  _____________|||
 L/_____/--------\\_//W-------\_____\J"#;
 
-    let s = format!("{}\n\n< Effer {} >", art, VERSION);
+    let name = format!("Effer {}", VERSION);
+
+    let info =
+    [
+        "Info: Different major versions are not compatible",
+        "\nTip: You can use 'first' and 'last' as note numbers",
+        "\nTip: 1-9 can be used to navigate the first 9 pages"
+    ].concat();
+
+    let s = format!("{}\n\n{}\n\n{}", art, name, info);
     show_notes(0, vec![s]);
 }
 
