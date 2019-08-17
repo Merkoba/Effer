@@ -93,7 +93,7 @@ fn check_arguments()
 
     if print_mode == "print" || print_mode == "print2"
     {
-        let notes = get_notes(false);
+        let notes = get_notes(false); check_password();
         let lines: Vec<&str> = notes.lines().collect();
         if lines.len() == 0 {exit()}
         let mut result: Vec<String> = vec![];
