@@ -412,9 +412,11 @@ fn show_notes(mut page: usize, lines: Vec<String>)
             {
                 [
                     "\n(+/-) Change Page Size | ",
+                    "(g) Goto | ",
                     "(T) Stats",
                     "\n(R) Remake File | ",
-                    "(P) Change Password",
+                    "(P) Change Password | ",
+                    "(:) 😎",
                     "\n(Home) First Page | ",
                     "(End) Last Page | ",
                     "(Space) >"
@@ -469,6 +471,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 'Q' => MenuAnswer::Exit,
                 '+' => MenuAnswer::IncreasePageSize,
                 '-' => MenuAnswer::DecreasePageSize,
+                ':' => MenuAnswer::ScreenSaver,
                 '\n' => MenuAnswer::RefreshPage,
                 ' ' => MenuAnswer::ChangeMenu,
                 _ => MenuAnswer::Nothing
@@ -508,6 +511,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::IncreasePageSize => change_page_size(true),
         MenuAnswer::DecreasePageSize => change_page_size(false),
         MenuAnswer::ShowStats => show_stats(),
+        MenuAnswer::ScreenSaver => show_screensaver(),
         MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
     }
@@ -1071,4 +1075,18 @@ fn show_stats()
         len, wcount, lcount, enc_size, dec_size);
 
     show_message(&s);
+}
+
+// Hides notes from the screen with some characters
+fn show_screensaver()
+{
+    let mut lines: Vec<String> = vec![];
+
+    for _ in 0..8
+    {
+        lines.push(s!(("😎 ".repeat(14)).trim()));
+    }
+
+    let message = lines.join("\n\n");
+    show_message(&message);
 }
