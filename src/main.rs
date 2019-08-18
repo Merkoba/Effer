@@ -1082,7 +1082,7 @@ fn show_screensaver()
 {
     let mut lines: Vec<String> = vec![];
 
-    for _ in 0..8
+    for _ in 0..7
     {
         lines.push(s!(("😎 ".repeat(14)).trim()));
     }
