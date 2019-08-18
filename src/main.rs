@@ -1,25 +1,34 @@
 mod macros;
 mod structs;
-use structs::FilePathCheckResult;
-use structs::MenuAnswer;
-use structs::RustyHelper;
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
-use std::io::{self, Write, stdout, stdin};
-use std::process;
-use std::cmp::max;
-use std::cmp::min;
-use block_modes::{BlockMode, Cbc};
-use block_modes::block_padding::Pkcs7;
+
+use structs::
+{
+    FilePathCheckResult,
+    MenuAnswer, RustyHelper
+};
+use std::
+{
+    fs, process,
+    path::{Path, PathBuf},
+    io::{self, Write, stdout, stdin},
+    cmp::{min, max},
+    sync::Mutex
+};
+use block_modes::
+{
+    BlockMode, Cbc, 
+    block_padding::Pkcs7
+};
 use aes_soft::Aes256;
 use dirs;
 use rand::prelude::*;
 use sha3::{Sha3_256, Digest};
-use std::sync::Mutex;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
+use termion::
+{
+    event::Key,
+    input::TermRead,
+    raw::IntoRawMode
+};
 use lazy_static::lazy_static;
 use regex::Regex;
 use clap::{App, Arg};
@@ -55,8 +64,14 @@ fn main()
     handle_file_path_check(file_path_check(get_file_path()));
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
-    update_notes_statics(notes); get_settings(); change_screen(); 
-    *STARTED.lock().unwrap() = true; goto_last_page();
+    update_notes_statics(notes); get_settings(); change_screen();
+    
+    {
+        *STARTED.lock().unwrap() = true; 
+    }
+    
+    // Start loop
+    goto_last_page();
 }
 
 // Starts the argument system and responds to actions
@@ -85,8 +100,10 @@ fn check_arguments()
         .takes_value(true))
     .get_matches();
 
-    *PATH.lock().unwrap() = s!(matches.value_of("path")
-        .unwrap_or(get_home_path().join(".config/effer/effer.dat").to_str().unwrap()));
+    let path = s!(matches.value_of("path")
+        .unwrap_or(get_default_file_path().to_str().unwrap()));
+    
+    *PATH.lock().unwrap() = shell_expand(&path);
 
     let mut print_mode = "";
 
@@ -156,6 +173,12 @@ fn get_home_path() -> PathBuf
             p!("Can't get your Home path."); exit();
         }
     }
+}
+
+// Gets the default file path
+fn get_default_file_path() -> PathBuf
+{
+    Path::new(&get_home_path().join(".config/effer/effer.dat")).to_path_buf()
 }
 
 // Gets the path of the file
@@ -405,7 +428,9 @@ fn show_notes(mut page: usize, lines: Vec<String>)
             p!(format!("\n< Page {} of {} >", page, get_max_page_number()));
         }
 
-        let s = match *CURRENT_MENU.lock().unwrap()
+        let cm; {cm = *CURRENT_MENU.lock().unwrap()}
+
+        let s = match cm
         {
             1 =>
             {
@@ -460,9 +485,7 @@ fn menu_input() -> (MenuAnswer, usize)
     let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(stdout, "{}", termion::cursor::Hide).unwrap();
-    stdout.flush().unwrap();
-
-    let mut data = 0;
+    stdout.flush().unwrap(); let mut data = 0;
 
     let ans = match stdin.keys().next().unwrap().unwrap()
     {
@@ -508,7 +531,6 @@ fn menu_input() -> (MenuAnswer, usize)
         _ => MenuAnswer::Nothing
     };
 
-    
     write!(stdout, "{}", termion::cursor::Show).unwrap(); 
     stdout.flush().unwrap(); (ans, data)
 }
@@ -1098,9 +1120,10 @@ fn show_stats()
 
     let enc_size = get_file_text().as_bytes().len();
     let dec_size = notes.as_bytes().len();
+    let path; {path = PATH.lock().unwrap()}
 
-    let s = format!("Notes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes", 
-        len, wcount, lcount, enc_size, dec_size);
+    let s = format!("Stats For: {}\n\nNotes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes", 
+        path, len, wcount, lcount, enc_size, dec_size);
 
     show_message(&s);
 }
@@ -1213,9 +1236,9 @@ fn fetch_source()
 fn open_from_path()
 {
     let ans = ask_string("Encrypted File Path", "");
-    if ans.is_empty() {return}
+    if ans.is_empty() {return}; let pth = shell_expand(&ans);
 
-    match file_path_check(Path::new(&shell_expand(&ans)).to_path_buf())
+    match file_path_check(Path::new(&pth).to_path_buf())
     {
         FilePathCheckResult::Exists =>
         {
@@ -1226,7 +1249,7 @@ fn open_from_path()
                 opassword = s!(*password); *password = s!();
 
                 let mut path = PATH.lock().unwrap();
-                opath = s!(*path); *path = ans;
+                opath = s!(path); *path = pth;
             }
             
             let notes = get_notes(true);
