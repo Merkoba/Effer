@@ -1233,8 +1233,11 @@ fn open_from_path()
             
             if notes.is_empty() 
             {
-                *PASSWORD.lock().unwrap() = opassword;
-                *PATH.lock().unwrap() = opath;
+                {
+                    *PASSWORD.lock().unwrap() = opassword;
+                    *PATH.lock().unwrap() = opath;
+                }
+                
                 show_message("< Invalid Password >");
             }
 
