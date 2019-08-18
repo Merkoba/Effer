@@ -32,6 +32,10 @@ The number of displayed notes per page can be configured.
 
 All notes can be shown at once.
 
+Input page number to go to a specific page.
+
+Sreensaver mode to temporarily hide notes from curious eyes.
+
 Arguments allow the program to just output note terminal (with the correct password).
 This allows piping output to other programs like grep.
 

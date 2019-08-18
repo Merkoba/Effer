@@ -31,7 +31,7 @@ use rustyline::
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const UNLOCK_CHECK: &str = "<Notes Unlocked>";
-const VERSION: &str = "v1.0.0";
+const VERSION: &str = "v1.1.0";
 
 // Global variables
 lazy_static! 
