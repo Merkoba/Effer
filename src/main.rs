@@ -55,7 +55,7 @@ fn main()
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
     update_notes_statics(notes); get_settings(); change_screen(); 
-    goto_last_page(); *STARTED.lock().unwrap() = true;
+    *STARTED.lock().unwrap() = true; goto_last_page();
 }
 
 // Starts the argument system and responds to actions
@@ -1119,27 +1119,29 @@ fn show_screensaver()
     show_message(&message);
 }
 
+// Tries to get the content of a source path
 fn get_source_content(path: &str)
 {
-    let mut source = SOURCE.lock().unwrap();
-
     match fs::read_to_string(path)
     {
         Ok(text) => 
         {
-            *source = if text.is_empty() {s!()} else {text};
+            *SOURCE.lock().unwrap() = if text.is_empty() {s!()} else {text};
         }
         Err(_) => 
         {
             if *STARTED.lock().unwrap() 
             {
-                *source = s!();
-                show_message("Invalid source path.");
+                {
+                    *SOURCE.lock().unwrap() = s!();
+                }
+
+                show_message("< Invalid Source Path >");
             }
 
             else
             {
-                p!("Invalid source path."); exit();
+                p!("< Invalid Source Path >"); exit();
             }
         }
     }
@@ -1198,6 +1200,7 @@ fn handle_source()
     *source = s!();
 }
 
+// Uses a source from within the program
 fn fetch_source()
 {
     let ans = ask_string("Source Path", "");
@@ -1206,6 +1209,7 @@ fn fetch_source()
     handle_source();
 }
 
+// Changes the current notes file with another one
 fn open_from_path()
 {
     let ans = ask_string("Encrypted File Path", "");
@@ -1243,6 +1247,7 @@ fn open_from_path()
     }
 }
 
+// Deletes the file and exits the program
 fn destroy()
 {
     if ask_bool("Are you sure you want to destroy this file and exit?")
