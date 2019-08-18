@@ -39,6 +39,7 @@ lazy_static!
     static ref FILE_PATH: Mutex<String> = Mutex::new(s!());
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
     static ref NOTES: Mutex<String> = Mutex::new(s!());
+    static ref SOURCE: Mutex<String> = Mutex::new(s!());
     static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
     static ref PAGE: Mutex<usize> = Mutex::new(1);
     static ref CURRENT_MENU: Mutex<usize> = Mutex::new(1);
@@ -50,7 +51,7 @@ fn main()
 {
     check_arguments();
     handle_file_path_check(file_path_check(get_file_path()));
-    if get_password(false).is_empty() {exit()};
+    handle_source(); if get_password(false).is_empty() {exit()};
     update_notes_statics(get_notes(false)); get_settings();
     change_screen(); goto_last_page();
 }
@@ -73,6 +74,11 @@ fn check_arguments()
         .long("path")
         .value_name("PATH")
         .help("Sets a custom file path")
+        .takes_value(true))
+    .arg(Arg::with_name("source")
+        .long("source")
+        .value_name("PATH")
+        .help("Creates notes from a text file")
         .takes_value(true))
     .get_matches();
 
@@ -111,6 +117,14 @@ fn check_arguments()
         }
 
         pp!(result.join("\n")); exit();
+    }
+
+    if let Some(source) = matches.value_of("source")
+    {
+        let text = fs::read_to_string(source)
+                    .expect("Can't read content from the source file.");
+
+        if !text.is_empty() {*SOURCE.lock().unwrap() = text}
     }
 }
 
@@ -1089,4 +1103,55 @@ fn show_screensaver()
 
     let message = lines.join("\n\n");
     show_message(&message);
+}
+
+// What to do when a source path is given 
+// Either replaces, appends, or prepends notes
+// using the source file lines
+fn handle_source()
+{
+    let initial = SOURCE.lock().unwrap();
+    if initial.is_empty() {return}
+    let notes = get_notes(false);
+
+    // If there are no notes just fill it with source
+    if notes.lines().count() == 1
+    {
+        let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
+        lines.extend(initial.lines()); update_file(lines.join("\n"));
+    }
+
+    // If notes already exist ask what to do
+    else
+    {
+        let ans = ask_string("Do you want to (1) Replace, (2) Append, or (3) Prepend", "");
+        let num = ans.parse::<u8>().unwrap_or(0);
+
+        match num
+        {
+            // Replace
+            1 =>
+            {
+                let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
+                lines.extend(initial.lines()); update_file(lines.join("\n"));
+            },
+            // Append
+            2 =>
+            {
+                let mut lines: Vec<&str> = notes.lines().collect();
+                lines.extend(initial.lines()); update_file(lines.join("\n"));
+            },
+            // Prepend
+            3 =>
+            {
+                let mut lines = notes.lines();
+                let mut xlines = vec![lines.next().unwrap()];
+                let nlines: Vec<&str> = initial.lines().collect();
+                let olines: Vec<&str> = lines.collect();
+                xlines.extend(nlines); xlines.extend(olines); 
+                update_file(xlines.join("\n"));
+            },
+            _ => {}
+        }
+    }
 }
