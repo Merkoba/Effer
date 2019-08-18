@@ -1120,7 +1120,7 @@ fn show_stats()
 
     let enc_size = get_file_text().as_bytes().len();
     let dec_size = notes.as_bytes().len();
-    let path; {path = PATH.lock().unwrap()}
+    let path; {path = s!(*PATH.lock().unwrap())}
 
     let s = format!("Stats For: {}\n\nNotes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes", 
         path, len, wcount, lcount, enc_size, dec_size);
@@ -1249,7 +1249,7 @@ fn open_from_path()
                 opassword = s!(*password); *password = s!();
 
                 let mut path = PATH.lock().unwrap();
-                opath = s!(path); *path = pth;
+                opath = s!(*path); *path = pth;
             }
             
             let notes = get_notes(true);
