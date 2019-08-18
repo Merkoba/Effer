@@ -2,7 +2,7 @@ mod macros;
 mod structs;
 use structs::FilePathCheckResult;
 use structs::MenuAnswer;
-use structs::MaskingHighlighter;
+use structs::RustyHelper;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -26,7 +26,8 @@ use clap::{App, Arg};
 use rustyline::
 {
     Editor, Cmd, KeyPress,
-    Config, OutputStreamType
+    Config, OutputStreamType, CompletionType, 
+    completion::FilenameCompleter
 };
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
@@ -224,9 +225,10 @@ where F: Fn(String) -> T, E: Fn() -> T
     let config: Config = Config::builder()
         .keyseq_timeout(50)
         .output_stream(OutputStreamType::Stderr)
+        .completion_type(CompletionType::List)
         .build();
 
-    let h = MaskingHighlighter {masking: mask};
+    let h = RustyHelper {masking: mask, completer: FilenameCompleter::new()};
     let mut editor = Editor::with_config(config);
     editor.set_helper(Some(h));
     editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);

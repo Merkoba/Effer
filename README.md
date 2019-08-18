@@ -45,6 +45,8 @@ Can change to other encrypted files within the program.
 
 Destroy function which deletes the file and exits the program.
 
+Path autocompletion with Tab.
+
 # About Security
 
 This is not to be taken as a real security tool. The encryption is relatively weak.

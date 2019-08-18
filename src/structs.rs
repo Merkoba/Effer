@@ -1,8 +1,9 @@
 use std::borrow::Cow::{self, Borrowed, Owned};
-use rustyline::completion::Completer;
+use rustyline::completion::{Completer, FilenameCompleter, Pair};
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
-use rustyline::Helper;
+use rustyline::error::ReadlineError;
+use rustyline::{Context, Helper};
 use unicode_width::UnicodeWidthStr;
 
 pub enum FilePathCheckResult
@@ -37,12 +38,13 @@ pub enum MenuAnswer
     FetchSource, OpenFromPath, Destroy
 }
 
-pub struct MaskingHighlighter 
+pub struct RustyHelper 
 {
-    pub masking: bool
+    pub masking: bool,
+    pub completer: FilenameCompleter
 }
 
-impl Highlighter for MaskingHighlighter 
+impl Highlighter for RustyHelper 
 {
     fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> 
     {
@@ -63,10 +65,19 @@ impl Highlighter for MaskingHighlighter
     }
 }
 
-impl Completer for MaskingHighlighter 
+impl Completer for RustyHelper 
 {
-    type Candidate = String;
+    type Candidate = Pair;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        ctx: &Context<'_>,
+    ) -> Result<(usize, Vec<Pair>), ReadlineError> {
+        self.completer.complete(line, pos, ctx)
+    }
 }
 
-impl Hinter for MaskingHighlighter {}
-impl Helper for MaskingHighlighter {}
+impl Hinter for RustyHelper {}
+impl Helper for RustyHelper {}
