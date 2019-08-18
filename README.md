@@ -43,7 +43,7 @@ Can create notes from a given file path (replace, append, or prepend).
 
 Can change to other encrypted files within the program.
 
-Shred function which destroys the file and exits the program.
+Destroy function which deletes the file and exits the program.
 
 # About Security
 

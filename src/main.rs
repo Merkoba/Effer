@@ -439,7 +439,8 @@ fn show_notes(mut page: usize, lines: Vec<String>)
             {
                 [
                     "\n-----------------------------------------",
-                    "\n(O) Open Other Encrypted File | (!) Shred",
+                    "\n(O) Open Other Encrypted File | ",
+                    "(X) Destroy",
                     "\n(U) Add Notes From A Text File | ",
                     "(Space) >"
                 ].concat()
@@ -496,7 +497,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 '+' => MenuAnswer::IncreasePageSize,
                 '-' => MenuAnswer::DecreasePageSize,
                 ':' => MenuAnswer::ScreenSaver,
-                '!' => MenuAnswer::Shred,
+                'X' => MenuAnswer::Destroy,
                 '\n' => MenuAnswer::RefreshPage,
                 ' ' => MenuAnswer::ChangeMenu,
                 _ => MenuAnswer::Nothing
@@ -539,7 +540,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::ScreenSaver => show_screensaver(),
         MenuAnswer::OpenFromPath => open_from_path(),
         MenuAnswer::FetchSource => fetch_source(),
-        MenuAnswer::Shred => shred(),
+        MenuAnswer::Destroy => destroy(),
         MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
     }
@@ -1242,7 +1243,7 @@ fn open_from_path()
     }
 }
 
-fn shred()
+fn destroy()
 {
     if ask_bool("Are you sure you want to destroy this file and exit?")
     {

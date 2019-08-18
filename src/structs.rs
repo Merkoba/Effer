@@ -34,7 +34,7 @@ pub enum MenuAnswer
     LastPage, RefreshPage, PageNumber, ChangeMenu,
     ShowAllNotes, ShowAbout, GotoPage, Exit,
     IncreasePageSize, DecreasePageSize, ShowStats, ScreenSaver,
-    FetchSource, OpenFromPath, Shred
+    FetchSource, OpenFromPath, Destroy
 }
 
 pub struct MaskingHighlighter 
