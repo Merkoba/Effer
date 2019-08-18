@@ -41,6 +41,10 @@ This allows piping output to other programs like grep.
 
 Can create notes from a given file path (replace, append, or prepend).
 
+Can change to other encrypted files within the program.
+
+Shred function which destroys the file and exits the program.
+
 # About Security
 
 This is not to be taken as a real security tool. The encryption is relatively weak.

@@ -36,7 +36,7 @@ const VERSION: &str = "v1.1.0";
 // Global variables
 lazy_static! 
 {
-    static ref FILE_PATH: Mutex<String> = Mutex::new(s!());
+    static ref PATH: Mutex<String> = Mutex::new(s!());
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
@@ -44,6 +44,7 @@ lazy_static!
     static ref PAGE: Mutex<usize> = Mutex::new(1);
     static ref CURRENT_MENU: Mutex<usize> = Mutex::new(1);
     static ref PAGE_SIZE: Mutex<usize> = Mutex::new(15);
+    static ref STARTED: Mutex<bool> = Mutex::new(false);
 }
 
 // First function to execute
@@ -52,8 +53,9 @@ fn main()
     check_arguments();
     handle_file_path_check(file_path_check(get_file_path()));
     handle_source(); if get_password(false).is_empty() {exit()};
-    update_notes_statics(get_notes(false)); get_settings();
-    change_screen(); goto_last_page();
+    let notes = get_notes(false); if notes.is_empty() {exit()}
+    update_notes_statics(notes); get_settings(); change_screen(); 
+    goto_last_page(); *STARTED.lock().unwrap() = true;
 }
 
 // Starts the argument system and responds to actions
@@ -82,7 +84,7 @@ fn check_arguments()
         .takes_value(true))
     .get_matches();
 
-    *FILE_PATH.lock().unwrap() = s!(matches.value_of("path")
+    *PATH.lock().unwrap() = s!(matches.value_of("path")
         .unwrap_or(get_home_path().join(".config/effer/effer.dat").to_str().unwrap()));
 
     let mut print_mode = "";
@@ -119,12 +121,9 @@ fn check_arguments()
         pp!(result.join("\n")); exit();
     }
 
-    if let Some(source) = matches.value_of("source")
+    if let Some(path) = matches.value_of("source")
     {
-        let text = fs::read_to_string(source)
-                    .expect("Can't read content from the source file.");
-
-        if !text.is_empty() {*SOURCE.lock().unwrap() = text}
+        get_source_content(path);
     }
 }
 
@@ -161,7 +160,7 @@ fn get_home_path() -> PathBuf
 // Gets the path of the file
 fn get_file_path() -> PathBuf
 {
-    Path::new(&*FILE_PATH.lock().unwrap()).to_path_buf()
+    Path::new(&*PATH.lock().unwrap()).to_path_buf()
 }
 
 // Gets the path of the file's parent
@@ -334,7 +333,7 @@ fn decrypt_text(encrypted_text: String) -> String
         Ok(_) => (),
         Err(_) => 
         {
-            p!("Wrong password."); exit();
+            p!("Wrong password."); return s!();
         }
     }
 
@@ -345,7 +344,7 @@ fn decrypt_text(encrypted_text: String) -> String
 
     if !header.starts_with(UNLOCK_CHECK)
     {
-        p!("Wrong password."); exit();
+        p!("Wrong password."); return s!();
     }
 
     text
@@ -436,6 +435,15 @@ fn show_notes(mut page: usize, lines: Vec<String>)
                     "(Space) >"
                 ].concat()
             },
+            3 =>
+            {
+                [
+                    "\n-----------------------------------------",
+                    "\n(O) Open Other Encrypted File | (!) Shred",
+                    "\n(U) Add Notes From A Text File | ",
+                    "(Space) >"
+                ].concat()
+            },
             _ => s!("Error")
         };
 
@@ -482,10 +490,13 @@ fn menu_input() -> (MenuAnswer, usize)
                 'H' => MenuAnswer::ShowAllNotes,
                 'T' => MenuAnswer::ShowStats,
                 '?' => MenuAnswer::ShowAbout,
+                'O' => MenuAnswer::OpenFromPath,
+                'U' => MenuAnswer::FetchSource,
                 'Q' => MenuAnswer::Exit,
                 '+' => MenuAnswer::IncreasePageSize,
                 '-' => MenuAnswer::DecreasePageSize,
                 ':' => MenuAnswer::ScreenSaver,
+                '!' => MenuAnswer::Shred,
                 '\n' => MenuAnswer::RefreshPage,
                 ' ' => MenuAnswer::ChangeMenu,
                 _ => MenuAnswer::Nothing
@@ -526,6 +537,9 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::DecreasePageSize => change_page_size(false),
         MenuAnswer::ShowStats => show_stats(),
         MenuAnswer::ScreenSaver => show_screensaver(),
+        MenuAnswer::OpenFromPath => open_from_path(),
+        MenuAnswer::FetchSource => fetch_source(),
+        MenuAnswer::Shred => shred(),
         MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
     }
@@ -894,8 +908,7 @@ fn cycle_left()
 
     {
         let page = PAGE.lock().unwrap();
-        let max_page = get_max_page_number();
-        pg = if *page <= 1 {max_page} else {*page - 1};
+        if *page == 1 {return} pg = *page - 1;
     }
 
     show_notes(pg, vec![]);
@@ -910,7 +923,7 @@ fn cycle_right()
     {
         let page = PAGE.lock().unwrap();
         let max_page = get_max_page_number();
-        pg = if *page >= max_page {1} else {*page + 1};
+        if *page == max_page {return} pg = *page + 1;
     }
 
     show_notes(pg, vec![]);
@@ -964,7 +977,7 @@ fn change_menu()
 {
     {
         let mut menu = CURRENT_MENU.lock().unwrap();
-        if *menu >= 2 {*menu = 1} else {*menu += 1}
+        if *menu >= 3 {*menu = 1} else {*menu += 1}
     }
 
     refresh_page();
@@ -1105,20 +1118,46 @@ fn show_screensaver()
     show_message(&message);
 }
 
+fn get_source_content(path: &str)
+{
+    let mut source = SOURCE.lock().unwrap();
+
+    match fs::read_to_string(path)
+    {
+        Ok(text) => 
+        {
+            *source = if text.is_empty() {s!()} else {text};
+        }
+        Err(_) => 
+        {
+            if *STARTED.lock().unwrap() 
+            {
+                *source = s!();
+                show_message("Invalid source path.");
+            }
+
+            else
+            {
+                p!("Invalid source path."); exit();
+            }
+        }
+    }
+}
+
 // What to do when a source path is given 
 // Either replaces, appends, or prepends notes
 // using the source file lines
 fn handle_source()
 {
-    let initial = SOURCE.lock().unwrap();
-    if initial.is_empty() {return}
+    let mut source = SOURCE.lock().unwrap();
+    if source.is_empty() {return}
     let notes = get_notes(false);
 
     // If there are no notes just fill it with source
     if notes.lines().count() == 1
     {
         let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
-        lines.extend(initial.lines()); update_file(lines.join("\n"));
+        lines.extend(source.lines()); update_file(lines.join("\n"));
     }
 
     // If notes already exist ask what to do
@@ -1133,25 +1172,80 @@ fn handle_source()
             1 =>
             {
                 let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
-                lines.extend(initial.lines()); update_file(lines.join("\n"));
+                lines.extend(source.lines()); update_file(lines.join("\n"));
             },
             // Append
             2 =>
             {
                 let mut lines: Vec<&str> = notes.lines().collect();
-                lines.extend(initial.lines()); update_file(lines.join("\n"));
+                lines.extend(source.lines()); update_file(lines.join("\n"));
             },
             // Prepend
             3 =>
             {
                 let mut lines = notes.lines();
                 let mut xlines = vec![lines.next().unwrap()];
-                let nlines: Vec<&str> = initial.lines().collect();
+                let nlines: Vec<&str> = source.lines().collect();
                 let olines: Vec<&str> = lines.collect();
                 xlines.extend(nlines); xlines.extend(olines); 
                 update_file(xlines.join("\n"));
             },
             _ => {}
         }
+    }
+
+    *source = s!();
+}
+
+fn fetch_source()
+{
+    let ans = ask_string("Source Path", "");
+    if ans.is_empty() {return}
+    get_source_content(&ans);
+    handle_source();
+}
+
+fn open_from_path()
+{
+    let ans = ask_string("Encrypted File Path", "");
+    if ans.is_empty() {return}
+
+    match file_path_check(Path::new(&ans).to_path_buf())
+    {
+        FilePathCheckResult::Exists =>
+        {
+            let opassword; let opath;
+
+            {
+                let mut password = PASSWORD.lock().unwrap();
+                opassword = s!(*password); *password = s!();
+
+                let mut path = PATH.lock().unwrap();
+                opath = s!(*path); *path = ans;
+            }
+            
+            let notes = get_notes(true);
+            
+            if notes.is_empty() 
+            {
+                *PASSWORD.lock().unwrap() = opassword;
+                *PATH.lock().unwrap() = opath;
+                show_message("< Invalid Password >");
+            }
+
+            else
+            {
+                update_notes_statics(notes); get_settings();
+            }
+        },
+        _ => show_message("< Invalid File Path >")
+    }
+}
+
+fn shred()
+{
+    if ask_bool("Are you sure you want to destroy this file and exit?")
+    {
+        fs::remove_file(&*PATH.lock().unwrap()).unwrap(); exit();
     }
 }
