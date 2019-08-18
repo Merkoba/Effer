@@ -6,7 +6,7 @@ use structs::RustyHelper;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::{Write, stdout, stdin};
+use std::io::{self, Write, stdout, stdin};
 use std::process;
 use std::cmp::max;
 use std::cmp::min;
@@ -551,7 +551,7 @@ fn menu_action(ans: (MenuAnswer, usize))
 // Reads the file
 fn get_file_text() -> String
 {
-    fs::read_to_string(get_file_path()).expect("Can't read file content.")
+    read_file(get_file_path().to_str().unwrap()).expect("Can't read file content.")
 }
 
 // Fills and array based on the key to generate the IV
@@ -1122,7 +1122,7 @@ fn show_screensaver()
 // Tries to get the content of a source path
 fn get_source_content(path: &str)
 {
-    match fs::read_to_string(path)
+    match read_file(path)
     {
         Ok(text) => 
         {
@@ -1257,4 +1257,25 @@ fn destroy()
     {
         fs::remove_file(&*PATH.lock().unwrap()).unwrap(); exit();
     }
+}
+
+// Generic function to read text from files
+fn read_file(ps: &str) -> Result<String, io::Error>
+{
+    let np: String;
+
+    if ps.starts_with('~')
+    {
+        let hp = get_home_path();
+        let hps = hp.to_str().unwrap();
+        np = ps.replacen('~', hps, 1);
+    }
+
+    else
+    {
+        np = s!(ps);
+    }
+
+    let path = Path::new(&np);
+    fs::read_to_string(path)
 }
