@@ -95,7 +95,7 @@ fn check_arguments()
     {
         let notes = get_notes(false);
         let lines: Vec<&str> = notes.lines().collect();
-        if lines.len() == 0 {exit()}
+        if lines.is_empty() {exit()}
         let mut result: Vec<String> = vec![];
 
         for (i, line) in lines.iter().enumerate()
@@ -487,28 +487,28 @@ fn menu_action(ans: (MenuAnswer, usize))
 {
     match ans.0
     {
-        MenuAnswer::AddNote => {add_note()},
-        MenuAnswer::EditNote => {edit_note(0)},
-        MenuAnswer::FindNotes => {find_notes()},
-        MenuAnswer::SwapNotes => {swap_notes()},
-        MenuAnswer::DeleteNotes => {delete_notes()},
-        MenuAnswer::RemakeFile => {remake_file()},
-        MenuAnswer::ChangePassword => {change_password()},
-        MenuAnswer::CycleLeft => {cycle_left()},
-        MenuAnswer::CycleRight => {cycle_right()},
-        MenuAnswer::FirstPage => {goto_first_page()},
-        MenuAnswer::LastPage => {goto_last_page()},
-        MenuAnswer::RefreshPage => {refresh_page()},
-        MenuAnswer::EditLastNote => {edit_last_note()},
-        MenuAnswer::PageNumber => {show_notes(max(1, ans.1), vec![])},
-        MenuAnswer::ChangeMenu => {change_menu()},
-        MenuAnswer::ShowAllNotes => {show_all_notes()},
-        MenuAnswer::ShowAbout => {show_about()},
-        MenuAnswer::GotoPage => {goto_page()},
-        MenuAnswer::IncreasePageSize => {change_page_size(true)},
-        MenuAnswer::DecreasePageSize => {change_page_size(false)},
-        MenuAnswer::ShowStats => {show_stats()},
-        MenuAnswer::Exit => {exit()},
+        MenuAnswer::AddNote => add_note(),
+        MenuAnswer::EditNote => edit_note(0),
+        MenuAnswer::FindNotes => find_notes(),
+        MenuAnswer::SwapNotes => swap_notes(),
+        MenuAnswer::DeleteNotes => delete_notes(),
+        MenuAnswer::RemakeFile => remake_file(),
+        MenuAnswer::ChangePassword => change_password(),
+        MenuAnswer::CycleLeft => cycle_left(),
+        MenuAnswer::CycleRight => cycle_right(),
+        MenuAnswer::FirstPage => goto_first_page(),
+        MenuAnswer::LastPage => goto_last_page(),
+        MenuAnswer::RefreshPage => refresh_page(),
+        MenuAnswer::EditLastNote => edit_last_note(),
+        MenuAnswer::PageNumber => show_notes(max(1, ans.1), vec![]),
+        MenuAnswer::ChangeMenu => change_menu(),
+        MenuAnswer::ShowAllNotes => show_all_notes(),
+        MenuAnswer::ShowAbout => show_about(),
+        MenuAnswer::GotoPage => goto_page(),
+        MenuAnswer::IncreasePageSize => change_page_size(true),
+        MenuAnswer::DecreasePageSize => change_page_size(false),
+        MenuAnswer::ShowStats => show_stats(),
+        MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
     }
 }
