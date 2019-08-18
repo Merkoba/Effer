@@ -39,6 +39,8 @@ Sreensaver mode to temporarily hide notes from curious eyes.
 Arguments allow the program to just output note terminal (with the correct password).
 This allows piping output to other programs like grep.
 
+Can create notes from a given file path (replace, append, or prepend).
+
 # About Security
 
 This is not to be taken as a real security tool. The encryption is relatively weak.
