@@ -161,7 +161,7 @@ fn get_home_path() -> PathBuf
 // Gets the path of the file
 fn get_file_path() -> PathBuf
 {
-    Path::new(&*PATH.lock().unwrap()).to_path_buf()
+    Path::new(&shell_expand(&*PATH.lock().unwrap())).to_path_buf()
 }
 
 // Gets the path of the file's parent
@@ -1215,7 +1215,7 @@ fn open_from_path()
     let ans = ask_string("Encrypted File Path", "");
     if ans.is_empty() {return}
 
-    match file_path_check(Path::new(&ans).to_path_buf())
+    match file_path_check(Path::new(&shell_expand(&ans)).to_path_buf())
     {
         FilePathCheckResult::Exists =>
         {
@@ -1260,22 +1260,13 @@ fn destroy()
 }
 
 // Generic function to read text from files
-fn read_file(ps: &str) -> Result<String, io::Error>
+fn read_file(path: &str) -> Result<String, io::Error>
 {
-    let np: String;
+    fs::read_to_string(Path::new(&shell_expand(path)))
+}
 
-    if ps.starts_with('~')
-    {
-        let hp = get_home_path();
-        let hps = hp.to_str().unwrap();
-        np = ps.replacen('~', hps, 1);
-    }
-
-    else
-    {
-        np = s!(ps);
-    }
-
-    let path = Path::new(&np);
-    fs::read_to_string(path)
+// Replaces ~ and env variables to their proper form
+fn shell_expand(path: &str) -> String
+{
+    s!(*shellexpand::full(path).unwrap())
 }
