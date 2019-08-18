@@ -904,7 +904,6 @@ fn get_max_page_number() -> usize
 }
 
 // Goes to the previous page
-// It can wrap to the last one
 fn cycle_left()
 {   
     let pg: usize;
@@ -918,7 +917,6 @@ fn cycle_left()
 }
 
 // Goes to the next page
-// It can wrap to the first one
 fn cycle_right()
 {
     let pg: usize;
