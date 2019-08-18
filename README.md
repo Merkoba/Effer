@@ -45,7 +45,9 @@ Can change to other encrypted files within the program.
 
 Destroy function which deletes the file and exits the program.
 
-Path autocompletion with Tab. ~ Expansion.
+Path autocompletion with Tab. 
+
+~ (Home) and environment variables expansion.
 
 # About Security
 
