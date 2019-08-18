@@ -1141,7 +1141,7 @@ fn get_source_content(path: &str)
 
             else
             {
-                p!("< Invalid Source Path >"); exit();
+                p!("Invalid source path."); exit();
             }
         }
     }
@@ -1237,7 +1237,7 @@ fn open_from_path()
                     *PASSWORD.lock().unwrap() = opassword;
                     *PATH.lock().unwrap() = opath;
                 }
-                
+
                 show_message("< Invalid Password >");
             }
 
