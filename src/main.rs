@@ -1403,6 +1403,10 @@ fn destroy()
         for _ in 0..10
         {
             fs::write(&path, gibberish(10_000)).expect("Unable to destroy file");
+
+            // Maybe there's not a good reason for this
+            // But the idea is to let the file system assimilate the write
+            // In case there's some debouncer system in place
             thread::sleep(time::Duration::from_millis(500));
         }
 
