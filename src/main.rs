@@ -794,12 +794,12 @@ fn find_notes()
 
     if found.is_empty()
     {
-        message = s!("< No Results {}");
+        message = s!("< No Results");
     }
 
     else if found.len() == 1
     {
-        message = s!("< 1 Result {}");
+        message = s!("< 1 Result");
     }
 
     else
