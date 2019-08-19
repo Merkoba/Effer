@@ -61,6 +61,7 @@ lazy_static!
     static ref PAGE: Mutex<usize> = Mutex::new(1);
     static ref CURRENT_MENU: Mutex<usize> = Mutex::new(0);
     static ref PAGE_SIZE: Mutex<usize> = Mutex::new(15);
+    static ref LAST_EDIT: Mutex<usize> = Mutex::new(0);
     static ref STARTED: Mutex<bool> = Mutex::new(false);
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
 }
@@ -711,12 +712,16 @@ fn edit_note(mut n: usize)
 {
     if n == 0
     {
-        n = parse_note_ans(&ask_string("Edit #", ""));
+        let last_edit; {last_edit = *LAST_EDIT.lock().unwrap()}
+        let suggestion = if last_edit == 0 {s!()} else {s!(last_edit)};
+        n = parse_note_ans(&ask_string("Edit #", &suggestion));
     }
 
     if !check_line_exists(n) {return}
     let edited = ask_string("Edit Note", &get_line(n));
-    if edited.is_empty() {return} replace_line(n, edited);
+    if edited.is_empty() {return} 
+    {*LAST_EDIT.lock().unwrap() = n}
+    replace_line(n, edited);
 }
 
 // Finds a note by a filter
