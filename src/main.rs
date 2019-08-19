@@ -299,7 +299,7 @@ fn ask_bool(message: &str, critical:bool) -> bool
 {
     if critical
     {
-        get_input(&[message, " (Y, n)"].concat(), "", |a| a.trim().to_lowercase() == "Y", || false, false)
+        get_input(&[message, " (Y, n)"].concat(), "", |a| a.trim() == "Y", || false, false)
     }
 
     else
