@@ -490,7 +490,9 @@ fn menu_input() -> (MenuAnswer, usize)
     let ans = match stdin.keys().next().unwrap().unwrap()
     {
         Key::Left => MenuAnswer::CycleLeft,
+        Key::PageUp => MenuAnswer::CycleLeft,
         Key::Right => MenuAnswer::CycleRight,
+        Key::PageDown => MenuAnswer::CycleRight,
         Key::Up => MenuAnswer::EditLastNote,
         Key::Down => MenuAnswer::LastPage,
         Key::Home => MenuAnswer::FirstPage,
