@@ -469,7 +469,7 @@ fn create_menus()
             menu_item("Space", ">", true, false, false)
         ].concat(),
         [
-            menu_item("^", "Change Line Height", true, true, true),
+            menu_item("^", "Change Row Spacing", true, true, true),
             menu_item("*", "Change Theme", true, false, false),
             menu_item("O", "Open Other Encrypted File", true, true, true),
             menu_item("X", "Destroy", true, false, false),
