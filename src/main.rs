@@ -955,7 +955,7 @@ fn remake_file()
         fs::remove_file(get_file_path()).unwrap();
         if !create_file() {exit()} 
         update_notes_statics(get_notes(true));
-        get_settings();
+        get_settings(); create_menus();
     }
 }
 
@@ -1379,7 +1379,8 @@ fn open_from_path()
 
             else
             {
-                update_notes_statics(notes); get_settings();
+                update_notes_statics(notes); 
+                get_settings(); create_menus();
             }
         },
         _ => show_message("< Invalid File Path >")
