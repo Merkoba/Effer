@@ -1189,7 +1189,7 @@ fn handle_source()
     // If notes already exist ask what to do
     else
     {
-        let ans = ask_string("Source: (r) Replace, (a) Append, or (p) Prepend", "");
+        let ans = ask_string("Source: (r) Replace | (a) Append | (p) Prepend", "");
 
         match &ans[..]
         {
