@@ -1189,25 +1189,27 @@ fn handle_source()
     // If notes already exist ask what to do
     else
     {
-        let ans = ask_string("Do you want to (1) Replace, (2) Append, or (3) Prepend", "");
-        let num = ans.parse::<u8>().unwrap_or(0);
+        let ans = ask_string("Source: (r) Replace, (a) Append, or (p) Prepend", "");
 
-        match num
+        match &ans[..]
         {
             // Replace
-            1 =>
+            "r" =>
             {
-                let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
-                lines.extend(source.lines()); update_file(lines.join("\n"));
+                if ask_bool("Are you sure you want to replace everything?")
+                {
+                    let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
+                    lines.extend(source.lines()); update_file(lines.join("\n"));
+                }
             },
             // Append
-            2 =>
+            "a" =>
             {
                 let mut lines: Vec<&str> = notes.lines().collect();
                 lines.extend(source.lines()); update_file(lines.join("\n"));
             },
             // Prepend
-            3 =>
+            "p" =>
             {
                 let mut lines = notes.lines();
                 let mut xlines = vec![lines.next().unwrap()];
