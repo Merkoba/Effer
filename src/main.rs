@@ -1046,7 +1046,7 @@ fn cycle_menu()
     {
         let mlength = (*MENUS.lock().unwrap()).len();
         let mut menu = CURRENT_MENU.lock().unwrap();
-        if *menu >= mlength {*menu = 0} else {*menu += 1}
+        if *menu >= (mlength -1) {*menu = 0} else {*menu += 1}
     }
 
     refresh_page();
