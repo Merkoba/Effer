@@ -38,10 +38,15 @@ use rustyline::
     Config, OutputStreamType, CompletionType, 
     completion::FilenameCompleter
 };
+use prettytable::
+{
+    Table, Row, Cell, 
+    format::FormatBuilder
+};
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const UNLOCK_CHECK: &str = "<Notes Unlocked>";
-const VERSION: &str = "v1.1.0";
+const VERSION: &str = "v1.2.0";
 
 // Global variables
 lazy_static! 
@@ -403,7 +408,7 @@ fn generate_iv(key: &[u8]) -> Vec<u8>
 // Main renderer function
 // Shows the notes and the menu at the bottom
 // Then waits and reacts for input
-fn show_notes(mut page: usize, lines: Vec<String>)
+fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
 {
     loop
     {
@@ -414,12 +419,12 @@ fn show_notes(mut page: usize, lines: Vec<String>)
         
         if page > 0
         {
-            for line in get_page_notes(page).iter() {p!(line)}
+            create_table(&get_page_notes(page)).printstd();
         }
 
         else
         {
-            for line in lines.iter() {p!(line)}
+            create_table(&lines).printstd();
         }
 
         if page > 0
@@ -427,6 +432,8 @@ fn show_notes(mut page: usize, lines: Vec<String>)
             { let mut pg = PAGE.lock().unwrap(); *pg = page }
             p!(format!("\n< Page {} of {} >", page, get_max_page_number()));
         }
+
+        else if !message.is_empty() {p!(format!("\n{}", message))}
 
         let cm; {cm = *CURRENT_MENU.lock().unwrap()}
 
@@ -553,7 +560,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::LastPage => goto_last_page(),
         MenuAnswer::RefreshPage => refresh_page(),
         MenuAnswer::EditLastNote => edit_last_note(),
-        MenuAnswer::PageNumber => show_notes(max(1, ans.1), vec![]),
+        MenuAnswer::PageNumber => show_notes(max(1, ans.1), vec![], s!()),
         MenuAnswer::ChangeMenu => change_menu(),
         MenuAnswer::ShowAllNotes => show_all_notes(),
         MenuAnswer::ShowAbout => show_about(),
@@ -710,7 +717,7 @@ fn edit_note(mut n: usize)
 fn find_notes()
 {
     let filter = ask_string("Regex Filter", "").to_lowercase();
-    let mut found: Vec<String> = vec![];
+    let mut found: Vec<(usize, String)> = vec![];
     if filter.is_empty() {return}
     let notes = get_notes(false);
 
@@ -719,7 +726,7 @@ fn find_notes()
         for (i, line) in notes.lines().enumerate()
         {
             if i == 0 {continue}
-            if re.is_match(line) {found.push(format_item(i, line))}
+            if re.is_match(line) {found.push((i, s!(line)))}
         }
     }
 
@@ -728,24 +735,26 @@ fn find_notes()
         return show_message("< Invalid Regex | (Enter) Return >");
     }
 
-    let msg = "| (Enter) Return";
+    let mut message;
 
     if found.is_empty()
     {
-        found.push(format!("< No Results {} >", msg));
+        message = s!("< No Results {}");
     }
 
     else if found.len() == 1
     {
-        found.push(format!("\n< 1 Result {} >", msg));
+        message = s!("< 1 Result {}");
     }
 
     else
     {
-        found.push(format!("\n< {} Results {} >", found.len(), msg));
+        message = format!("< {} Results", found.len());
     }
 
-    show_notes(0, found);
+    message += " | (Enter) Return >";
+
+    show_notes(0, found, message);
 }
 
 // Swaps 2 notes specified by 2 numbers separated by whitespace (1 10)
@@ -828,7 +837,7 @@ fn delete_notes()
 
     if numbers.is_empty()
     {
-        return show_message("< No messages were deleted >")
+        return show_message("< No Messages Were Deleted >")
     }
 
     delete_lines(numbers);
@@ -837,13 +846,13 @@ fn delete_notes()
 // Goes to the first page
 fn goto_first_page()
 {
-    show_notes(1, vec![]);
+    show_notes(1, vec![], s!());
 }
 
 // Goes to the last page
 fn goto_last_page()
 {
-    show_notes(get_max_page_number(), vec![]);
+    show_notes(get_max_page_number(), vec![], s!());
 }
 
 // Refreshes the current page (notes, menu, etc)
@@ -856,7 +865,7 @@ fn refresh_page()
         pg = *PAGE.lock().unwrap();
     }
 
-    show_notes(pg, vec![]);
+    show_notes(pg, vec![], s!());
 }
 
 // Generic format for note items
@@ -892,25 +901,45 @@ fn check_page_number(page: usize, allow_zero: bool) -> usize
 }
 
 // Gets notes that belong to a certain page
-fn get_page_notes(page: usize) -> Vec<String>
+fn get_page_notes(page: usize) -> Vec<(usize, String)>
 {
-    let mut result: Vec<String> = vec![];
+    let mut result: Vec<(usize, String)> = vec![];
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
     if lines.is_empty() {return result}
     let page_size = PAGE_SIZE.lock().unwrap();
     let a = if page > 1 {((page - 1) * *page_size) + 1} else {1};
     let b = min(page * *page_size, lines.len() - 1);
-    
-    let selected: Vec<&str> = lines[a..=b].iter().copied().collect();
-    let mut n = a;
+    result = (a..).zip(lines[a..=b].iter().map(|x| s!(x))).collect();
+    result
+}
 
-    for line in selected.iter()
+fn create_table(items: &Vec<(usize, String)>) -> prettytable::Table
+{
+    let mut table = Table::new();
+
+    let format = FormatBuilder::new()
+        .padding(0, 1)
+        .build();
+
+    table.set_format(format);
+
+    for item in items.iter()
     {
-        result.push(format_item(n, line)); n += 1;
+        table.add_row(Row::new(vec!
+        [
+            Cell::new("").style_spec(""),
+            Cell::new("").style_spec("")
+        ]));
+
+        table.add_row(Row::new(vec!
+        [
+            Cell::new(&format!("({})", item.0)).style_spec("bFc"),
+            Cell::new(&item.1).style_spec("H1")
+        ]));
     }
 
-    result
+    table
 }
 
 // Gets the maximum number of pages
@@ -931,7 +960,7 @@ fn cycle_left()
         if *page == 1 {return} pg = *page - 1;
     }
 
-    show_notes(pg, vec![]);
+    show_notes(pg, vec![], s!());
 }
 
 // Goes to the next page
@@ -945,7 +974,7 @@ fn cycle_right()
         if *page == max_page {return} pg = *page + 1;
     }
 
-    show_notes(pg, vec![]);
+    show_notes(pg, vec![], s!());
 }
 
 // Edits the most recent note
@@ -1007,15 +1036,15 @@ fn show_all_notes()
 {
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
-    let mut notes: Vec<String> = vec![];
+    let mut notes: Vec<(usize, String)> = vec![];
 
     for (i, line) in lines.iter().enumerate()
     {
         if i == 0 {continue}
-        notes.push(format_item(i, line));
+        notes.push((i, s!(line)));
     }
 
-    show_notes(0, notes);
+    show_notes(0, notes, s!());
 }
 
 // Information about the program
@@ -1058,7 +1087,7 @@ fn goto_page()
 {
     let n = parse_page_ans(&ask_string("Page #", ""));
     if n < 1 || n > get_max_page_number() {return}
-    show_notes(n, vec![]);
+    show_notes(n, vec![], s!());
 }
 
 // Changes how many items appear per page
@@ -1096,7 +1125,7 @@ fn update_header()
 // Generic function to show a message instead of notes
 fn show_message(message: &str)
 {
-    show_notes(0, vec![s!(message)]);
+    show_notes(0, vec![], s!(message));
 }
 
 // Show some statistics
