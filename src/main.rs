@@ -730,6 +730,14 @@ fn swap_lines(n1: usize, n2: usize)
     let mut lines: Vec<&str> = notes.lines().collect();
     lines.swap(n1, n2);
 
+    {
+        // If one of the two items is the last edited note
+        // Swap it so it points to the correct one
+        let mut last_edit = LAST_EDIT.lock().unwrap();
+        if *last_edit == n1 {*last_edit = n2}
+        else if *last_edit == n2 {*last_edit = n1}
+    }
+
     update_file(lines.iter()
         .map(|l| l.to_string())
         .collect::<Vec<String>>().join("\n"));
@@ -913,6 +921,13 @@ fn delete_notes()
         return show_message("< No Messages Were Deleted >")
     }
 
+    {
+        // If the deleted not is the last edit
+        // reset last edit since it's now invalid
+        let mut last_edit = LAST_EDIT.lock().unwrap();
+        if numbers.contains(&*last_edit) {*last_edit = 0}
+    }
+
     delete_lines(numbers);
 }
 
@@ -956,8 +971,7 @@ fn remake_file()
     {
         fs::remove_file(get_file_path()).unwrap();
         if !create_file() {exit()} 
-        update_notes_statics(get_notes(true));
-        get_settings(); create_menus();
+        reset_state(get_notes(true));
     }
 }
 
@@ -1381,8 +1395,7 @@ fn open_from_path()
 
             else
             {
-                update_notes_statics(notes); 
-                get_settings(); create_menus();
+                reset_state(notes);
             }
         },
         _ => show_message("< Invalid File Path >")
@@ -1500,4 +1513,13 @@ fn show_page(n: usize)
 fn get_note_page(n: usize) -> usize
 {
     (n as f64 / *PAGE_SIZE.lock().unwrap() as f64).ceil() as usize
+}
+
+// Resets some properties to defaults
+// This is used when the file changes
+fn reset_state(notes: String)
+{
+    update_notes_statics(notes);
+    get_settings(); create_menus();
+    *LAST_EDIT.lock().unwrap() = 0;
 }
