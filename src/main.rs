@@ -620,14 +620,10 @@ fn get_settings()
     let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
     let caps = re.captures(header);
 
-    match caps
+    if let Some(cps) = caps
     {
-        Some(cps) =>
-        {
-            let ps = &cps["page_size"]; 
-            *PAGE_SIZE.lock().unwrap() = ps.parse::<usize>().unwrap_or(15);
-        },
-        None => {}
+        let ps = &cps["page_size"]; 
+        *PAGE_SIZE.lock().unwrap() = ps.parse::<usize>().unwrap_or(15);
     }
 }
 
