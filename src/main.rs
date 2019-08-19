@@ -555,7 +555,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::LastPage => goto_last_page(),
         MenuAnswer::RefreshPage => refresh_page(),
         MenuAnswer::EditLastNote => edit_last_note(),
-        MenuAnswer::PageNumber => show_notes(max(1, ans.1), vec![], s!()),
+        MenuAnswer::PageNumber => show_page(max(1, ans.1)),
         MenuAnswer::ChangeMenu => cycle_menu(),
         MenuAnswer::ShowAllNotes => show_all_notes(),
         MenuAnswer::ShowAbout => show_about(),
@@ -779,6 +779,7 @@ fn edit_note(mut n: usize)
     if edited.is_empty() {return} 
     {*LAST_EDIT.lock().unwrap() = n}
     replace_line(n, edited);
+    show_page(get_note_page(n));
 }
 
 // Finds a note by a filter
@@ -916,13 +917,13 @@ fn delete_notes()
 // Goes to the first page
 fn goto_first_page()
 {
-    show_notes(1, vec![], s!());
+    show_page(1);
 }
 
 // Goes to the last page
 fn goto_last_page()
 {
-    show_notes(get_max_page_number(), vec![], s!());
+    show_page(get_max_page_number());
 }
 
 // Refreshes the current page (notes, menu, etc)
@@ -935,7 +936,7 @@ fn refresh_page()
         pg = *PAGE.lock().unwrap();
     }
 
-    show_notes(pg, vec![], s!());
+    show_page(pg);
 }
 
 // Generic format for note items
@@ -1038,7 +1039,7 @@ fn cycle_left()
         if *page == 1 {return} pg = *page - 1;
     }
 
-    show_notes(pg, vec![], s!());
+    show_page(pg);
 }
 
 // Goes to the next page
@@ -1052,7 +1053,7 @@ fn cycle_right()
         if *page == max_page {return} pg = *page + 1;
     }
 
-    show_notes(pg, vec![], s!());
+    show_page(pg);
 }
 
 // Edits the most recent note
@@ -1166,7 +1167,7 @@ fn goto_page()
 {
     let n = parse_page_ans(&ask_string("Page #", ""));
     if n < 1 || n > get_max_page_number() {return}
-    show_notes(n, vec![], s!());
+    show_page(n);
 }
 
 // Changes how many items appear per page
@@ -1480,4 +1481,16 @@ fn create_themes()
         // Black
         (s!("\x1b[1;30m"), s!("bFd")),
     ];
+}
+
+// Show notes from a certain page
+fn show_page(n: usize)
+{
+    show_notes(n, vec![], s!());
+}
+
+// Gets the page number where a note belongs to
+fn get_note_page(n: usize) -> usize
+{
+    (n as f64 / *PAGE_SIZE.lock().unwrap() as f64).ceil() as usize
 }
