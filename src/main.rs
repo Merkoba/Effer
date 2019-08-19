@@ -47,6 +47,8 @@ use prettytable::
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 const VERSION: &str = "v1.2.0";
+const COLOR_1: &str = "\x1b[1;35m";
+const RESET: &str = "\x1b[0m";
 
 // Global variables
 lazy_static! 
@@ -57,9 +59,10 @@ lazy_static!
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
     static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
     static ref PAGE: Mutex<usize> = Mutex::new(1);
-    static ref CURRENT_MENU: Mutex<usize> = Mutex::new(1);
+    static ref CURRENT_MENU: Mutex<usize> = Mutex::new(0);
     static ref PAGE_SIZE: Mutex<usize> = Mutex::new(15);
     static ref STARTED: Mutex<bool> = Mutex::new(false);
+    static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
 }
 
 // First function to execute
@@ -70,6 +73,7 @@ fn main()
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
     update_notes_statics(notes); get_settings(); change_screen();
+    create_menus();
     
     {
         *STARTED.lock().unwrap() = true; 
@@ -405,6 +409,55 @@ fn generate_iv(key: &[u8]) -> Vec<u8>
     hex::decode(chars.iter().collect::<String>()).unwrap()
 }
 
+// Creates a menu item
+fn menu_item(key: &str, label: &str, spacing:bool, separator: bool, newline: bool) -> String
+{
+    let nline = if newline {"\n"} else {""};
+    let mut s = format!("{}{}({}){}", nline, COLOR_1, key, RESET);
+    if spacing {s += " "}; s += label;
+    if separator {s += " | "} s
+}
+
+// Creates all the menus and stores them in a global
+// Instead of making them on each iteration
+fn create_menus()
+{
+    *MENUS.lock().unwrap() = vec!
+    [
+        [
+            menu_item("a", "dd", false, true, true),
+            menu_item("e", "dit", false, true, false),
+            menu_item("f", "ind", false, true, false),
+            menu_item("s", "wap", false, true, false),
+            menu_item("d", "elete", false, false, false),
+            menu_item("Left/Right", "Cycle Pages", true, true, true),
+            menu_item("Up", "Edit Last Note", true, false, false),
+            menu_item("H", "Show All", true, true, true),
+            menu_item("?", "About", true, true, false),
+            menu_item("Q", "Exit", true, true, false),
+            menu_item("Space", ">", true, false, false)
+        ].concat(),
+        [
+            menu_item("+/-", "Change Page Size", true, true, true),
+            menu_item("g", "Goto", true, true, false),
+            menu_item("T", "Stats", true, false, false),
+            menu_item("R", "Remake File", true, true, true),
+            menu_item("P", "Change Password", true, true, false),
+            menu_item(":", "😎", true, false, false),
+            menu_item("Home", "First Page", true, true, true),
+            menu_item("End", "Last Page", true, true, false),
+            menu_item("Space", ">", true, false, false)
+        ].concat(),
+        [
+            s!("\n-----------------------------------------"),
+            menu_item("O", "Open Other Encrypted File", true, true, true),
+            menu_item("X", "Destroy", true, false, false),
+            menu_item("U", "Add Notes From A Text File", true, true, true),
+            menu_item("Space", ">", true, false, false)
+        ].concat()
+    ];
+}
+
 // Main renderer function
 // Shows the notes and the menu at the bottom
 // Then waits and reacts for input
@@ -436,53 +489,8 @@ fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
         else if !message.is_empty() {p!(format!("\n{}", message))}
 
         let cm; {cm = *CURRENT_MENU.lock().unwrap()}
-
-        let s = match cm
-        {
-            1 =>
-            {
-                [
-                    "\n(a)dd | ",
-                    "(e)dit | ",
-                    "(f)ind | ",
-                    "(s)wap | ",
-                    "(d)elete",
-                    "\n(Left/Right) Cycle Pages | ",
-                    "(Up) Edit Last Note",
-                    "\n(H) Show All | ",
-                    "(?) About | ",
-                    "(Q) Exit | ",
-                    "(Space) >"
-                ].concat()
-            },
-            2 =>
-            {
-                [
-                    "\n(+/-) Change Page Size | ",
-                    "(g) Goto | ",
-                    "(T) Stats",
-                    "\n(R) Remake File | ",
-                    "(P) Change Password | ",
-                    "(:) 😎",
-                    "\n(Home) First Page | ",
-                    "(End) Last Page | ",
-                    "(Space) >"
-                ].concat()
-            },
-            3 =>
-            {
-                [
-                    "\n-----------------------------------------",
-                    "\n(O) Open Other Encrypted File | ",
-                    "(X) Destroy",
-                    "\n(U) Add Notes From A Text File | ",
-                    "(Space) >"
-                ].concat()
-            },
-            _ => s!("Error")
-        };
-
-        p!(s); menu_action(menu_input());
+        let menu; {menu = s!((*MENUS.lock().unwrap())[cm])}
+        p!(menu); menu_action(menu_input());
     }
 }
 
@@ -934,8 +942,8 @@ fn create_table(items: &Vec<(usize, String)>) -> prettytable::Table
 
         table.add_row(Row::new(vec!
         [
-            Cell::new(&format!("({})", item.0)).style_spec("bFc"),
-            Cell::new(&item.1).style_spec("H1")
+            Cell::new(&format!("({})", item.0)).style_spec("bFm"),
+            Cell::new(&item.1).style_spec("")
         ]));
     }
 
@@ -1025,7 +1033,7 @@ fn change_menu()
 {
     {
         let mut menu = CURRENT_MENU.lock().unwrap();
-        if *menu >= 3 {*menu = 1} else {*menu += 1}
+        if *menu >= 2 {*menu = 0} else {*menu += 1}
     }
 
     refresh_page();
