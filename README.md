@@ -67,6 +67,8 @@ To check using a debug version:
 To build an optimized binary
 >cargo build --release
 
+Or just use the binary provided on the latest release.
+
 # Arguments
 Check --help to find out about arguments that can be used.
 
