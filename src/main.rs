@@ -49,6 +49,7 @@ const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 const VERSION: &str = "v1.2.0";
 const COLOR_1: &str = "\x1b[1;35m";
 const RESET: &str = "\x1b[0m";
+const DEFAULT_PAGE_SIZE: usize = 10;
 
 // Global variables
 lazy_static! 
@@ -60,7 +61,7 @@ lazy_static!
     static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
     static ref PAGE: Mutex<usize> = Mutex::new(1);
     static ref CURRENT_MENU: Mutex<usize> = Mutex::new(0);
-    static ref PAGE_SIZE: Mutex<usize> = Mutex::new(15);
+    static ref PAGE_SIZE: Mutex<usize> = Mutex::new(DEFAULT_PAGE_SIZE);
     static ref LAST_EDIT: Mutex<usize> = Mutex::new(0);
     static ref STARTED: Mutex<bool> = Mutex::new(false);
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
@@ -570,7 +571,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::RefreshPage => refresh_page(),
         MenuAnswer::EditLastNote => edit_last_note(),
         MenuAnswer::PageNumber => show_notes(max(1, ans.1), vec![], s!()),
-        MenuAnswer::ChangeMenu => change_menu(),
+        MenuAnswer::ChangeMenu => cycle_menu(),
         MenuAnswer::ShowAllNotes => show_all_notes(),
         MenuAnswer::ShowAbout => show_about(),
         MenuAnswer::GotoPage => goto_page(),
@@ -639,7 +640,12 @@ fn get_settings()
     if let Some(cps) = caps
     {
         let ps = &cps["page_size"]; 
-        *PAGE_SIZE.lock().unwrap() = ps.parse::<usize>().unwrap_or(15);
+        *PAGE_SIZE.lock().unwrap() = ps.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
+    }
+
+    else
+    {
+        *PAGE_SIZE.lock().unwrap() = DEFAULT_PAGE_SIZE;
     }
 }
 
@@ -897,6 +903,7 @@ fn remake_file()
         fs::remove_file(get_file_path()).unwrap();
         if !create_file() {exit()} 
         update_notes_statics(get_notes(true));
+        get_settings();
     }
 }
 
@@ -1032,13 +1039,14 @@ fn parse_page_ans(ans: &str) -> usize
     }
 }
 
-// Cycles the menus
+// Changes to the next menu
 // Wraps if at the end
-fn change_menu()
+fn cycle_menu()
 {
     {
+        let mlength = (*MENUS.lock().unwrap()).len();
         let mut menu = CURRENT_MENU.lock().unwrap();
-        if *menu >= 2 {*menu = 0} else {*menu += 1}
+        if *menu >= mlength {*menu = 0} else {*menu += 1}
     }
 
     refresh_page();
