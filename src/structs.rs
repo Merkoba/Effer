@@ -35,7 +35,8 @@ pub enum MenuAnswer
     LastPage, RefreshPage, PageNumber, ChangeMenu,
     ShowAllNotes, ShowAbout, GotoPage, Exit,
     IncreasePageSize, DecreasePageSize, ShowStats, ScreenSaver,
-    FetchSource, OpenFromPath, Destroy
+    FetchSource, OpenFromPath, Destroy, ChangeRowSpace,
+    ChangeTheme
 }
 
 pub struct RustyHelper 
