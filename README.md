@@ -1,8 +1,4 @@
-![](http://i.imgur.com/XriIvL7.png)
-
-![](http://i.imgur.com/9Xmz8We.png)
-
-![](http://i.imgur.com/6Dbs9Rj.png)
+![](https://i.imgur.com/xBauQL8.png)
 
 This is a small CLI program to store notes that will be saved to a text file in gibberish hex format.
 
@@ -48,6 +44,10 @@ Destroy function which deletes the file and exits the program.
 Path autocompletion with Tab. 
 
 ~ (Home) and environment variables expansion.
+
+Row spacing can be enabled or disabled.
+
+Color themes can be changed.
 
 # About Security
 
