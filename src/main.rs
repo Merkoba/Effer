@@ -8,7 +8,8 @@ use structs::
 };
 use std::
 {
-    fs, process,
+    fs, process, iter,
+    thread, time,
     path::{Path, PathBuf},
     io::{self, Write, stdout, stdin},
     cmp::{min, max},
@@ -22,7 +23,11 @@ use block_modes::
 };
 use aes_soft::Aes256;
 use dirs;
-use rand::prelude::*;
+use rand::
+{
+    Rng, thread_rng, prelude::*,
+    distributions::Alphanumeric}
+;
 use sha3::{Sha3_256, Digest};
 use termion::
 {
@@ -242,13 +247,13 @@ fn handle_file_path_check(result: FilePathCheckResult)
         FilePathCheckResult::DoesNotExist =>
         {
             p!(result.message());
-            let answer = ask_bool("Do you want to make the file now?");
+            let answer = ask_bool("Do you want to make the file now?", false);
             if answer {if !create_file() {exit()}} else {exit()}
         },
         FilePathCheckResult::NotAFile =>
         {
             p!(result.message());
-            let answer = ask_bool("Do you want to re-make the file?");
+            let answer = ask_bool("Do you want to re-make the file?", false);
             if answer {if !create_file() {exit()}} else {exit()}
         }
     }
@@ -290,9 +295,17 @@ where F: Fn(String) -> T, E: Fn() -> T
 }
 
 // Asks the user for a yes/no answer
-fn ask_bool(message: &str) -> bool
+fn ask_bool(message: &str, critical:bool) -> bool
 {
-    get_input(&[message, " (y, n)"].concat(), "", |a| a.trim().to_lowercase() == "y", || false, false)
+    if critical
+    {
+        get_input(&[message, " (Y, n)"].concat(), "", |a| a.trim().to_lowercase() == "Y", || false, false)
+    }
+
+    else
+    {
+        get_input(&[message, " (y, n)"].concat(), "", |a| a.trim().to_lowercase() == "y", || false, false)
+    }
 }
 
 // Asks the user to input a string
@@ -640,6 +653,8 @@ fn update_notes_statics(text: String) -> String
     notes.to_string()
 }
 
+// Gets settings from the header
+// Sets defaults if they're not defined
 fn get_settings()
 {
     let notes = get_notes(false);
@@ -884,7 +899,7 @@ fn delete_notes()
 
     if length >= 5
     {
-        if !ask_bool(&format!("Are you sure you want to delete {} notes?", length))
+        if !ask_bool(&format!("Are you sure you want to delete {} notes?", length), false)
         {
             return;
         }
@@ -934,7 +949,7 @@ fn format_item(n: usize, s: &str) -> String
 // Variables are then updated to reflect change
 fn remake_file()
 {
-    if ask_bool("Are you sure you want to replace the file with an empty one?")
+    if ask_bool("Are you sure you want to replace the file with an empty one?", true)
     {
         fs::remove_file(get_file_path()).unwrap();
         if !create_file() {exit()} 
@@ -970,6 +985,7 @@ fn get_page_notes(page: usize) -> Vec<(usize, String)>
     result
 }
 
+// Creates a table to display notes
 fn create_table(items: &Vec<(usize, String)>) -> prettytable::Table
 {
     let mut table = Table::new();
@@ -1290,7 +1306,7 @@ fn handle_source()
             // Replace
             "r" =>
             {
-                if ask_bool("Are you sure you want to replace everything?")
+                if ask_bool("Are you sure you want to replace everything?", true)
                 {
                     let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
                     lines.extend(source.lines()); update_file(lines.join("\n"));
@@ -1369,13 +1385,36 @@ fn open_from_path()
     }
 }
 
-// Deletes the file and exits the program
+// Writes gibberish to the file several times
+// Then deletes the file
+// Then exists the program
 fn destroy()
 {
-    if ask_bool("Are you sure you want to destroy this file and exit?")
+    if ask_bool("Are you sure you want to destroy this file and exit?", true)
     {
-        fs::remove_file(&*PATH.lock().unwrap()).unwrap(); exit();
+        p!("Destroying...");
+
+        let path = get_file_path();
+
+        for _ in 0..10
+        {
+            fs::write(&path, gibberish(10_000)).expect("Unable to destroy file");
+            thread::sleep(time::Duration::from_millis(500));
+        }
+
+        fs::remove_file(&path).unwrap(); exit();
     }
+}
+
+// Creates random text
+fn gibberish(n: usize) -> String
+{
+    let mut rng = thread_rng();
+
+    iter::repeat(())
+        .map(|()| rng.sample(Alphanumeric))
+        .take(n)
+        .collect::<String>()
 }
 
 // Generic function to read text from files
@@ -1390,6 +1429,7 @@ fn shell_expand(path: &str) -> String
     s!(*shellexpand::full(path).unwrap())
 }
 
+// Enables or disables spacing between notes
 fn change_row_space()
 {
     {
@@ -1399,6 +1439,7 @@ fn change_row_space()
     update_header();
 }
 
+// Changes the theme to the next one
 fn change_theme()
 {
     {
@@ -1411,11 +1452,13 @@ fn change_theme()
     update_header();
 }
 
+// Gets the current theme
 fn get_current_theme() -> (String, String)
 {
     (*THEMES.lock().unwrap())[*THEME.lock().unwrap()].clone()
 }
 
+// Creates the list of available themes
 fn create_themes()
 {
     *THEMES.lock().unwrap() = vec!

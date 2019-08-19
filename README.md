@@ -39,7 +39,7 @@ Can create notes from a given file path (replace, append, or prepend).
 
 Can change to other encrypted files within the program.
 
-Destroy function which deletes the file and exits the program.
+Destroy function which overwrites the file several times and exits the program.
 
 Path autocompletion with Tab. 
 
