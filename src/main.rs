@@ -252,9 +252,7 @@ fn handle_file_path_check(result: FilePathCheckResult)
         },
         FilePathCheckResult::NotAFile =>
         {
-            p!(result.message());
-            let answer = ask_bool("Do you want to re-make the file?", false);
-            if answer {if !create_file() {exit()}} else {exit()}
+            p!(result.message()); p!("Nothing to do. Exiting."); exit();
         }
     }
 }
@@ -448,7 +446,7 @@ fn create_menus()
             menu_item("a", "dd", false, true, true),
             menu_item("e", "dit", false, true, false),
             menu_item("f", "ind", false, true, false),
-            menu_item("s", "wap", false, true, false),
+            menu_item("m", "ove", false, true, false),
             menu_item("d", "elete", false, false, false),
             menu_item("Left/Right", "Cycle Pages", true, true, true),
             menu_item("Up", "Edit Last Note", true, false, false),
@@ -473,7 +471,8 @@ fn create_menus()
             menu_item("*", "Change Theme", true, false, false),
             menu_item("O", "Open Other Encrypted File", true, true, true),
             menu_item("X", "Destroy", true, false, false),
-            menu_item("U", "Add Notes From A Text File", true, true, true),
+            menu_item("U", "Add From Source File", true, true, true),
+            menu_item("s", "Swap", true, true, false),
             menu_item("Space", ">", true, false, false)
         ].concat()
     ];
@@ -520,6 +519,7 @@ fn menu_input() -> (MenuAnswer, usize)
                 '?' => MenuAnswer::ShowAbout,
                 'O' => MenuAnswer::OpenFromPath,
                 'U' => MenuAnswer::FetchSource,
+                'm' => MenuAnswer::MoveNotes,
                 'Q' => MenuAnswer::Exit,
                 '+' => MenuAnswer::IncreasePageSize,
                 '-' => MenuAnswer::DecreasePageSize,
@@ -571,6 +571,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::Destroy => destroy(),
         MenuAnswer::ChangeRowSpace => change_row_space(),
         MenuAnswer::ChangeTheme => change_theme(),
+        MenuAnswer::MoveNotes => move_notes(),
         MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
     }
@@ -718,9 +719,8 @@ fn replace_line(n: usize, new_text: String)
     let mut lines: Vec<&str> = notes.lines().collect();
     lines[n] = &new_text[..];
 
-    update_file(lines.iter()
-        .map(|l| l.to_string())
-        .collect::<Vec<String>>().join("\n"));
+    update_file(lines.iter().copied()
+        .collect::<Vec<&str>>().join("\n"));
 }
 
 // Swaps two lines from the notes
@@ -738,9 +738,25 @@ fn swap_lines(n1: usize, n2: usize)
         else if *last_edit == n2 {*last_edit = n1}
     }
 
-    update_file(lines.iter()
-        .map(|l| l.to_string())
-        .collect::<Vec<String>>().join("\n"));
+    update_file(lines.iter().copied()
+        .collect::<Vec<&str>>().join("\n"));
+}
+
+// Moves a range of lines to another index
+fn move_lines(from: Vec<usize>, to: usize)
+{
+    let notes = get_notes(false);
+    let lines: Vec<&str> = notes.lines().collect();
+    let range = &lines[from[0]..=from[1]]; 
+    let nto = if to < from[0] {to} else {to - range.len() + 1};
+    let first_half = &lines[0..from[0]];
+    let second_half = &lines[(from[1] + 1)..];
+    let mut joined: Vec<&str> = vec![];
+    joined.extend(first_half); joined.extend(second_half);
+    joined.splice(nto..nto, range.iter().cloned());
+
+    update_file(joined.iter().copied()
+        .collect::<Vec<&str>>().join("\n"));
 }
 
 // Deletes a line from the notes then updates the file
@@ -758,9 +774,8 @@ fn delete_lines(numbers: Vec<usize>)
         }
     }
 
-    update_file(new_lines.iter()
-        .map(|l| l.to_string())
-        .collect::<Vec<String>>().join("\n"));
+    update_file(new_lines.iter().copied()
+        .collect::<Vec<&str>>().join("\n"));
 }
 
 // Provides an input to add a new note
@@ -842,6 +857,7 @@ fn find_notes()
 fn swap_notes()
 {
     let ans = ask_string("Swap (n1 n2)", "");
+    if ans.is_empty() {return}
     let mut split = ans.split_whitespace().map(|s| s.trim());
     let n1 = parse_note_ans(split.next().unwrap_or("0"));
     let n2 = parse_note_ans(split.next().unwrap_or("0"));
@@ -889,8 +905,8 @@ fn delete_notes()
 
     else if ans.contains('-')
     {
-        let note_length = get_notes_length();
         if ans.matches('-').count() > 1 {return}
+        let note_length = get_notes_length();
         let mut split = ans.split('-').map(|n| n.trim());
         let num1 = parse_note_ans(split.next().unwrap_or("0"));
         let mut num2 = parse_note_ans(split.next().unwrap_or("0"));
@@ -1524,4 +1540,45 @@ fn reset_state(notes: String)
     update_notes_statics(notes);
     get_settings(); create_menus();
     *LAST_EDIT.lock().unwrap() = 0;
+}
+
+// Asks for a range or single note
+// and a destination. The moves it
+fn move_notes()
+{
+    p!("From To (n1 n2)");
+    p!("Or Range (4-10 2)");
+
+    let ans = ask_string("Move", "");
+    if ans.is_empty() {return}
+
+    if ans.contains("-")
+    {
+        if ans.matches('-').count() > 1 {return}
+        let note_length = get_notes_length();
+        let mut split = ans.split('-').map(|n| n.trim());
+        let num1 = parse_note_ans(split.next().unwrap_or("0"));
+        let right_side = split.next().unwrap_or("nothing");
+        let mut split_right = right_side.split_whitespace().map(|n| n.trim());
+        let mut num2 = parse_note_ans(split_right.next().unwrap_or("0"));
+        let dest = parse_note_ans(split_right.next().unwrap_or("0"));
+        if num1 == 0 || num2 == 0 || dest == 0 {return}
+        if num2 > note_length {num2 = note_length}
+        if num1 >= num2 {return} 
+        if !check_line_exists(dest) {return}
+        if dest >= num1 && dest <= num2 {return}
+        move_lines(vec![num1, num2], dest);
+    }
+
+    else
+    {
+        let mut split = ans.split_whitespace().map(|n| n.trim());
+        let num1 = parse_note_ans(split.next().unwrap_or("0"));
+        let dest = parse_note_ans(split.next().unwrap_or("0"));
+        if num1 == 0 || dest == 0 {return}
+        if !check_line_exists(num1) {return}
+        if !check_line_exists(dest) {return}
+        if num1 == dest {return} 
+        move_lines(vec![num1, num1], dest);
+    }
 }
