@@ -1320,7 +1320,8 @@ fn handle_source()
     if notes.lines().count() == 1
     {
         let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
-        lines.extend(source.lines()); update_file(lines.join("\n"));
+        lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
+        update_file(lines.join("\n")); goto_last_page();
     }
 
     // If notes already exist ask what to do
@@ -1336,8 +1337,8 @@ fn handle_source()
                 if ask_bool("Are you sure you want to replace everything?", true)
                 {
                     let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
-                    lines.extend(source.lines()); update_file(lines.join("\n"));
-                    {*LAST_EDIT.lock().unwrap() = 0}
+                    lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
+                    update_file(lines.join("\n")); {*LAST_EDIT.lock().unwrap() = 0}
                     goto_last_page();
                 }
             },
@@ -1345,15 +1346,16 @@ fn handle_source()
             "a" =>
             {
                 let mut lines: Vec<&str> = notes.lines().collect();
-                lines.extend(source.lines()); update_file(lines.join("\n"));
-                goto_last_page();
+                lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
+                update_file(lines.join("\n")); goto_last_page();
             },
             // Prepend
             "p" =>
             {
                 let mut lines = notes.lines();
                 let mut xlines = vec![lines.next().unwrap()];
-                let nlines: Vec<&str> = source.lines().collect();
+                let nlines: Vec<&str> = source.lines()
+                    .filter(|s| !s.trim().is_empty()).collect();
                 let olines: Vec<&str> = lines.collect();
                 xlines.extend(nlines); xlines.extend(olines); 
                 update_file(xlines.join("\n"));
