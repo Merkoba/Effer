@@ -1,11 +1,15 @@
 mod macros;
-mod structs;
 
+mod structs;
 use structs::
 {
     FilePathCheckResult,
     MenuAnswer, RustyHelper
 };
+
+mod globals; 
+use globals::*;
+
 use std::
 {
     fs, process, iter,
@@ -13,7 +17,6 @@ use std::
     path::{Path, PathBuf},
     io::{self, Write, stdout, stdin},
     cmp::{min, max},
-    sync::Mutex,
     str::FromStr
 };
 use block_modes::
@@ -35,7 +38,6 @@ use termion::
     input::TermRead,
     raw::IntoRawMode
 };
-use lazy_static::lazy_static;
 use regex::Regex;
 use clap::{App, Arg};
 use rustyline::
@@ -51,31 +53,6 @@ use prettytable::
 };
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
-const UNLOCK_CHECK: &str = "<Notes Unlocked>";
-const VERSION: &str = "v1.3.0";
-const RESET: &str = "\x1b[0m";
-const DEFAULT_PAGE_SIZE: usize = 10;
-const DEFAULT_ROW_SPACE: bool = true;
-const DEFAULT_THEME: usize = 0;
-
-// Global variables
-lazy_static! 
-{
-    static ref PATH: Mutex<String> = Mutex::new(s!());
-    static ref PASSWORD: Mutex<String> = Mutex::new(s!());
-    static ref NOTES: Mutex<String> = Mutex::new(s!());
-    static ref SOURCE: Mutex<String> = Mutex::new(s!());
-    static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
-    static ref THEMES: Mutex<Vec<(String, String)>> = Mutex::new(vec![]);
-    static ref STARTED: Mutex<bool> = Mutex::new(false);
-    static ref ROW_SPACE: Mutex<bool> = Mutex::new(true);
-    static ref NOTES_LENGTH: Mutex<usize> = Mutex::new(0);
-    static ref PAGE: Mutex<usize> = Mutex::new(1);
-    static ref CURRENT_MENU: Mutex<usize> = Mutex::new(0);
-    static ref PAGE_SIZE: Mutex<usize> = Mutex::new(DEFAULT_PAGE_SIZE);
-    static ref LAST_EDIT: Mutex<usize> = Mutex::new(0);
-    static ref THEME: Mutex<usize> = Mutex::new(0);
-}
 
 // First function to execute
 fn main() 
@@ -85,11 +62,7 @@ fn main()
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
     update_notes_statics(notes); get_settings(); change_screen();
-    create_themes(); create_menus();
-    
-    {
-        *STARTED.lock().unwrap() = true; 
-    }
+    create_themes(); create_menus(); g_set_started(true);
     
     // Start loop
     goto_last_page();
@@ -124,7 +97,7 @@ fn check_arguments()
     let path = s!(matches.value_of("path")
         .unwrap_or(get_default_file_path().to_str().unwrap()));
     
-    *PATH.lock().unwrap() = shell_expand(&path);
+    g_set_path(shell_expand(&path));
 
     let mut print_mode = "";
 
@@ -205,7 +178,7 @@ fn get_default_file_path() -> PathBuf
 // Gets the path of the file
 fn get_file_path() -> PathBuf
 {
-    Path::new(&shell_expand(&*PATH.lock().unwrap())).to_path_buf()
+    Path::new(&shell_expand(&g_get_path())).to_path_buf()
 }
 
 // Gets the path of the file's parent
@@ -317,7 +290,7 @@ fn ask_string(message: &str, initial: &str) -> String
 // Or changes the file's password
 fn get_password(change: bool) -> String
 {
-    let mut pw = PASSWORD.lock().unwrap();
+    let mut pw = g_get_password();
 
     if pw.is_empty() || change
     {
@@ -339,10 +312,10 @@ fn get_password(change: bool) -> String
             password = get_input("Password", "", |a| a, String::new, true);
         }
 
-        *pw = password;
+        pw = s!(password); g_set_password(password);
     }
 
-    pw.to_string()
+    pw
 }
 
 // Attempts to create the file
@@ -440,7 +413,7 @@ fn menu_item(key: &str, label: &str, spacing:bool, separator: bool, newline: boo
 // Instead of making them on each iteration
 fn create_menus()
 {
-    *MENUS.lock().unwrap() = vec!
+    g_set_menus(vec!
     [
         [
             menu_item("a", "dd", false, true, true),
@@ -475,7 +448,7 @@ fn create_menus()
             menu_item("s", "Swap", true, true, false),
             menu_item("Space", ">", true, false, false)
         ].concat()
-    ];
+    ]);
 }
 
 // Listens and interprets live keyboard input from the main menu
@@ -601,14 +574,14 @@ fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
 
         if page > 0
         {
-            { let mut pg = PAGE.lock().unwrap(); *pg = page }
+            g_set_page(page);
             p!(format!("\n< Page {} of {} >", page, get_max_page_number()));
         }
 
         else if !message.is_empty() {p!(format!("\n{}", message))}
 
-        let cm; {cm = *CURRENT_MENU.lock().unwrap()}
-        let menu; {menu = s!((*MENUS.lock().unwrap())[cm])}
+        let cm = g_get_current_menu();
+        let menu = g_get_menus_item(cm);
         p!(menu); menu_action(menu_input());
     }
 }
@@ -630,14 +603,8 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
 // Gets the notes form the global variable or reads them from the file
 fn get_notes(update: bool) -> String
 {
-    let notes = NOTES.lock().unwrap();
-    if notes.is_empty() || update {decrypt_text(get_file_text())} else {notes.to_string()}
-}
-
-// Retrieves the value of the global variable that holds the current amount of notes
-fn get_notes_length() -> usize
-{
-    get_notes(false); *NOTES_LENGTH.lock().unwrap()
+    let notes = g_get_notes();
+    if notes.is_empty() || update {decrypt_text(get_file_text())} else {notes}
 }
 
 // Encrypts and saves the updated notes to the file
@@ -650,10 +617,8 @@ fn update_file(text: String)
 // Updates the notes and notes length global variables
 fn update_notes_statics(text: String) -> String
 {
-    let mut notes = NOTES.lock().unwrap();
-    let mut length = NOTES_LENGTH.lock().unwrap();
-    *length = text.lines().count() - 1; *notes = text;
-    notes.to_string()
+    g_set_notes_length(text.lines().count() - 1); 
+    g_set_notes(text); g_get_notes()
 }
 
 // Gets settings from the header
@@ -668,12 +633,12 @@ fn get_settings()
     if let Some(caps) = re1.captures(header)
     {
         let ps = &caps["page_size"]; 
-        *PAGE_SIZE.lock().unwrap() = ps.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
+        g_set_page_size(ps.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE));
     }
 
     else
     {
-        *PAGE_SIZE.lock().unwrap() = DEFAULT_PAGE_SIZE;
+        g_set_page_size(DEFAULT_PAGE_SIZE);
     }
 
     let re2 = Regex::new(r"row_space=(?P<row_space>\w+)").unwrap();
@@ -681,12 +646,12 @@ fn get_settings()
     if let Some(caps) = re2.captures(header)
     {
         let ps = &caps["row_space"]; 
-        *ROW_SPACE.lock().unwrap() = FromStr::from_str(ps).unwrap_or(DEFAULT_ROW_SPACE)
+        g_set_row_space(FromStr::from_str(ps).unwrap_or(DEFAULT_ROW_SPACE));
     }
 
     else
     {
-        *ROW_SPACE.lock().unwrap() = DEFAULT_ROW_SPACE;
+        g_set_row_space(DEFAULT_ROW_SPACE);
     }
 
     let re3 = Regex::new(r"theme=(?P<theme>\w+)").unwrap();
@@ -694,12 +659,12 @@ fn get_settings()
     if let Some(caps) = re3.captures(header)
     {
         let ps = &caps["theme"]; 
-        *THEME.lock().unwrap() = ps.parse::<usize>().unwrap_or(DEFAULT_THEME)
+        g_set_theme(ps.parse::<usize>().unwrap_or(DEFAULT_THEME));
     }
 
     else
     {
-        *THEME.lock().unwrap() = DEFAULT_THEME;
+        g_set_theme(DEFAULT_THEME);
     }
 }
 
@@ -728,13 +693,11 @@ fn swap_lines(n1: usize, n2: usize)
     let mut lines: Vec<&str> = notes.lines().collect();
     lines.swap(n1, n2);
 
-    {
-        // If one of the two items is the last edited note
-        // Swap it so it points to the correct one
-        let mut last_edit = LAST_EDIT.lock().unwrap();
-        if *last_edit == n1 {*last_edit = n2}
-        else if *last_edit == n2 {*last_edit = n1}
-    }
+    // If one of the two items is the last edited note
+    // Swap it so it points to the correct one
+    let  last_edit = g_get_last_edit();
+    if last_edit == n1 {g_set_last_edit(n2)}
+    else if last_edit == n2 {g_set_last_edit(n1)}
 
     update_file(lines.join("\n"));
 }
@@ -788,7 +751,7 @@ fn edit_note(mut n: usize)
 {
     if n == 0
     {
-        let last_edit; {last_edit = *LAST_EDIT.lock().unwrap()}
+        let last_edit = g_get_last_edit();
         let suggestion = if last_edit == 0 {s!()} else {s!(last_edit)};
         n = parse_note_ans(&ask_string("Edit #", &suggestion));
     }
@@ -796,7 +759,7 @@ fn edit_note(mut n: usize)
     if !check_line_exists(n) {return}
     let edited = ask_string("Edit Note", &get_line(n));
     if edited.is_empty() {return} 
-    {*LAST_EDIT.lock().unwrap() = n}
+    g_set_last_edit(n);
     replace_line(n, edited);
     show_page(get_note_page(n));
 }
@@ -900,7 +863,7 @@ fn delete_notes()
     else if ans.contains('-')
     {
         if ans.matches('-').count() > 1 {return}
-        let note_length = get_notes_length();
+        let note_length = g_get_notes_length();
         let mut split = ans.split('-').map(|n| n.trim());
         let num1 = parse_note_ans(split.next().unwrap_or("0"));
         let mut num2 = parse_note_ans(split.next().unwrap_or("0"));
@@ -931,13 +894,10 @@ fn delete_notes()
         return show_message("< No Messages Were Deleted >")
     }
 
-    {
-        // If the deleted not is the last edit
-        // reset last edit since it's now invalid
-        let mut last_edit = LAST_EDIT.lock().unwrap();
-        if numbers.contains(&*last_edit) {*last_edit = 0}
-    }
-
+    // If the deleted not is the last edit
+    // reset last edit since it's now invalid
+    let last_edit = g_get_last_edit();
+    if numbers.contains(&last_edit) {g_set_last_edit(0)}
     delete_lines(numbers);
 }
 
@@ -957,13 +917,7 @@ fn goto_last_page()
 // This doesn't provoke a change unless on a different mode like Find results
 fn refresh_page()
 {
-    let pg;
-
-    {
-        pg = *PAGE.lock().unwrap();
-    }
-
-    show_page(pg);
+    show_page(g_get_page());
 }
 
 // Generic format for note items
@@ -1005,9 +959,9 @@ fn get_page_notes(page: usize) -> Vec<(usize, String)>
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
     if lines.is_empty() {return result}
-    let page_size = PAGE_SIZE.lock().unwrap();
-    let a = if page > 1 {((page - 1) * *page_size) + 1} else {1};
-    let b = min(page * *page_size, lines.len() - 1);
+    let page_size = g_get_page_size();
+    let a = if page > 1 {((page - 1) * page_size) + 1} else {1};
+    let b = min(page * page_size, lines.len() - 1);
     result = (a..).zip(lines[a..=b].iter().map(|x| s!(x))).collect();
     result
 }
@@ -1026,7 +980,7 @@ fn create_table(items: &Vec<(usize, String)>) -> prettytable::Table
 
     for item in items.iter()
     {
-        let space; {space = *ROW_SPACE.lock().unwrap()}
+        let space = g_get_row_space();
 
         if space
         {
@@ -1050,54 +1004,38 @@ fn create_table(items: &Vec<(usize, String)>) -> prettytable::Table
 // Gets the maximum number of pages
 fn get_max_page_number() -> usize
 {
-    let notes_length = get_notes_length();
-    let n = notes_length as f64 / *PAGE_SIZE.lock().unwrap() as f64;
+    let notes_length = g_get_notes_length();
+    let n = notes_length as f64 / g_get_page_size() as f64;
     max(1, n.ceil() as usize)
 }
 
 // Goes to the previous page
 fn cycle_left()
 {   
-    let pg: usize;
-
-    {
-        let page = PAGE.lock().unwrap();
-        if *page == 1 {return} pg = *page - 1;
-    }
-
-    show_page(pg);
+    let page = g_get_page();
+    if page == 1 {return}
+    show_page(page - 1);
 }
 
 // Goes to the next page
 fn cycle_right()
 {
-    let pg: usize;
-
-    {
-        let page = PAGE.lock().unwrap();
-        let max_page = get_max_page_number();
-        if *page == max_page {return} pg = *page + 1;
-    }
-
-    show_page(pg);
+    let page = g_get_page();
+    let max_page = get_max_page_number();
+    if page == max_page {return}
+    show_page(page + 1);
 }
 
 // Edits the most recent note
 fn edit_last_note()
 {
-    let n: usize;
-
-    {
-        n = *NOTES_LENGTH.lock().unwrap();
-    }
-
-    edit_note(n);
+    edit_note(g_get_notes_length());
 }
 
 // Checks a line number from the notes exist
 fn check_line_exists(n: usize) -> bool
 {
-    n > 0 && n <= get_notes_length()
+    n > 0 && n <= g_get_notes_length()
 }
 
 // Replaces keywords to note numbers
@@ -1107,7 +1045,7 @@ fn parse_note_ans(ans: &str) -> usize
     match ans
     {
         "first" => 1,
-        "last" => get_notes_length(),
+        "last" => g_get_notes_length(),
         _ => ans.parse().unwrap_or(0)
     }
 }
@@ -1128,12 +1066,10 @@ fn parse_page_ans(ans: &str) -> usize
 // Wraps if at the end
 fn cycle_menu()
 {
-    {
-        let mlength = (*MENUS.lock().unwrap()).len();
-        let mut menu = CURRENT_MENU.lock().unwrap();
-        if *menu >= (mlength -1) {*menu = 0} else {*menu += 1}
-    }
-
+    let mlength = g_get_menus_length();
+    let menu = g_get_current_menu();
+    if menu >= (mlength -1) {g_set_current_menu(0)} 
+    else {g_set_current_menu(menu + 1)}
     refresh_page();
 }
 
@@ -1203,19 +1139,16 @@ fn goto_page()
 fn change_page_size(increase: bool)
 {
     let max_page = get_max_page_number();
+    let page_size = g_get_page_size();
 
+    if increase
     {
-        let mut page = PAGE_SIZE.lock().unwrap();
-
-        if increase
-        {
-            if *page < 100 && max_page > 1 {*page += 5} else {return}
-        }
-        
-        else
-        {
-            if *page >= 10 {*page -= 5} else {return}
-        }
+        if page_size < 100 && max_page > 1 {g_set_page_size(page_size + 5)} else {return}
+    }
+    
+    else
+    {
+        if page_size >= 10 {g_set_page_size(page_size - 5)} else {return}
     }
 
     update_header();
@@ -1225,9 +1158,9 @@ fn change_page_size(increase: bool)
 fn update_header()
 {   
     let uc = UNLOCK_CHECK;
-    let ps = *PAGE_SIZE.lock().unwrap();
-    let rs = *ROW_SPACE.lock().unwrap();
-    let th = *THEME.lock().unwrap();
+    let ps = g_get_page_size();
+    let rs = g_get_row_space();
+    let th = g_get_theme();
 
     let s = format!("{} page_size={} row_space={} theme={}", uc, ps, rs, th);
 
@@ -1244,7 +1177,7 @@ fn show_message(message: &str)
 fn show_stats()
 {   
     let notes = get_notes(false);
-    let len = get_notes_length();
+    let len = g_get_notes_length();
     let mut wcount = 0;
     let mut lcount = 0;
 
@@ -1257,7 +1190,7 @@ fn show_stats()
 
     let enc_size = get_file_text().as_bytes().len();
     let dec_size = notes.as_bytes().len();
-    let path; {path = s!(*PATH.lock().unwrap())}
+    let path = g_get_path();
 
     let s = format!("Stats For: {}\n\nNotes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes", 
         path, len, wcount, lcount, enc_size, dec_size);
@@ -1286,16 +1219,13 @@ fn get_source_content(path: &str)
     {
         Ok(text) => 
         {
-            *SOURCE.lock().unwrap() = if text.is_empty() {s!()} else {text};
+            g_set_source(if text.is_empty() {s!()} else {text});
         }
         Err(_) => 
         {
-            if *STARTED.lock().unwrap() 
+            if g_get_started()
             {
-                {
-                    *SOURCE.lock().unwrap() = s!();
-                }
-
+                g_set_source(s!());
                 show_message("< Invalid Source Path >");
             }
 
@@ -1312,7 +1242,7 @@ fn get_source_content(path: &str)
 // using the source file lines
 fn handle_source()
 {
-    let mut source = SOURCE.lock().unwrap();
+    let source = g_get_source();
     if source.is_empty() {return}
     let notes = get_notes(false);
 
@@ -1338,7 +1268,7 @@ fn handle_source()
                 {
                     let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
                     lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
-                    update_file(lines.join("\n")); {*LAST_EDIT.lock().unwrap() = 0}
+                    update_file(lines.join("\n")); g_set_last_edit(0);
                     goto_last_page();
                 }
             },
@@ -1359,14 +1289,14 @@ fn handle_source()
                 let olines: Vec<&str> = lines.collect();
                 xlines.extend(nlines); xlines.extend(olines); 
                 update_file(xlines.join("\n"));
-                {*LAST_EDIT.lock().unwrap() = 0}
+                g_set_last_edit(0);
                 goto_first_page();
             },
             _ => {}
         }
     }
 
-    *source = s!();
+    g_set_source(s!());
 }
 
 // Uses a source from within the program
@@ -1390,23 +1320,18 @@ fn open_from_path()
         {
             let opassword; let opath;
 
-            {
-                let mut password = PASSWORD.lock().unwrap();
-                opassword = s!(*password); *password = s!();
+            let password = g_get_password();
+            opassword = password; g_set_password(s!());
 
-                let mut path = PATH.lock().unwrap();
-                opath = s!(*path); *path = pth;
-            }
+            let path = g_get_path();
+            opath = path; g_set_path(pth);
             
             let notes = get_notes(true);
             
             if notes.is_empty() 
             {
-                {
-                    *PASSWORD.lock().unwrap() = opassword;
-                    *PATH.lock().unwrap() = opath;
-                }
-
+                g_set_password(opassword);
+                g_set_path(opath);
                 show_message("< Invalid Password >");
             }
 
@@ -1470,36 +1395,28 @@ fn shell_expand(path: &str) -> String
 // Enables or disables spacing between notes
 fn change_row_space()
 {
-    {
-        let mut lh = ROW_SPACE.lock().unwrap(); *lh = !*lh;
-    }
-
+    g_set_row_space(!g_get_row_space());
     update_header();
 }
 
 // Changes the theme to the next one
 fn change_theme()
 {
-    {
-        let len = (*THEMES.lock().unwrap()).len();
-        let mut theme = THEME.lock().unwrap();
-        if *theme >= (len - 1) {*theme = 0} else {*theme += 1};
-    }
-
-    create_menus();
-    update_header();
+    let len = g_get_themes_length(); let theme = g_get_theme();
+    if theme >= (len - 1) {g_set_theme(0)} else {g_set_theme(theme + 1)};
+    create_menus(); update_header();
 }
 
 // Gets the current theme
 fn get_current_theme() -> (String, String)
 {
-    (*THEMES.lock().unwrap())[*THEME.lock().unwrap()].clone()
+    g_get_themes_item(g_get_theme())
 }
 
 // Creates the list of available themes
 fn create_themes()
 {
-    *THEMES.lock().unwrap() = vec!
+    g_set_themes(vec!
     [
         // Magenta
         (s!("\x1b[1;35m"), s!("bFm")),
@@ -1517,7 +1434,7 @@ fn create_themes()
         (s!("\x1b[1;97m"), s!("bFw")),
         // Black
         (s!("\x1b[1;30m"), s!("bFd")),
-    ];
+    ]);
 }
 
 // Show notes from a certain page
@@ -1529,7 +1446,7 @@ fn show_page(n: usize)
 // Gets the page number where a note belongs to
 fn get_note_page(n: usize) -> usize
 {
-    (n as f64 / *PAGE_SIZE.lock().unwrap() as f64).ceil() as usize
+    (n as f64 / g_get_page_size() as f64).ceil() as usize
 }
 
 // Resets some properties to defaults
@@ -1538,7 +1455,7 @@ fn reset_state(notes: String)
 {
     update_notes_statics(notes);
     get_settings(); create_menus();
-    *LAST_EDIT.lock().unwrap() = 0;
+    g_set_last_edit(0);
 }
 
 // Asks for a range or single note
@@ -1554,7 +1471,7 @@ fn move_notes()
     if ans.contains("-")
     {
         if ans.matches('-').count() > 1 {return}
-        let note_length = get_notes_length();
+        let note_length = g_get_notes_length();
         let mut split = ans.split('-').map(|n| n.trim());
         let num1 = parse_note_ans(split.next().unwrap_or("0"));
         let right_side = split.next().unwrap_or("nothing");
