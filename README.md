@@ -71,6 +71,7 @@ Or just use the binary provided in the latest release.
 
 # Arguments
 Check --help to find out about arguments that can be used.
+
 If running the program with cargo, use `cargo run -- --help`.
 
 # Contributing
