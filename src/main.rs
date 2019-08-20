@@ -1358,7 +1358,7 @@ fn handle_source()
                 xlines.extend(nlines); xlines.extend(olines); 
                 update_file(xlines.join("\n"));
                 {*LAST_EDIT.lock().unwrap() = 0}
-                goto_last_page();
+                goto_first_page();
             },
             _ => {}
         }
