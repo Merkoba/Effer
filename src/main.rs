@@ -1327,6 +1327,7 @@ fn handle_source()
                 {
                     let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
                     lines.extend(source.lines()); update_file(lines.join("\n"));
+                    {*LAST_EDIT.lock().unwrap() = 0}
                 }
             },
             // Append
@@ -1344,6 +1345,7 @@ fn handle_source()
                 let olines: Vec<&str> = lines.collect();
                 xlines.extend(nlines); xlines.extend(olines); 
                 update_file(xlines.join("\n"));
+                {*LAST_EDIT.lock().unwrap() = 0}
             },
             _ => {}
         }
