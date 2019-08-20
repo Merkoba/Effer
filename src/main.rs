@@ -52,7 +52,7 @@ use prettytable::
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 const UNLOCK_CHECK: &str = "<Notes Unlocked>";
-const VERSION: &str = "v1.2.0";
+const VERSION: &str = "v1.2.1";
 const RESET: &str = "\x1b[0m";
 const DEFAULT_PAGE_SIZE: usize = 10;
 const DEFAULT_ROW_SPACE: bool = true;
