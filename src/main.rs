@@ -1338,6 +1338,7 @@ fn handle_source()
                     let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
                     lines.extend(source.lines()); update_file(lines.join("\n"));
                     {*LAST_EDIT.lock().unwrap() = 0}
+                    goto_last_page();
                 }
             },
             // Append
@@ -1345,6 +1346,7 @@ fn handle_source()
             {
                 let mut lines: Vec<&str> = notes.lines().collect();
                 lines.extend(source.lines()); update_file(lines.join("\n"));
+                goto_last_page();
             },
             // Prepend
             "p" =>
@@ -1356,6 +1358,7 @@ fn handle_source()
                 xlines.extend(nlines); xlines.extend(olines); 
                 update_file(xlines.join("\n"));
                 {*LAST_EDIT.lock().unwrap() = 0}
+                goto_last_page();
             },
             _ => {}
         }
@@ -1407,7 +1410,7 @@ fn open_from_path()
 
             else
             {
-                reset_state(notes);
+                reset_state(notes); goto_last_page();
             }
         },
         _ => show_message("< Invalid File Path >")
