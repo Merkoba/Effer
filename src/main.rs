@@ -718,9 +718,7 @@ fn replace_line(n: usize, new_text: String)
     let notes = get_notes(false);
     let mut lines: Vec<&str> = notes.lines().collect();
     lines[n] = &new_text[..];
-
-    update_file(lines.iter().copied()
-        .collect::<Vec<&str>>().join("\n"));
+    update_file(lines.join("\n"));
 }
 
 // Swaps two lines from the notes
@@ -738,8 +736,7 @@ fn swap_lines(n1: usize, n2: usize)
         else if *last_edit == n2 {*last_edit = n1}
     }
 
-    update_file(lines.iter().copied()
-        .collect::<Vec<&str>>().join("\n"));
+    update_file(lines.join("\n"));
 }
 
 // Moves a range of lines to another index
@@ -754,9 +751,7 @@ fn move_lines(from: Vec<usize>, to: usize)
     let mut joined: Vec<&str> = vec![];
     joined.extend(first_half); joined.extend(second_half);
     joined.splice(nto..nto, range.iter().cloned());
-
-    update_file(joined.iter().copied()
-        .collect::<Vec<&str>>().join("\n"));
+    update_file(joined.join("\n"));
 }
 
 // Deletes a line from the notes then updates the file
@@ -774,8 +769,7 @@ fn delete_lines(numbers: Vec<usize>)
         }
     }
 
-    update_file(new_lines.iter().copied()
-        .collect::<Vec<&str>>().join("\n"));
+    update_file(new_lines.join("\n"));
 }
 
 // Provides an input to add a new note
