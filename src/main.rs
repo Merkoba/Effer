@@ -1160,7 +1160,7 @@ ____/      452\ /     453 \____
 |||_____________  |  _____________|||
 L/_____/--------\\_//W-------\_____\J"#;
 
-    let name = format!("Effer {}", VERSION);
+    let name = format!("Effer {} | Encrypted Notepad", VERSION);
 
     let info =
     [
@@ -1170,7 +1170,8 @@ L/_____/--------\\_//W-------\_____\J"#;
         "\nTip: Start the program with --help to check arguments"
     ].concat();
 
-    let s = format!("{}\n\n{}\n\n{}", art, name, info);
+    let s = format!("{}\n\n{}\n\n{}", art,  name, info);
+
     show_message(&s);
 }
 
