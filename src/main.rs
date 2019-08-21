@@ -598,8 +598,7 @@ fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
 
         if page > 0
         {
-            g_set_page(page);
-            p!(format!("\n< Page {} of {} >", page, get_max_page_number()));
+            g_set_page(page); show_page_indicator(page);
         }
 
         else if !message.is_empty() {p!(format!("\n{}", message))}
@@ -1587,4 +1586,11 @@ fn move_notes()
         if num1 == dest {return} 
         move_lines(vec![num1, num1], dest);
     }
+}
+
+// Shows the page indicator above the menu
+fn show_page_indicator(page: usize)
+{
+    p!(format!("\n< Page {} of {} >\n{}", 
+        page, get_max_page_number(), g_get_path()));
 }
