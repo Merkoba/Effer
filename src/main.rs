@@ -94,8 +94,11 @@ fn check_arguments()
         .takes_value(true))
     .get_matches();
 
-    let path = s!(matches.value_of("path")
-        .unwrap_or(get_default_file_path().to_str().unwrap()));
+    let path = match matches.value_of("path")
+    {
+        Some(pth) => s!(pth),
+        None => s!(get_default_file_path().to_str().unwrap())
+    };
     
     g_set_path(shell_expand(&path));
 
