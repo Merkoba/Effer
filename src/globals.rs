@@ -3,7 +3,11 @@ use crate::s;
 use lazy_static::lazy_static;
 use std::sync::
 {
-    Mutex, atomic::{AtomicUsize, Ordering}
+    Mutex, 
+    atomic::
+    {
+        AtomicUsize, AtomicBool, Ordering
+    }
 };
 
 // Constants
@@ -23,14 +27,14 @@ lazy_static!
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
     static ref THEMES: Mutex<Vec<(String, String)>> = Mutex::new(vec![]);
-    static ref STARTED: Mutex<bool> = Mutex::new(false);
-    static ref ROW_SPACE: Mutex<bool> = Mutex::new(true);
     static ref NOTES_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref PAGE: AtomicUsize = AtomicUsize::new(1);
     static ref CURRENT_MENU: AtomicUsize = AtomicUsize::new(0);
     static ref PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
     static ref LAST_EDIT: AtomicUsize = AtomicUsize::new(0);
     static ref THEME: AtomicUsize = AtomicUsize::new(0);
+    static ref STARTED: AtomicBool = AtomicBool::new(false);
+    static ref ROW_SPACE: AtomicBool = AtomicBool::new(true);
 }
 
 
@@ -83,34 +87,6 @@ pub fn g_get_source() -> String
 pub fn g_set_source(s: String)
 {
     *SOURCE.lock().unwrap() = s;
-}
-
-
-/// MUTEX BOOL
-
-
-// Returns the started global value
-pub fn g_get_started() -> bool
-{
-    *STARTED.lock().unwrap() 
-}
-
-// Sets the started global value
-pub fn g_set_started(b: bool)
-{
-    *STARTED.lock().unwrap() = b;
-}
-
-// Returns the row space global value
-pub fn g_get_row_space() -> bool
-{
-    *ROW_SPACE.lock().unwrap()
-}
-
-// Sets the row space global value
-pub fn g_set_row_space(b: bool)
-{
-    *ROW_SPACE.lock().unwrap() = b;
 }
 
 
@@ -227,4 +203,32 @@ pub fn g_get_page_size() -> usize
 pub fn g_set_page_size(n: usize)
 {
     PAGE_SIZE.store(n, Ordering::SeqCst);
+}
+
+
+/// MUTEX BOOL
+
+
+// Returns the started global value
+pub fn g_get_started() -> bool
+{
+    STARTED.load(Ordering::SeqCst)
+}
+
+// Sets the started global value
+pub fn g_set_started(b: bool)
+{
+    STARTED.store(b, Ordering::SeqCst);
+}
+
+// Returns the row space global value
+pub fn g_get_row_space() -> bool
+{
+    ROW_SPACE.load(Ordering::SeqCst)
+}
+
+// Sets the row space global value
+pub fn g_set_row_space(b: bool)
+{
+    ROW_SPACE.store(b, Ordering::SeqCst);
 }

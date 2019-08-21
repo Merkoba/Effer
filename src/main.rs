@@ -280,9 +280,17 @@ fn ask_bool(message: &str, critical:bool) -> bool
 }
 
 // Asks the user to input a string
-fn ask_string(message: &str, initial: &str) -> String
+fn ask_string(message: &str, initial: &str, trim: bool) -> String
 {
-    get_input(message, initial, |a| a.trim().to_string(), String::new, false)
+    if trim
+    {
+        get_input(message, initial, |a| a.trim().to_string(), String::new, false)
+    }
+
+    else
+    {
+        get_input(message, initial, |a| a, String::new, false)
+    }
 }
 
 // Gets the file's password saved globally
@@ -346,7 +354,7 @@ fn create_file() -> bool
 
 // Encrypts the notes using Aes256
 // Turns the encrypted data into hex
-fn encrypt_text(plain_text: &String) -> String
+fn encrypt_text(plain_text: &str) -> String
 {
     let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
     let key = hasher.result(); let iv = generate_iv(&key);
@@ -360,7 +368,7 @@ fn encrypt_text(plain_text: &String) -> String
 }
 
 // Decodes the hex data and decrypts it
-fn decrypt_text(encrypted_text: &String) -> String
+fn decrypt_text(encrypted_text: &str) -> String
 {
     if encrypted_text.trim().is_empty() {return s!()}
     let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
@@ -788,7 +796,7 @@ fn delete_lines(numbers: Vec<usize>)
 // Provides an input to add a new note
 fn add_note()
 {
-    let note = ask_string("New Note", "");
+    let note = ask_string("New Note", "", false);
     if note.is_empty() {return}
     let new_text = format!("{}\n{}", get_notes(false), note);
     update_file(new_text);
@@ -803,11 +811,11 @@ fn edit_note(mut n: usize)
     {
         let last_edit = g_get_last_edit();
         let suggestion = if last_edit == 0 {s!()} else {s!(last_edit)};
-        n = parse_note_ans(&ask_string("Edit #", &suggestion));
+        n = parse_note_ans(&ask_string("Edit #", &suggestion, true));
     }
 
     if !check_line_exists(n) {return}
-    let edited = ask_string("Edit Note", &get_line(n));
+    let edited = ask_string("Edit Note", &get_line(n), false);
     if edited.is_empty() {return} 
     g_set_last_edit(n);
     replace_line(n, edited);
@@ -819,7 +827,7 @@ fn edit_note(mut n: usize)
 // Substrings are counted
 fn find_notes()
 {
-    let filter = ask_string("Regex Filter", "").to_lowercase();
+    let filter = ask_string("Regex Filter", "", true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
     if filter.is_empty() {return}
     let notes = get_notes(false);
@@ -863,7 +871,7 @@ fn find_notes()
 // Swaps 2 notes specified by 2 numbers separated by whitespace (1 10)
 fn swap_notes()
 {
-    let ans = ask_string("Swap (n1 n2)", "");
+    let ans = ask_string("Swap (n1 n2)", "", true);
     if ans.is_empty() {return}
     let mut split = ans.split_whitespace().map(|s| s.trim());
     let n1 = parse_note_ans(split.next().unwrap_or("0"));
@@ -883,7 +891,7 @@ fn delete_notes()
     p!("Or Note Range (1-3)");
     p!("Or Regex Filter (re:\\d+)");
 
-    let ans = ask_string("Delete", "");
+    let ans = ask_string("Delete", "", true);
     if ans.is_empty() {return}
     let mut numbers: Vec<usize> = vec![];
     let notes = get_notes(false);
@@ -1017,7 +1025,7 @@ fn get_page_notes(page: usize) -> Vec<(usize, String)>
 }
 
 // Creates a table to display notes
-fn create_table(items: &Vec<(usize, String)>) -> prettytable::Table
+fn create_table(items: &[(usize, String)]) -> prettytable::Table
 {
     let mut table = Table::new();
 
@@ -1178,7 +1186,7 @@ L/_____/--------\\_//W-------\_____\J"#;
 // Asks the user to input a page number to go to
 fn goto_page()
 {
-    let n = parse_page_ans(&ask_string("Page #", ""));
+    let n = parse_page_ans(&ask_string("Page #", "", true));
     if n < 1 || n > get_max_page_number() {return}
     show_page(n);
 }
@@ -1309,7 +1317,7 @@ fn handle_source()
     // If notes already exist ask what to do
     else
     {
-        let ans = ask_string("Source: (r) Replace | (a) Append | (p) Prepend", "");
+        let ans = ask_string("Source: (r) Replace | (a) Append | (p) Prepend", "", true);
 
         match &ans[..]
         {
@@ -1353,7 +1361,7 @@ fn handle_source()
 // Uses a source from within the program
 fn fetch_source()
 {
-    let ans = ask_string("Source Path", "");
+    let ans = ask_string("Source Path", "", true);
     if ans.is_empty() {return}
     get_source_content(&ans);
     handle_source();
@@ -1362,7 +1370,7 @@ fn fetch_source()
 // Changes the current notes file with another one
 fn open_from_path()
 {
-    let ans = ask_string("Encrypted File Path", "");
+    let ans = ask_string("Encrypted File Path", "", true);
     if ans.is_empty() {return}; let pth = shell_expand(&ans);
 
     match file_path_check(Path::new(&pth).to_path_buf())
@@ -1555,10 +1563,10 @@ fn move_notes()
     p!("From To (n1 n2)");
     p!("Or Range (4-10 2)");
 
-    let ans = ask_string("Move", "");
+    let ans = ask_string("Move", "", true);
     if ans.is_empty() {return}
 
-    if ans.contains("-")
+    if ans.contains('-')
     {
         if ans.matches('-').count() > 1 {return}
         let note_length = g_get_notes_length();
