@@ -1,8 +1,5 @@
 ![](https://i.imgur.com/xBauQL8.png)
 
-APNG Test
-![](https://i.redd.it/plgkofn6e8w21.png)
-
 This is a small CLI program to store notes that will be saved to a text file in gibberish hex format.
 
 To read the notes you need to use the password used to encrypt the file within the program.
