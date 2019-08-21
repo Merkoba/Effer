@@ -1245,13 +1245,14 @@ fn handle_source()
     let source = g_get_source();
     if source.is_empty() {return}
     let notes = get_notes(false);
+    let started = g_get_started();
 
     // If there are no notes just fill it with source
     if notes.lines().count() == 1
     {
         let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
         lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
-        update_file(lines.join("\n")); goto_last_page();
+        update_file(lines.join("\n")); if started {goto_last_page()}
     }
 
     // If notes already exist ask what to do
@@ -1269,7 +1270,7 @@ fn handle_source()
                     let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
                     lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
                     update_file(lines.join("\n")); g_set_last_edit(0);
-                    goto_last_page();
+                    if started {goto_last_page()}
                 }
             },
             // Append
@@ -1277,7 +1278,7 @@ fn handle_source()
             {
                 let mut lines: Vec<&str> = notes.lines().collect();
                 lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
-                update_file(lines.join("\n")); goto_last_page();
+                update_file(lines.join("\n")); if started {goto_last_page()}
             },
             // Prepend
             "p" =>
@@ -1288,9 +1289,8 @@ fn handle_source()
                     .filter(|s| !s.trim().is_empty()).collect();
                 let olines: Vec<&str> = lines.collect();
                 xlines.extend(nlines); xlines.extend(olines); 
-                update_file(xlines.join("\n"));
-                g_set_last_edit(0);
-                goto_first_page();
+                update_file(xlines.join("\n")); g_set_last_edit(0);
+                if started {goto_first_page()}
             },
             _ => {}
         }
