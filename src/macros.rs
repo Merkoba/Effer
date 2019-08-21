@@ -37,7 +37,7 @@ macro_rules! e {
     };
 
     ($left:expr) => {
-        eprintln!($left);
+        eprintln!("{}", $left);
     };
 }
 
@@ -48,7 +48,7 @@ macro_rules! ee {
     };
 
     ($left:expr) => {
-        eprint!($left);
+        eprint!("{}", $left);
     };
 }
 

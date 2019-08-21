@@ -164,7 +164,7 @@ fn get_home_path() -> PathBuf
         Some(path) => path,
         None => 
         {
-            p!("Can't get your Home path."); exit();
+            e!("Can't get your Home path."); exit();
         }
     }
 }
@@ -219,13 +219,13 @@ fn handle_file_path_check(result: FilePathCheckResult)
         },
         FilePathCheckResult::DoesNotExist =>
         {
-            p!(result.message());
+            e!(result.message());
             let answer = ask_bool("Do you want to make the file now?", false);
             if answer {if !create_file() {exit()}} else {exit()}
         },
         FilePathCheckResult::NotAFile =>
         {
-            p!(result.message()); p!("Nothing to do. Exiting."); exit();
+            e!(result.message()); e!("Nothing to do. Exiting."); exit();
         }
     }
 }
@@ -303,7 +303,7 @@ fn get_password(change: bool) -> String
                 password = get_input("New Password", "", |a| a, String::new, true);
                 if password.is_empty() {return s!()}
                 let confirmation = get_input("Confirm Password", "", |a| a, String::new, true);
-                if password != confirmation {p!("Error: Passwords Don't Match.")} else {break}
+                if password != confirmation {e!("Error: Passwords Don't Match.")} else {break}
             }
         }
 
@@ -324,7 +324,7 @@ fn get_password(change: bool) -> String
 fn create_file() -> bool
 {
     if get_password(true).is_empty() {return false}
-    let encrypted = encrypt_text(s!(UNLOCK_CHECK));
+    let encrypted = encrypt_text(&s!(UNLOCK_CHECK));
 
     match fs::create_dir_all(get_file_parent_path())
     {
@@ -346,42 +346,54 @@ fn create_file() -> bool
 
 // Encrypts the notes using Aes256
 // Turns the encrypted data into hex
-fn encrypt_text(plain_text: String) -> String
+fn encrypt_text(plain_text: &String) -> String
 {
-    let text = plain_text.trim().to_string();
     let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
     let key = hasher.result(); let iv = generate_iv(&key);
-    let cipher = Aes256Cbc::new_var(&key, &iv).expect("Can't init the encrypt cipher.");
-    let encrypted = cipher.encrypt_vec(text.as_bytes()); hex::encode(&encrypted)
+
+    let cipher = match Aes256Cbc::new_var(&key, &iv)
+    {
+        Ok(cip) => cip, Err(_) => {e!("Can't init the encrypt cipher."); return s!()}
+    };
+
+    let encrypted = cipher.encrypt_vec(plain_text.as_bytes()); hex::encode(&encrypted)
 }
 
 // Decodes the hex data and decrypts it
-fn decrypt_text(encrypted_text: String) -> String
+fn decrypt_text(encrypted_text: &String) -> String
 {
     if encrypted_text.trim().is_empty() {return s!()}
     let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
     let key = hasher.result(); let iv = generate_iv(&key);
-    let ciphertext = hex::decode(encrypted_text).expect("Can't decode the hex text to decrypt.");
-    let cipher = Aes256Cbc::new_var(&key, &iv).expect("Can't init the decrypt cipher.");
-    let decrypted = cipher.decrypt_vec(&ciphertext);
 
-    match decrypted
+    let ciphertext = match hex::decode(encrypted_text)
     {
-        Ok(_) => (),
-        Err(_) => 
-        {
-            p!("Wrong password."); return s!();
-        }
-    }
+        Ok(ct) => ct, Err(_) => {e!("Can't decode the hex text to decrypt."); return s!()}
+    };
 
-    let text = String::from_utf8(decrypted.unwrap())
-        .expect("Can't turn the decrypted data into a string.");
+    let cipher = match Aes256Cbc::new_var(&key, &iv)
+    {
+        Ok(cip) => cip, Err(_) => {e!("Can't init the decrypt cipher."); return s!()}
+    };
 
-    let header = text.lines().nth(0).expect("Can't read last line from the file.");
+    let decrypted = match cipher.decrypt_vec(&ciphertext)
+    {
+        Ok(dec) => dec, Err(_) => {e!("Wrong password."); return s!()}
+    };
+
+    let text = match String::from_utf8(decrypted)
+    {
+        Ok(txt) => txt, Err(_) => {e!("Can't turn the decrypted data into a string."); return s!()}
+    };
+
+    let header = match text.lines().nth(0)
+    {
+        Some(hd) => hd, None => {e!("Can't read last line from the file."); return s!()}
+    };
 
     if !header.starts_with(UNLOCK_CHECK)
     {
-        p!("Wrong password."); return s!();
+        e!("Wrong password."); return s!();
     }
 
     text
@@ -601,7 +613,10 @@ fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
 // Reads the file
 fn get_file_text() -> String
 {
-    read_file(get_file_path().to_str().unwrap()).expect("Can't read file content.")
+    match read_file(get_file_path().to_str().unwrap())
+    {
+        Ok(text) => text, Err(_) => {p!("Can't read file content."); return s!()}
+    }
 }
 
 // Fills and array based on the key to generate the IV
@@ -616,14 +631,24 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
 fn get_notes(update: bool) -> String
 {
     let notes = g_get_notes();
-    if notes.is_empty() || update {decrypt_text(get_file_text())} else {notes}
+    if notes.is_empty() || update {decrypt_text(&get_file_text())} else {notes}
 }
 
 // Encrypts and saves the updated notes to the file
 fn update_file(text: String)
 {
-    fs::write(get_file_path(), encrypt_text(update_notes_statics(text))
-        .as_bytes()).expect("Unable to write new text to file.");
+    let encrypted = encrypt_text(&text);
+    
+    if encrypted.is_empty()
+    {
+        show_message("< Error Encrypting File >");
+        return
+    }
+
+    update_notes_statics(text);
+
+    fs::write(get_file_path(), encrypted.as_bytes())
+        .expect("Unable to write new text to file.");
 }
 
 // Updates the notes and notes length global variables
@@ -1243,7 +1268,7 @@ fn get_source_content(path: &str)
 
             else
             {
-                p!("Invalid source path."); exit();
+                e!("Invalid source path."); exit();
             }
         }
     }
@@ -1334,7 +1359,7 @@ fn open_from_path()
         },
         FilePathCheckResult::DoesNotExist =>
         {
-            p!("File doesn't exist.");
+            e!("File doesn't exist.");
             
             if ask_bool("Do you want to make the file now?", false)
             {
@@ -1394,17 +1419,29 @@ fn destroy()
 
         let path = get_file_path();
 
-        for _ in 0..10
+        for i in 1..=10
         {
-            fs::write(&path, gibberish(10_000)).expect("Unable to destroy file.");
-
-            // Maybe there's not a good reason for this
-            // But the idea is to let the file system assimilate the write
-            // In case there's some debouncer system in place
-            thread::sleep(time::Duration::from_millis(500));
+            match fs::write(&path, gibberish(10_000))
+            {
+                Ok(_) => 
+                {
+                    if i < 10
+                    {
+                        // Maybe there's not a good reason for this
+                        // But the idea is to let the file system assimilate the write
+                        // In case there's some debouncer system in place
+                        thread::sleep(time::Duration::from_millis(500));
+                    }
+                },
+                Err(_) => {e!("Can't overwrite file."); break}
+            }
         }
 
-        fs::remove_file(&path).unwrap(); exit();
+        match fs::remove_file(&path)
+        {
+            Ok(_) => exit(),
+            Err(_) => show_message("< Can't Destroy File >")
+        }
     }
 }
 
