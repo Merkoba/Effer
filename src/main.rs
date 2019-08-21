@@ -325,10 +325,22 @@ fn create_file() -> bool
 {
     if get_password(true).is_empty() {return false}
     let encrypted = encrypt_text(s!(UNLOCK_CHECK));
-    fs::create_dir_all(get_file_parent_path()).unwrap();
-    let file_path = get_file_path();
-    let mut file = fs::File::create(&file_path).expect("Error creating the file.");
-    file.write_all(encrypted.as_bytes()).expect("Unable to write initial text to file");
+
+    match fs::create_dir_all(get_file_parent_path())
+    {
+        Ok(_) => {}, Err(_) => {e!("Can't create parent directories."); return false}
+    }
+
+    let mut file = match fs::File::create(get_file_path())
+    {
+        Ok(f) => f, Err(_) => {e!("Error creating the file."); return false}
+    };
+
+    match file.write_all(encrypted.as_bytes())
+    {
+        Ok(_) => {}, Err(_) => {e!("Unable to write initial text to file."); return false}
+    }
+
     true
 }
 
@@ -611,7 +623,7 @@ fn get_notes(update: bool) -> String
 fn update_file(text: String)
 {
     fs::write(get_file_path(), encrypt_text(update_notes_statics(text))
-        .as_bytes()).expect("Unable to write new text to file");
+        .as_bytes()).expect("Unable to write new text to file.");
 }
 
 // Updates the notes and notes length global variables
@@ -934,7 +946,7 @@ fn remake_file()
     if ask_bool("Are you sure you want to replace the file with an empty one?", true)
     {
         fs::remove_file(get_file_path()).unwrap();
-        if !create_file() {exit()} 
+        if !create_file() {return}
         reset_state(get_notes(true));
     }
 }
@@ -1318,29 +1330,56 @@ fn open_from_path()
     {
         FilePathCheckResult::Exists =>
         {
-            let opassword; let opath;
-
-            let password = g_get_password();
-            opassword = password; g_set_password(s!());
-
-            let path = g_get_path();
-            opath = path; g_set_path(pth);
+            do_open_path(pth, false);
+        },
+        FilePathCheckResult::DoesNotExist =>
+        {
+            p!("File doesn't exist.");
             
-            let notes = get_notes(true);
-            
-            if notes.is_empty() 
+            if ask_bool("Do you want to make the file now?", false)
             {
-                g_set_password(opassword);
-                g_set_path(opath);
-                show_message("< Invalid Password >");
-            }
-
-            else
-            {
-                reset_state(notes); goto_last_page();
+                do_open_path(pth, true)
             }
         },
-        _ => show_message("< Invalid File Path >")
+        FilePathCheckResult::NotAFile =>
+        {
+            show_message("< Path Is Not A File >");
+        }
+    }
+}
+
+// Does the open from path action
+fn do_open_path(pth: String, create: bool)
+{
+    let opassword; let opath;
+
+    let password = g_get_password();
+    opassword = password; g_set_password(s!());
+
+    let path = g_get_path();
+    opath = path; g_set_path(pth);
+
+    if create
+    {
+        if !create_file()
+        {
+            g_set_password(opassword); g_set_path(opath);
+            show_message("< Can't Create File >");
+            return
+        }
+    }
+
+    let notes = get_notes(true);
+
+    if notes.is_empty()
+    {
+        g_set_password(opassword); g_set_path(opath);
+        show_message("< Can't Decrypt File >");
+    }
+            
+    else
+    {
+        reset_state(notes); goto_last_page();
     }
 }
 
@@ -1357,7 +1396,7 @@ fn destroy()
 
         for _ in 0..10
         {
-            fs::write(&path, gibberish(10_000)).expect("Unable to destroy file");
+            fs::write(&path, gibberish(10_000)).expect("Unable to destroy file.");
 
             // Maybe there's not a good reason for this
             // But the idea is to let the file system assimilate the write
