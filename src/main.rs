@@ -647,8 +647,22 @@ fn update_file(text: String)
 
     update_notes_statics(text);
 
-    fs::write(get_file_path(), encrypted.as_bytes())
-        .expect("Unable to write new text to file.");
+    match fs::write(get_file_path(), encrypted.as_bytes())
+    {
+        Ok(_) => {}, 
+        Err(_) => 
+        {
+            if g_get_started()
+            {
+                show_message("< Can't Write To File >");
+            }
+
+            else
+            {
+                e!("Unable to write text to file."); exit();
+            }
+        }
+    }
 }
 
 // Updates the notes and notes length global variables
