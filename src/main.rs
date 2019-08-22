@@ -1634,32 +1634,32 @@ fn change_row_space()
 // Changes some color to the next one
 fn change_color(n: usize)
 {
+    println!("{}{}", color::Bg(color::Black), color::Fg(color::White));
+    let colors = g_get_colors_vec();
+
+    for (i, color) in colors.iter().enumerate()
+    {
+        let ii = i + 1;
+        let inline =  ii % 3 != 0;
+        let space = if inline {" | "} else {""};
+        let s = format!("({}) {}{}", ii, color, space);
+        if inline {pp!(s)} else {p!(s)}
+    }
+
+    let ans = ask_string(&format!("Color {}", n), "", true);
+    if ans.is_empty() {return};
+    let num = ans.parse::<usize>().unwrap_or(0);
+    if num < 1 || num >= colors.len() - 1 {return}
+    let index = num - 1;
+    
     match n
     {
-        1 =>
-        {
-            let color = g_get_color_1();
-            let len = g_get_colors_length();
-            let pos = g_get_colors_position(color);
-            if pos >= (len - 1) {g_set_color_1(g_get_colors_item(0))} else {g_set_color_1(g_get_colors_item(pos + 1))};
-        },
-        2 =>
-        {
-            let color = g_get_color_2();
-            let len = g_get_colors_length();
-            let pos = g_get_colors_position(color);
-            if pos >= (len - 1) {g_set_color_2(g_get_colors_item(0))} else {g_set_color_2(g_get_colors_item(pos + 1))};
-        },
-        3 =>
-        {
-            let color = g_get_color_3();
-            let len = g_get_colors_length();
-            let pos = g_get_colors_position(color);
-            if pos >= (len - 1) {g_set_color_3(g_get_colors_item(0))} else {g_set_color_3(g_get_colors_item(pos + 1))};
-        },
-        _ => {return}
+        1 => g_set_color_1(s!(colors[index])),
+        2 => g_set_color_2(s!(colors[index])),
+        3 => g_set_color_3(s!(colors[index])),
+        _ => return
     }
-    
+
     create_menus(); update_header();
 }
 

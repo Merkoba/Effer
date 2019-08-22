@@ -10,7 +10,8 @@ use std::
         {
             AtomicUsize, AtomicBool, Ordering
         }
-    }
+    },
+    slice::Iter
 };
 
 // Constants
@@ -171,6 +172,12 @@ pub fn g_set_menus(v: Vec<String>)
 pub fn g_get_colors_item(i: usize) -> String
 {
     s!(COLORS.lock().unwrap()[i])
+}
+
+// Returns an item from the colors global
+pub fn g_get_colors_vec() -> Vec<String>
+{
+    COLORS.lock().unwrap().clone()
 }
 
 // Returns an item from the colors global
