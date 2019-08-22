@@ -19,9 +19,9 @@ pub const VERSION: &str = "v1.5.0";
 pub const RESET_FG_COLOR: &str = "\x1b[39m";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
-pub const DEFAULT_COLOR_1: (u8, u8, u8) = (35, 38, 41);
-pub const DEFAULT_COLOR_2: (u8, u8, u8) = (191, 191, 189);
-pub const DEFAULT_COLOR_3: (u8, u8, u8) = (11, 104, 105);
+pub const DEFAULT_COLOR_1: (u8, u8, u8) = (25, 25, 25);
+pub const DEFAULT_COLOR_2: (u8, u8, u8) = (200, 200, 200);
+pub const DEFAULT_COLOR_3: (u8, u8, u8) = (36, 166, 188);
 
 // Global variables
 lazy_static! 
