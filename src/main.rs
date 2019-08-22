@@ -1252,7 +1252,7 @@ fn show_stats()
 
     let enc_size = get_file_text().as_bytes().len();
     let dec_size = notes.as_bytes().len();
-    let path = g_get_path();
+    let path = shell_contract(&g_get_path().to_string());
 
     let s = format!("Stats For: {}\n\nNotes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes", 
         path, len, wcount, lcount, enc_size, dec_size);
@@ -1493,6 +1493,23 @@ fn shell_expand(path: &str) -> String
     s!(*shellexpand::full(path).unwrap())
 }
 
+// Replaces /home/user with ~ if it's user's Home
+fn shell_contract(path: &str) -> String
+{
+    let hpath =  get_home_path();
+    let home = hpath.to_str().unwrap();
+
+    if path.starts_with(home)
+    {
+        s!(path.replacen(home, "~", 1))
+    }
+
+    else
+    {
+        s!(path)
+    }
+}
+
 // Enables or disables spacing between notes
 fn change_row_space()
 {
@@ -1604,5 +1621,6 @@ fn move_notes()
 fn show_page_indicator(page: usize)
 {
     p!(format!("\n< Page {} of {} >\n{}", 
-        page, get_max_page_number(), g_get_path()));
+        page, get_max_page_number(), 
+        shell_contract(&g_get_path().to_string())));
 }
