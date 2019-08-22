@@ -22,6 +22,7 @@ pub const DEFAULT_ROW_SPACE: bool = true;
 pub const DEFAULT_COLOR_1: (u8, u8, u8) = (25, 25, 25);
 pub const DEFAULT_COLOR_2: (u8, u8, u8) = (200, 200, 200);
 pub const DEFAULT_COLOR_3: (u8, u8, u8) = (36, 166, 188);
+pub const MAX_PAGE_SIZE: usize = 100;
 
 // Global variables
 lazy_static! 
@@ -35,9 +36,18 @@ lazy_static!
     static ref NOTES_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref PAGE: AtomicUsize = AtomicUsize::new(1);
     static ref CURRENT_MENU: AtomicUsize = AtomicUsize::new(0);
-    static ref PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
     static ref LAST_EDIT: AtomicUsize = AtomicUsize::new(0);
     static ref STARTED: AtomicBool = AtomicBool::new(false);
+
+    // Settings Provided As Arguments
+    static ref ARG_PAGE_SIZE: Mutex<String> = Mutex::new(s!());
+    static ref ARG_ROW_SPACE: Mutex<String> = Mutex::new(s!());
+    static ref ARG_COLOR_1: Mutex<String> = Mutex::new(s!());
+    static ref ARG_COLOR_2: Mutex<String> = Mutex::new(s!());
+    static ref ARG_COLOR_3: Mutex<String> = Mutex::new(s!());
+
+    // Settings Globals
+    static ref PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
     static ref ROW_SPACE: AtomicBool = AtomicBool::new(true);
     static ref COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
     static ref COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
@@ -106,6 +116,66 @@ pub fn g_get_last_find() -> String
 pub fn g_set_last_find(s: String)
 {
     *LAST_FIND.lock().unwrap() = s;
+}
+
+// Returns the arg page size global value
+pub fn g_get_arg_page_size() -> String
+{
+    s!(ARG_PAGE_SIZE.lock().unwrap())
+}
+
+// Sets the arg_page_size global value
+pub fn g_set_arg_page_size(s: String)
+{
+    *ARG_PAGE_SIZE.lock().unwrap() = s;
+}
+
+// Returns the arg row space global value
+pub fn g_get_arg_row_space() -> String
+{
+    s!(ARG_ROW_SPACE.lock().unwrap())
+}
+
+// Sets the arg row_space global value
+pub fn g_set_arg_row_space(s: String)
+{
+    *ARG_ROW_SPACE.lock().unwrap() = s;
+}
+
+// Returns the arg color 1 global value
+pub fn g_get_arg_color_1() -> String
+{
+    s!(ARG_COLOR_1.lock().unwrap())
+}
+
+// Sets the arg_color_1 global value
+pub fn g_set_arg_color_1(s: String)
+{
+    *ARG_COLOR_1.lock().unwrap() = s;
+}
+
+// Returns the arg color 2 global value
+pub fn g_get_arg_color_2() -> String
+{
+    s!(ARG_COLOR_2.lock().unwrap())
+}
+
+// Sets the arg_color_2 global value
+pub fn g_set_arg_color_2(s: String)
+{
+    *ARG_COLOR_2.lock().unwrap() = s;
+}
+
+// Returns the arg color 3 global value
+pub fn g_get_arg_color_3() -> String
+{
+    s!(ARG_COLOR_3.lock().unwrap())
+}
+
+// Sets the arg_color_3 global value
+pub fn g_set_arg_color_3(s: String)
+{
+    *ARG_COLOR_3.lock().unwrap() = s;
 }
 
 

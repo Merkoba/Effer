@@ -17,8 +17,7 @@ use std::
     path::{Path, PathBuf},
     io::{self, Write, stdout, stdin},
     cmp::{min, max},
-    str::FromStr,
-    fmt::Formatter
+    str::FromStr
 };
 use block_modes::
 {
@@ -42,7 +41,7 @@ use termion::
     },
     input::TermRead,
     raw::IntoRawMode,
-    color, color::Color
+    color
 };
 use regex::Regex;
 use clap::{App, Arg};
@@ -85,13 +84,38 @@ fn check_arguments()
         .help("Same as print but doesn't show the numbers"))
     .arg(Arg::with_name("path")
         .long("path")
-        .value_name("PATH")
+        .value_name("Path")
         .help("Sets a custom file path")
         .takes_value(true))
     .arg(Arg::with_name("source")
         .long("source")
-        .value_name("PATH")
+        .value_name("Path")
         .help("Creates notes from a text file")
+        .takes_value(true))
+    .arg(Arg::with_name("page_size")
+        .long("page_size")
+        .value_name("Multiple of 5")
+        .help("Set the page size setting")
+        .takes_value(true))
+    .arg(Arg::with_name("row_space")
+        .long("row_space")
+        .value_name("true|false")
+        .help("Set the row space setting")
+        .takes_value(true))
+    .arg(Arg::with_name("color_1")
+        .long("color_1")
+        .value_name("r,g,b")
+        .help("Set the color 1 setting")
+        .takes_value(true))
+    .arg(Arg::with_name("color_2")
+        .long("color_2")
+        .value_name("r,g,b")
+        .help("Set the color 2 setting")
+        .takes_value(true))
+    .arg(Arg::with_name("color_3")
+        .long("color_3")
+        .value_name("r,g,b")
+        .help("Set the color 3 setting")
         .takes_value(true))
     .get_matches();
 
@@ -140,6 +164,31 @@ fn check_arguments()
     if let Some(path) = matches.value_of("source")
     {
         get_source_content(path);
+    }
+
+    if let Some(ps) = matches.value_of("page_size")
+    {
+        g_set_arg_page_size(s!(ps));
+    }
+
+    if let Some(rs) = matches.value_of("row_space")
+    {
+        g_set_arg_row_space(s!(rs));
+    }
+
+    if let Some(c) = matches.value_of("color_1")
+    {
+        g_set_arg_color_1(s!(c));
+    }
+
+    if let Some(c) = matches.value_of("color_2")
+    {
+        g_set_arg_color_2(s!(c));
+    }
+
+    if let Some(c) = matches.value_of("color_3")
+    {
+        g_set_arg_color_3(s!(c));
     }
 }
 
@@ -739,11 +788,17 @@ fn get_settings()
     let header = notes.lines().nth(0).unwrap();
 
     let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
+    let cap = re.captures(header);
+    let arg = g_get_arg_page_size();
 
-    if let Some(caps) = re.captures(header)
+    if cap.is_some() || !arg.is_empty()
     {
-        let ps = &caps["page_size"]; 
-        g_set_page_size(ps.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE));
+        let s = if !arg.is_empty() {arg} 
+        else {s!(cap.unwrap()["page_size"])};
+        let num = s.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
+        let mut n5 = (5.0 * (num as f64 / 5.0).round()) as usize;
+        if n5 <= 0 {n5 = 5} else if n5 > MAX_PAGE_SIZE {n5 = MAX_PAGE_SIZE};
+        g_set_page_size(n5);
     }
 
     else
@@ -752,11 +807,14 @@ fn get_settings()
     }
 
     let re = Regex::new(r"row_space=(?P<row_space>\w+)").unwrap();
+    let cap = re.captures(header);
+    let arg = g_get_arg_row_space();
 
-    if let Some(caps) = re.captures(header)
+    if cap.is_some() || !arg.is_empty()
     {
-        let ps = &caps["row_space"]; 
-        g_set_row_space(FromStr::from_str(ps).unwrap_or(DEFAULT_ROW_SPACE));
+        let s = if !arg.is_empty() {arg} 
+        else {s!(cap.unwrap()["row_space"])};
+        g_set_row_space(FromStr::from_str(&s).unwrap_or(DEFAULT_ROW_SPACE));
     }
 
     else
@@ -765,16 +823,21 @@ fn get_settings()
     }
 
     let re = Regex::new(r"color_1=(?P<color_1>\d+,\d+,\d+)").unwrap();
+    let cap = re.captures(header);
+    let arg = g_get_arg_color_1();
 
-    if let Some(caps) = re.captures(header)
+    if cap.is_some() || !arg.is_empty()
     {
-        let v: Vec<u8> = caps["color_1"].split(",")
+        let s = if !arg.is_empty() {arg} 
+        else {s!(cap.unwrap()["color_1"])};
+
+        let v: Vec<u8> = s.split(",")
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
         if v.len() != 3 {g_set_color_1(DEFAULT_COLOR_1)}
-        else {let ps = &caps["color_1"]; g_set_color_1((v[0], v[1], v[2]))}
+        else {g_set_color_1((v[0], v[1], v[2]))}
     }
 
     else
@@ -783,16 +846,21 @@ fn get_settings()
     }
 
     let re = Regex::new(r"color_2=(?P<color_2>\d+,\d+,\d+)").unwrap();
+    let cap = re.captures(header);
+    let arg = g_get_arg_color_2();
 
-    if let Some(caps) = re.captures(header)
+    if cap.is_some() || !arg.is_empty()
     {
-        let v: Vec<u8> = caps["color_2"].split(",")
+        let s = if !arg.is_empty() {arg} 
+        else {s!(cap.unwrap()["color_2"])};
+
+        let v: Vec<u8> = s.split(",")
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
-        if v.len() != 3 {g_set_color_2(DEFAULT_COLOR_2)}
-        else {let ps = &caps["color_2"]; g_set_color_2((v[0], v[1], v[2]))}
+        if v.len() != 3 {g_set_color_2(DEFAULT_COLOR_1)}
+        else {g_set_color_2((v[0], v[1], v[2]))}
     }
 
     else
@@ -801,16 +869,21 @@ fn get_settings()
     }
 
     let re = Regex::new(r"color_3=(?P<color_3>\d+,\d+,\d+)").unwrap();
+    let cap = re.captures(header);
+    let arg = g_get_arg_color_3();
 
-    if let Some(caps) = re.captures(header)
+    if cap.is_some() || !arg.is_empty()
     {
-        let v: Vec<u8> = caps["color_3"].split(",")
+        let s = if !arg.is_empty() {arg} 
+        else {s!(cap.unwrap()["color_3"])};
+
+        let v: Vec<u8> = s.split(",")
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
-        
-        if v.len() != 3 {g_set_color_3(DEFAULT_COLOR_3)}
-        else {let ps = &caps["color_3"]; g_set_color_3((v[0], v[1], v[2]))}
+
+        if v.len() != 3 {g_set_color_3(DEFAULT_COLOR_1)}
+        else {g_set_color_3((v[0], v[1], v[2]))}
     }
 
     else
@@ -1335,7 +1408,7 @@ fn change_page_size(increase: bool)
 
     if increase
     {
-        if page_size < 100 && max_page > 1 {g_set_page_size(page_size + 5)} else {return}
+        if page_size < MAX_PAGE_SIZE && max_page > 1 {g_set_page_size(page_size + 5)} else {return}
     }
     
     else
@@ -1697,63 +1770,6 @@ fn get_color(n: usize) -> String
             s!(color::Fg(color::Rgb(t.0, t.1, t.2)))
         }
         _ => s!("")
-    }
-}
-
-// Gets the color enum by name
-fn match_color(name: &str, kind: &str) -> String
-{
-    match kind
-    {
-        "bg" =>
-        {
-            match name
-            {
-                "Black" => s!(color::Bg(color::Black)),
-                "Blue" => s!(color::Bg(color::Blue)),
-                "Cyan" => s!(color::Bg(color::Cyan)),
-                "Green" => s!(color::Bg(color::Green)),
-                "LightBlack" => s!(color::Bg(color::LightBlack)),
-                "LightBlue" => s!(color::Bg(color::LightBlue)),
-                "LightCyan" => s!(color::Bg(color::LightCyan)),
-                "LightGreen" => s!(color::Bg(color::LightGreen)),
-                "LightMagenta" => s!(color::Bg(color::LightMagenta)),
-                "LightRed" => s!(color::Bg(color::LightRed)),
-                "LightWhite" => s!(color::Bg(color::LightWhite)),
-                "LightYellow" => s!(color::Bg(color::LightYellow)),
-                "Magenta" => s!(color::Bg(color::Magenta)),
-                "Red" => s!(color::Bg(color::Red)),
-                "White" => s!(color::Bg(color::White)),
-                "Yellow" => s!(color::Bg(color::Yellow)),
-                "Reset" => s!(color::Bg(color::Reset)),
-                _ => s!()
-            }
-        },
-        "fg" =>
-        {
-            match name
-            {
-                "Black" => s!(color::Fg(color::Black)),
-                "Blue" => s!(color::Fg(color::Blue)),
-                "Cyan" => s!(color::Fg(color::Cyan)),
-                "Green" => s!(color::Fg(color::Green)),
-                "LightBlack" => s!(color::Fg(color::LightBlack)),
-                "LightBlue" => s!(color::Fg(color::LightBlue)),
-                "LightCyan" => s!(color::Fg(color::LightCyan)),
-                "LightGreen" => s!(color::Fg(color::LightGreen)),
-                "LightMagenta" => s!(color::Fg(color::LightMagenta)),
-                "LightRed" => s!(color::Fg(color::LightRed)),
-                "LightWhite" => s!(color::Fg(color::LightWhite)),
-                "LightYellow" => s!(color::Fg(color::LightYellow)),
-                "Magenta" => s!(color::Fg(color::Magenta)),
-                "Red" => s!(color::Fg(color::Red)),
-                "White" => s!(color::Fg(color::White)),
-                "Yellow" => s!(color::Fg(color::Yellow)),
-                "Reset" => s!(color::Fg(color::Reset)),
-                _ => s!()
-            }
-        }
-        _ => s!()
     }
 }
 
