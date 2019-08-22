@@ -922,14 +922,14 @@ fn delete_notes()
 
     else if ans.contains('-')
     {
-        if ans.matches('-').count() > 1 {return}
+        if ans.matches('-').count() > 1 {return show_message("< No Messages Were Deleted >")}
         let note_length = g_get_notes_length();
         let mut split = ans.split('-').map(|n| n.trim());
         let num1 = parse_note_ans(split.next().unwrap_or("0"));
         let mut num2 = parse_note_ans(split.next().unwrap_or("0"));
-        if num1 == 0 || num2 == 0 {return}
+        if num1 == 0 || num2 == 0 {return show_message("< No Messages Were Deleted >")}
         if num2 > note_length {num2 = note_length}
-        if num1 >= num2 {return}
+        if num1 >= num2 {return show_message("< No Messages Were Deleted >")}
         numbers.extend(num1..=num2);
     }
 
