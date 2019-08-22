@@ -829,24 +829,38 @@ fn edit_note(mut n: usize)
 // Substrings are counted
 fn find_notes()
 {
-    let filter = ask_string("Regex Filter", "", true).to_lowercase();
+    pp!("Enter Filter | "); p!("Or Regex (re:\\d+)");
+    let filter = ask_string("Find", "", true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
-    if filter.is_empty() {return}
-    let notes = get_notes(false);
-    let info = format!("`{}` >", filter);
+    if filter.is_empty() {return} let notes = get_notes(false);
+    let info = format!("{}{}{} >", get_current_theme().0, filter, RESET);
 
-    if let Ok(re) = Regex::new(&format!("(?i){}", filter))
+    if filter.starts_with("re:")
     {
-        for (i, line) in notes.lines().enumerate()
+        if let Ok(re) = Regex::new(format!("(?i){}", filter.replacen("re:", "", 1)).trim())
         {
-            if i == 0 {continue}
-            if re.is_match(line) {found.push((i, s!(line)))}
+            for (i, line) in notes.lines().enumerate()
+            {
+                if i == 0 {continue}
+                if re.is_match(line) {found.push((i, s!(line)))}
+            }
+        }
+
+        else
+        {
+            return show_message(&format!("< Invalid Regex: {}", info));
         }
     }
 
     else
     {
-        return show_message(&format!("< Invalid Regex: {}", info));
+        let ifilter = filter.to_lowercase();
+
+        for (i, line) in notes.lines().enumerate()
+        {
+            if i == 0 {continue}
+            if line.to_lowercase().contains(&ifilter) {found.push((i, s!(line)))}
+        }
     }
 
     let mut message;
@@ -887,10 +901,10 @@ fn swap_notes()
 // Or a range (1-3)
 fn delete_notes()
 {
-    p!("Enter Note Number");
-    p!("Or Note List (1,2,3)");
-    p!("Or Note Range (1-3)");
-    p!("Or Regex Filter (re:\\d+)");
+    pp!("Enter Note # | ");
+    p!("Or List (1,2,3)");
+    pp!("Or Range (1-3) | ");
+    p!("Or Regex (re:\\d+)");
 
     let ans = ask_string("Delete", "", true);
     if ans.is_empty() {return}
@@ -904,7 +918,7 @@ fn delete_notes()
 
     if ans.starts_with("re:")
     {
-        if let Ok(re) = Regex::new(format!("(?i){}", ans.replace("re:", "")).trim())
+        if let Ok(re) = Regex::new(format!("(?i){}", ans.replacen("re:", "", 1)).trim())
         {
             for (i, line) in notes.lines().enumerate()
             {
