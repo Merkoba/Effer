@@ -830,7 +830,9 @@ fn edit_note(mut n: usize)
 fn find_notes()
 {
     pp!("Enter Filter | "); p!("Or Regex (re:\\d+)");
-    let filter = ask_string("Find", "", true).to_lowercase();
+    let last_find = g_get_last_find();
+    let suggestion = if last_find.is_empty() {""} else {&last_find};
+    let filter = ask_string("Find", suggestion, true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
     if filter.is_empty() {return} let notes = get_notes(false);
     let info = format!("{}{}{} >", get_current_theme().0, filter, RESET);
@@ -863,7 +865,7 @@ fn find_notes()
         }
     }
 
-    let mut message;
+    g_set_last_find(filter); let mut message;
 
     if found.is_empty()
     {

@@ -25,6 +25,7 @@ lazy_static!
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
+    static ref LAST_FIND: Mutex<String> = Mutex::new(s!());
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
     static ref THEMES: Mutex<Vec<(String, String)>> = Mutex::new(vec![]);
     static ref NOTES_LENGTH: AtomicUsize = AtomicUsize::new(0);
@@ -87,6 +88,18 @@ pub fn g_get_source() -> String
 pub fn g_set_source(s: String)
 {
     *SOURCE.lock().unwrap() = s;
+}
+
+// Returns the last find global value
+pub fn g_get_last_find() -> String
+{
+    s!(LAST_FIND.lock().unwrap())
+}
+
+// Sets the last find global value
+pub fn g_set_last_find(s: String)
+{
+    *LAST_FIND.lock().unwrap() = s;
 }
 
 
