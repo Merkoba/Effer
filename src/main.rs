@@ -798,7 +798,7 @@ fn delete_lines(numbers: Vec<usize>)
 // Provides an input to add a new note
 fn add_note()
 {
-    let note = ask_string("New Note", "", false);
+    let note = ask_string("Add Note", "", false);
     if note.is_empty() {return}
     let new_text = format!("{}\n{}", get_notes(false), note);
     update_file(new_text);
@@ -1597,8 +1597,7 @@ fn reset_state(notes: String)
 // and a destination. The moves it
 fn move_notes()
 {
-    p!("From To (n1 n2)");
-    p!("Or Range (4-10 2)");
+    pp!("From To (n1 n2) | "); p!("Or Range (4-10 2)");
 
     let ans = ask_string("Move", "", true);
     if ans.is_empty() {return}

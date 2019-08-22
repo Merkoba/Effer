@@ -12,7 +12,7 @@ use std::sync::
 
 // Constants
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
-pub const VERSION: &str = "v1.4.1";
+pub const VERSION: &str = "v1.5.0";
 pub const RESET: &str = "\x1b[0m";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
