@@ -505,11 +505,11 @@ fn menu_input() -> (MenuAnswer, usize)
             match key
             {
                 Key::Left => MenuAnswer::CycleLeft,
-                Key::PageUp => MenuAnswer::CycleLeft,
                 Key::Right => MenuAnswer::CycleRight,
+                Key::Up => MenuAnswer::FirstPage,
+                Key::Down => MenuAnswer::LastPage,
+                Key::PageUp => MenuAnswer::CycleLeft,
                 Key::PageDown => MenuAnswer::CycleRight,
-                Key::Up => MenuAnswer::CycleLeft,
-                Key::Down => MenuAnswer::CycleRight,
                 Key::Home => MenuAnswer::FirstPage,
                 Key::End => MenuAnswer::LastPage,
                 Key::Esc => MenuAnswer::RefreshPage,
