@@ -898,6 +898,11 @@ fn delete_notes()
     let mut numbers: Vec<usize> = vec![];
     let notes = get_notes(false);
 
+    fn nope()
+    {
+        show_message("< No Messages Were Deleted >")
+    }
+
     if ans.starts_with("re:")
     {
         if let Ok(re) = Regex::new(format!("(?i){}", ans.replace("re:", "")).trim())
@@ -922,14 +927,14 @@ fn delete_notes()
 
     else if ans.contains('-')
     {
-        if ans.matches('-').count() > 1 {return show_message("< No Messages Were Deleted >")}
+        if ans.matches('-').count() > 1 {return nope()}
         let note_length = g_get_notes_length();
         let mut split = ans.split('-').map(|n| n.trim());
         let num1 = parse_note_ans(split.next().unwrap_or("0"));
         let mut num2 = parse_note_ans(split.next().unwrap_or("0"));
-        if num1 == 0 || num2 == 0 {return show_message("< No Messages Were Deleted >")}
+        if num1 == 0 || num2 == 0 {return nope()}
         if num2 > note_length {num2 = note_length}
-        if num1 >= num2 {return show_message("< No Messages Were Deleted >")}
+        if num1 >= num2 {return nope()}
         numbers.extend(num1..=num2);
     }
 
@@ -951,7 +956,7 @@ fn delete_notes()
 
     if numbers.is_empty()
     {
-        return show_message("< No Messages Were Deleted >")
+        return nope()
     }
 
     // If the deleted not is the last edit
