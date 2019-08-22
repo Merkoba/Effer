@@ -6,7 +6,9 @@ To read the notes you need to use the password used to encrypt the file within t
 
 It can, edit, find, and delete notes.
 
-It finds using a case insensitive regex.
+It can find using a case insensitive regex.
+
+Last find filter remembered.
 
 It can delete using a single number, a list, a range, or a case insensitive regex.
 
@@ -18,7 +20,9 @@ Instead of displaying all notes at once there are pages of 20 notes.
 
 Pages can be changed using arrows, home/end, or numbers.
 
-Up arrow is a shortcut to edit the last note.
+Shortcut to edit the last note.
+
+Last edited note number remembered.
 
 It goes into an alternative screen to not flood your terminal.
 
