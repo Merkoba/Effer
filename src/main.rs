@@ -833,6 +833,7 @@ fn find_notes()
     let mut found: Vec<(usize, String)> = vec![];
     if filter.is_empty() {return}
     let notes = get_notes(false);
+    let info = format!("`{}` >", filter);
 
     if let Ok(re) = Regex::new(&format!("(?i){}", filter))
     {
@@ -845,29 +846,27 @@ fn find_notes()
 
     else
     {
-        return show_message("< Invalid Regex | (Enter) Return >");
+        return show_message(&format!("< Invalid Regex: {}", info));
     }
 
     let mut message;
 
     if found.is_empty()
     {
-        message = s!("< No Results");
+        message = s!("< No Results for ");
     }
 
     else if found.len() == 1
     {
-        message = s!("< 1 Result");
+        message = s!("< 1 Result for ");
     }
 
     else
     {
-        message = format!("< {} Results", found.len());
+        message = format!("< {} Results for ", found.len());
     }
 
-    message += " | (Enter) Return >";
-
-    show_notes(0, found, message);
+    message += &info; show_notes(0, found, message);
 }
 
 // Swaps 2 notes specified by 2 numbers separated by whitespace (1 10)
