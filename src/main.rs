@@ -34,7 +34,11 @@ use rand::
 use sha3::{Sha3_256, Digest};
 use termion::
 {
-    event::Key,
+    event::
+    {
+        Event, Key, 
+        MouseEvent, MouseButton
+    },
     input::TermRead,
     raw::IntoRawMode
 };
@@ -61,8 +65,8 @@ fn main()
     handle_file_path_check(file_path_check(get_file_path()));
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
-    update_notes_statics(notes); get_settings(); change_screen();
-    create_themes(); create_menus(); g_set_started(true);
+    update_notes_statics(notes); get_settings(); create_themes(); 
+    create_menus(); change_screen(); g_set_started(true);
     
     // Start loop
     goto_last_page();
@@ -456,8 +460,8 @@ fn create_menus()
             menu_item("f", "ind", false, true, false),
             menu_item("m", "ove", false, true, false),
             menu_item("d", "elete", false, false, false),
-            menu_item("Left/Right", "Cycle Pages", true, true, true),
-            menu_item("Up", "Edit Last Note", true, false, false),
+            menu_item("Arrows", "Cycle Pages", true, true, true),
+            menu_item("Backspace", "Edit Last", true, false, false),
             menu_item("H", "Show All", true, true, true),
             menu_item("?", "About", true, true, false),
             menu_item("Q", "Exit", true, true, false),
@@ -494,51 +498,76 @@ fn menu_input() -> (MenuAnswer, usize)
     write!(stdout, "{}", termion::cursor::Hide).unwrap();
     stdout.flush().unwrap(); let mut data = 0;
 
-    let ans = match stdin.keys().next().unwrap().unwrap()
+    let ans = match stdin.events().next().unwrap().unwrap()
     {
-        Key::Left => MenuAnswer::CycleLeft,
-        Key::PageUp => MenuAnswer::CycleLeft,
-        Key::Right => MenuAnswer::CycleRight,
-        Key::PageDown => MenuAnswer::CycleRight,
-        Key::Up => MenuAnswer::EditLastNote,
-        Key::Home => MenuAnswer::FirstPage,
-        Key::End => MenuAnswer::LastPage,
-        Key::Esc => MenuAnswer::RefreshPage,
-        Key::Char(ch) =>
+        Event::Key(key) =>
         {
-            match ch
+            match key
             {
-                d if d.is_digit(10) => 
+                Key::Left => MenuAnswer::CycleLeft,
+                Key::PageUp => MenuAnswer::CycleLeft,
+                Key::Right => MenuAnswer::CycleRight,
+                Key::PageDown => MenuAnswer::CycleRight,
+                Key::Up => MenuAnswer::CycleLeft,
+                Key::Down => MenuAnswer::CycleRight,
+                Key::Home => MenuAnswer::FirstPage,
+                Key::End => MenuAnswer::LastPage,
+                Key::Esc => MenuAnswer::RefreshPage,
+                Key::Backspace => MenuAnswer::EditLastNote,
+                Key::Char(ch) =>
                 {
-                    data = d.to_digit(10).unwrap() as usize; 
-                    MenuAnswer::PageNumber
-                },
-                'a' => MenuAnswer::AddNote,
-                'e' => MenuAnswer::EditNote,
-                'f' => MenuAnswer::FindNotes,
-                's' => MenuAnswer::SwapNotes,
-                'd' => MenuAnswer::DeleteNotes,
-                'g' => MenuAnswer::GotoPage,
-                'R' => MenuAnswer::RemakeFile,
-                'P' => MenuAnswer::ChangePassword,
-                'H' => MenuAnswer::ShowAllNotes,
-                'T' => MenuAnswer::ShowStats,
-                '?' => MenuAnswer::ShowAbout,
-                'O' => MenuAnswer::OpenFromPath,
-                'U' => MenuAnswer::FetchSource,
-                'm' => MenuAnswer::MoveNotes,
-                'Q' => MenuAnswer::Exit,
-                '+' => MenuAnswer::IncreasePageSize,
-                '-' => MenuAnswer::DecreasePageSize,
-                ':' => MenuAnswer::ScreenSaver,
-                'X' => MenuAnswer::Destroy,
-                '\n' => MenuAnswer::RefreshPage,
-                '^' => MenuAnswer::ChangeRowSpace,
-                '*' => MenuAnswer::ChangeTheme,
-                ' ' => MenuAnswer::ChangeMenu,
+                    match ch
+                    {
+                        d if d.is_digit(10) => 
+                        {
+                            data = d.to_digit(10).unwrap() as usize; 
+                            MenuAnswer::PageNumber
+                        },
+                        'a' => MenuAnswer::AddNote,
+                        'e' => MenuAnswer::EditNote,
+                        'f' => MenuAnswer::FindNotes,
+                        's' => MenuAnswer::SwapNotes,
+                        'd' => MenuAnswer::DeleteNotes,
+                        'g' => MenuAnswer::GotoPage,
+                        'R' => MenuAnswer::RemakeFile,
+                        'P' => MenuAnswer::ChangePassword,
+                        'H' => MenuAnswer::ShowAllNotes,
+                        'T' => MenuAnswer::ShowStats,
+                        '?' => MenuAnswer::ShowAbout,
+                        'O' => MenuAnswer::OpenFromPath,
+                        'U' => MenuAnswer::FetchSource,
+                        'm' => MenuAnswer::MoveNotes,
+                        'Q' => MenuAnswer::Exit,
+                        '+' => MenuAnswer::IncreasePageSize,
+                        '-' => MenuAnswer::DecreasePageSize,
+                        ':' => MenuAnswer::ScreenSaver,
+                        'X' => MenuAnswer::Destroy,
+                        '\n' => MenuAnswer::RefreshPage,
+                        '^' => MenuAnswer::ChangeRowSpace,
+                        '*' => MenuAnswer::ChangeTheme,
+                        ' ' => MenuAnswer::ChangeMenu,
+                        _ => MenuAnswer::Nothing
+                    }
+                }
                 _ => MenuAnswer::Nothing
             }
-        }
+        },
+        Event::Mouse(moe) =>
+        {
+            match moe
+            {
+                MouseEvent::Press(btn, _, _) =>
+                {
+                    match btn
+                    {
+                        MouseButton::WheelUp => MenuAnswer::CycleLeft,
+                        MouseButton::WheelDown => MenuAnswer::CycleRight,
+                        _ => MenuAnswer::Nothing
+                    }
+                }
+                _ => MenuAnswer::Nothing
+            }
+        },
         _ => MenuAnswer::Nothing
     };
 
@@ -801,7 +830,7 @@ fn add_note()
     let note = ask_string("Add Note", "", false);
     if note.is_empty() {return}
     let new_text = format!("{}\n{}", get_notes(false), note);
-    update_file(new_text);
+    update_file(new_text); g_set_last_edit(g_get_notes_length());
     goto_last_page();
 }
 
@@ -812,8 +841,9 @@ fn edit_note(mut n: usize)
     if n == 0
     {
         let last_edit = g_get_last_edit();
-        let suggestion = if last_edit == 0 {s!()} else {s!(last_edit)};
-        n = parse_note_ans(&ask_string("Edit #", &suggestion, true));
+        let suggestion = if last_edit == 0 {s!()} 
+        else {expand_note_number(last_edit)};
+        n = parse_note_ans(&ask_string("Edit #", &(suggestion), true));
     }
 
     if !check_line_exists(n) {return}
@@ -1641,4 +1671,13 @@ fn show_page_indicator(page: usize)
     p!(format!("\n< Page {} of {} >\n{}", 
         page, get_max_page_number(), 
         shell_contract(&g_get_path().to_string())));
+}
+
+// Changes note numbers to equivalents
+// like first and last
+fn expand_note_number(n: usize) -> String
+{
+    if n == 1 {s!("first")}
+    else if n == g_get_notes_length() {s!("last")}
+    else {s!(n)}
 }
