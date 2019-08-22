@@ -30,7 +30,7 @@ impl FilePathCheckResult
 pub enum MenuAnswer
 {
     Nothing, AddNote, EditNote, EditLastNote,
-    FindNotes, SwapNotes, DeleteNotes, RemakeFile,
+    FindNotes, SwapNotes, DeleteNotes, ResetFile,
     ChangePassword, CycleLeft, CycleRight, FirstPage,
     LastPage, RefreshPage, PageNumber, ChangeMenu,
     ShowAllNotes, ShowAbout, GotoPage, Exit,

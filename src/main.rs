@@ -466,7 +466,7 @@ fn create_menus()
         [
             menu_item("+/-", "Change Page Size", true, true, true),
             menu_item("g", "Goto", true, false, false),
-            menu_item("R", "Remake File", true, true, true),
+            menu_item("R", "Reset File", true, true, true),
             menu_item("P", "Change Password", true, false, false),
             menu_item("!", "Color 1", true, true, true),
             menu_item("@", "Color 2", true, true, false),
@@ -522,7 +522,7 @@ fn menu_input() -> (MenuAnswer, usize)
                         's' => MenuAnswer::SwapNotes,
                         'd' => MenuAnswer::DeleteNotes,
                         'g' => MenuAnswer::GotoPage,
-                        'R' => MenuAnswer::RemakeFile,
+                        'R' => MenuAnswer::ResetFile,
                         'P' => MenuAnswer::ChangePassword,
                         'H' => MenuAnswer::ShowAllNotes,
                         'T' => MenuAnswer::ShowStats,
@@ -588,7 +588,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::FindNotes => find_notes(),
         MenuAnswer::SwapNotes => swap_notes(),
         MenuAnswer::DeleteNotes => delete_notes(),
-        MenuAnswer::RemakeFile => remake_file(),
+        MenuAnswer::ResetFile => reset_file(),
         MenuAnswer::ChangePassword => change_password(),
         MenuAnswer::CycleLeft => cycle_left(),
         MenuAnswer::CycleRight => cycle_right(),
@@ -796,6 +796,16 @@ fn get_settings()
     {
         g_set_color_3(s!(DEFAULT_COLOR_3));
     }
+}
+
+// Resets settings to default state
+fn reset_settings()
+{
+    g_set_page_size(DEFAULT_PAGE_SIZE);
+    g_set_row_space(DEFAULT_ROW_SPACE);
+    g_set_color_1(s!(DEFAULT_COLOR_1));
+    g_set_color_2(s!(DEFAULT_COLOR_2));
+    g_set_color_3(s!(DEFAULT_COLOR_3));
 }
 
 // Gets a specific line from the notes
@@ -1100,16 +1110,31 @@ fn format_note(note: &(usize, String), colors: bool, padding: usize) -> String
     }
 }
 
-// Asks the user if it wants to delete the current file and make a new one
+// Asks the user if it wants to remake the file
+// Or just reset the settings to default
 // Then does it if response was positive
 // Variables are then updated to reflect change
-fn remake_file()
+fn reset_file()
 {
-    if ask_bool("Are you sure you want to replace the file with an empty one?", true)
+    p!("(f) Remake File | (s) Reset Settings");
+    let ans = ask_string("Choice", "", true);
+
+    if ans == "f"
     {
-        fs::remove_file(get_file_path()).unwrap();
-        if !create_file() {return}
-        reset_state(get_notes(true));
+        if ask_bool("Are you sure you want to replace the file with an empty one?", true)
+        {
+            fs::remove_file(get_file_path()).unwrap();
+            if !create_file() {return}
+            reset_state(get_notes(true));
+        }
+    }
+
+    else if ans == "s"
+    {
+        if ask_bool("Are you sure you want to reset settings to default?", true)
+        {
+            reset_settings(); update_header(); create_menus();
+        }
     }
 }
 
@@ -1810,7 +1835,6 @@ fn expand_note_number(n: usize) -> String
 // Returns the difference and the max length
 fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
 {
-    let mut min = 0;
     let mut max = 0;
     let mut len = 0;
 
@@ -1820,9 +1844,7 @@ fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
 
         if len == 0 
         {
-            len = nl;
-            min = nl;
-            continue;
+            len = nl; continue;
         }
 
         else if nl > len
