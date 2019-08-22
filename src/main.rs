@@ -41,7 +41,7 @@ use termion::
     },
     input::TermRead,
     raw::IntoRawMode,
-    color, style
+    color
 };
 use regex::Regex;
 use clap::{App, Arg};
@@ -127,7 +127,7 @@ fn check_arguments()
 
             match print_mode
             {
-                "print" => result.push(format_item(&(i, s), false)),
+                "print" => result.push(format_note(&(i, s), false, 0)),
                 "print2" => result.push(s),
                 _ => {}
             }
@@ -621,7 +621,7 @@ fn menu_action(ans: (MenuAnswer, usize))
 // Main renderer function
 // Shows the notes and the menu at the bottom
 // Then waits and reacts for input
-fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
+fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
 {
     loop
     {
@@ -632,18 +632,12 @@ fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
         
         if page > 0
         {
-            for line in get_page_notes(page).iter() 
-            {
-                p!(format_item(line, true));
-            }
+           print_notes(&get_page_notes(page));
         }
 
         else
         {
-            for line in lines.iter() 
-            {
-                p!(format_item(line, true));
-            }
+            print_notes(&notes)
         }
 
         if page > 0
@@ -656,6 +650,19 @@ fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
         let cm = g_get_current_menu();
         let menu = g_get_menus_item(cm);
         p!(menu); menu_action(menu_input());
+    }
+}
+
+// Prints notes to the screen
+fn print_notes(notes: &Vec<(usize, String)>)
+{
+    let space = g_get_row_space();
+    let padding = calculate_padding(&notes);
+            
+    for note in notes.iter() 
+    {
+        if space {p!("")}
+        p!(format_note(note, true, padding));
     }
 }
 
@@ -1065,16 +1072,31 @@ fn refresh_page()
 }
 
 // Generic format for note items
-fn format_item(t: &(usize, String), colors: bool) -> String
+fn format_note(note: &(usize, String), colors: bool, padding: usize) -> String
 {
+    let mut pad = s!();
+
+    if padding > 0
+    {
+        let len = note.0.to_string().len();
+
+        if len < padding
+        {
+            for _ in 0..(padding  - len)
+            {
+                pad += " ";
+            }
+        }
+    }
+
     if colors
     {
-        format!("{}({}) {}{}", get_color(3), t.0, get_color(2), t.1)
+        format!("{}({}) {}{}{}", get_color(3), note.0, pad, get_color(2), note.1)
     }
 
     else
     {
-        format!("({}) {}", t.0, t.1)
+        format!("({}) {}{}", note.0, pad, note.1)
     }
 }
 
@@ -1780,4 +1802,34 @@ fn expand_note_number(n: usize) -> String
     if n == 1 {s!("first")}
     else if n == g_get_notes_length() {s!("last")}
     else {s!(n)}
+}
+
+// Calculates if some padding 
+// must be given between note numbers
+// and note text. So all notes look aligned
+// Returns the difference and the max length
+fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
+{
+    let mut min = 0;
+    let mut max = 0;
+    let mut len = 0;
+
+    for note in notes.iter()
+    {
+        let nl = note.0.to_string().len();
+
+        if len == 0 
+        {
+            len = nl;
+            min = nl;
+            continue;
+        }
+
+        else if nl > len
+        {
+            len = nl; max = nl;
+        }
+    }
+
+    max
 }
