@@ -519,6 +519,7 @@ fn menu_input() -> (MenuAnswer, usize)
                         'a' => MenuAnswer::AddNote,
                         'e' => MenuAnswer::EditNote,
                         'f' => MenuAnswer::FindNotes,
+                        'F' => MenuAnswer::FindNotesSuggest,
                         's' => MenuAnswer::SwapNotes,
                         'd' => MenuAnswer::DeleteNotes,
                         'g' => MenuAnswer::GotoPage,
@@ -585,7 +586,8 @@ fn menu_action(ans: (MenuAnswer, usize))
     {
         MenuAnswer::AddNote => add_note(),
         MenuAnswer::EditNote => edit_note(0),
-        MenuAnswer::FindNotes => find_notes(),
+        MenuAnswer::FindNotes => find_notes(false),
+        MenuAnswer::FindNotesSuggest => find_notes(true),
         MenuAnswer::SwapNotes => swap_notes(),
         MenuAnswer::DeleteNotes => delete_notes(),
         MenuAnswer::ResetFile => reset_file(),
@@ -908,15 +910,15 @@ fn edit_note(mut n: usize)
 // Finds a note by a filter
 // Case insensitive
 // Substrings are counted
-fn find_notes()
+fn find_notes(suggest: bool)
 {
     pp!("Enter Filter | "); p!("Or Regex (re:\\d+)");
     let last_find = g_get_last_find();
-    let suggestion = if last_find.is_empty() {""} else {&last_find};
+    let suggestion = if suggest && !last_find.is_empty() {&last_find} else {""};
     let filter = ask_string("Find", suggestion, true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
     if filter.is_empty() {return} let notes = get_notes(false);
-    let info = format!("{}{}{} >", get_color(3), filter, RESET_FG_COLOR);
+    let info = format!("{}{}{}{} >", get_color(3), filter, RESET_FG_COLOR, get_color(2));
 
     if filter.starts_with("re:")
     {
@@ -1276,13 +1278,19 @@ L/_____/--------\\_//W-------\_____\J"#;
 
     let name = format!("Effer {} | Encrypted Notepad", VERSION);
 
+    fn make_tip(s: &str) -> String
+    {
+        format!("{}Tip:{} {}{}", get_color(3), RESET_FG_COLOR, get_color(2), s)
+    }
+
     let info =
     [
-        "Info: Different major versions are not compatible",
-        "\nTip: You can use 'first' and 'last' as note numbers",
-        "\nTip: 1-9 can be used to navigate the first 9 pages",
-        "\nTip: Start the program with --help to check arguments"
-    ].concat();
+        make_tip("Different major versions are not compatible"),
+        make_tip("You can use 'first' and 'last' as note numbers"),
+        make_tip("1-9 can be used to navigate the first 9 pages"),
+        make_tip("Start the program with --help to check arguments"),
+        make_tip("Shift+F uses the last find filter")
+    ].join("\n");
 
     let s = format!("{}\n\n{}\n\n{}", art,  name, info);
 
