@@ -17,7 +17,8 @@ use std::
     path::{Path, PathBuf},
     io::{self, Write, stdout, stdin},
     cmp::{min, max},
-    str::FromStr
+    str::FromStr,
+    fmt::Formatter
 };
 use block_modes::
 {
@@ -41,7 +42,7 @@ use termion::
     },
     input::TermRead,
     raw::IntoRawMode,
-    color
+    color, color::Color
 };
 use regex::Regex;
 use clap::{App, Arg};
@@ -61,8 +62,8 @@ fn main()
     handle_file_path_check(file_path_check(get_file_path()));
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
-    update_notes_statics(notes); get_settings(); create_colors(); 
-    create_menus(); change_screen(); g_set_started(true);
+    update_notes_statics(notes); get_settings(); create_menus(); 
+    change_screen(); g_set_started(true);
     
     // Start loop
     goto_last_page();
@@ -737,9 +738,9 @@ fn get_settings()
     let notes = get_notes(false);
     let header = notes.lines().nth(0).unwrap();
 
-    let re1 = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
+    let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
 
-    if let Some(caps) = re1.captures(header)
+    if let Some(caps) = re.captures(header)
     {
         let ps = &caps["page_size"]; 
         g_set_page_size(ps.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE));
@@ -750,9 +751,9 @@ fn get_settings()
         g_set_page_size(DEFAULT_PAGE_SIZE);
     }
 
-    let re2 = Regex::new(r"row_space=(?P<row_space>\w+)").unwrap();
+    let re = Regex::new(r"row_space=(?P<row_space>\w+)").unwrap();
 
-    if let Some(caps) = re2.captures(header)
+    if let Some(caps) = re.captures(header)
     {
         let ps = &caps["row_space"]; 
         g_set_row_space(FromStr::from_str(ps).unwrap_or(DEFAULT_ROW_SPACE));
@@ -763,40 +764,58 @@ fn get_settings()
         g_set_row_space(DEFAULT_ROW_SPACE);
     }
 
-    let re3 = Regex::new(r"color_1=(?P<color_1>\w+)").unwrap();
+    let re = Regex::new(r"color_1=(?P<color_1>\d+,\d+,\d+)").unwrap();
 
-    if let Some(caps) = re3.captures(header)
+    if let Some(caps) = re.captures(header)
     {
-        let ps = &caps["color_1"]; g_set_color_1(s!(ps));
+        let v: Vec<u8> = caps["color_1"].split(",")
+            .map(|n| n.parse::<u8>()
+            .unwrap_or(0))
+            .collect();
+
+        if v.len() != 3 {g_set_color_1(DEFAULT_COLOR_1)}
+        else {let ps = &caps["color_1"]; g_set_color_1((v[0], v[1], v[2]))}
     }
 
     else
     {
-        g_set_color_1(s!(DEFAULT_COLOR_1));
+        g_set_color_1(DEFAULT_COLOR_1);
     }
 
-    let re4 = Regex::new(r"color_2=(?P<color_2>\w+)").unwrap();
+    let re = Regex::new(r"color_2=(?P<color_2>\d+,\d+,\d+)").unwrap();
 
-    if let Some(caps) = re4.captures(header)
+    if let Some(caps) = re.captures(header)
     {
-        let ps = &caps["color_2"]; g_set_color_2(s!(ps));
-    }
+        let v: Vec<u8> = caps["color_2"].split(",")
+            .map(|n| n.parse::<u8>()
+            .unwrap_or(0))
+            .collect();
 
-    else
-    {
-        g_set_color_2(s!(DEFAULT_COLOR_2));
-    }
-
-    let re5 = Regex::new(r"color_3=(?P<color_3>\w+)").unwrap();
-
-    if let Some(caps) = re5.captures(header)
-    {
-        let ps = &caps["color_3"]; g_set_color_3(s!(ps));
+        if v.len() != 3 {g_set_color_2(DEFAULT_COLOR_2)}
+        else {let ps = &caps["color_2"]; g_set_color_2((v[0], v[1], v[2]))}
     }
 
     else
     {
-        g_set_color_3(s!(DEFAULT_COLOR_3));
+        g_set_color_2(DEFAULT_COLOR_2);
+    }
+
+    let re = Regex::new(r"color_3=(?P<color_3>\d+,\d+,\d+)").unwrap();
+
+    if let Some(caps) = re.captures(header)
+    {
+        let v: Vec<u8> = caps["color_3"].split(",")
+            .map(|n| n.parse::<u8>()
+            .unwrap_or(0))
+            .collect();
+        
+        if v.len() != 3 {g_set_color_3(DEFAULT_COLOR_3)}
+        else {let ps = &caps["color_3"]; g_set_color_3((v[0], v[1], v[2]))}
+    }
+
+    else
+    {
+        g_set_color_3(DEFAULT_COLOR_3);
     }
 }
 
@@ -805,9 +824,9 @@ fn reset_settings()
 {
     g_set_page_size(DEFAULT_PAGE_SIZE);
     g_set_row_space(DEFAULT_ROW_SPACE);
-    g_set_color_1(s!(DEFAULT_COLOR_1));
-    g_set_color_2(s!(DEFAULT_COLOR_2));
-    g_set_color_3(s!(DEFAULT_COLOR_3));
+    g_set_color_1(DEFAULT_COLOR_1);
+    g_set_color_2(DEFAULT_COLOR_2);
+    g_set_color_3(DEFAULT_COLOR_3);
 }
 
 // Gets a specific line from the notes
@@ -1334,11 +1353,14 @@ fn update_header()
     let ps = g_get_page_size();
     let rs = g_get_row_space();
     let c1 = g_get_color_1();
+    let sc1 = format!("{},{},{}", c1.0, c1.1, c1.2);
     let c2 = g_get_color_2();
+    let sc2 = format!("{},{},{}", c2.0, c2.1, c2.2);
     let c3 = g_get_color_3();
+    let sc3 = format!("{},{},{}", c3.0, c3.1, c3.2);
 
     let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={}", 
-        uc, ps, rs, c1, c2, c3);
+        uc, ps, rs, sc1, sc2, sc3);
 
     replace_line(0, s);
 }
@@ -1634,30 +1656,21 @@ fn change_row_space()
 // Changes some color to the next one
 fn change_color(n: usize)
 {
-    println!("{}{}", color::Bg(color::Black), color::Fg(color::White));
-    let colors = g_get_colors_vec();
+    let ans = ask_string(&format!("Color {} (r,g,b)", n), "", true);
+    if ans.is_empty() {return}
 
-    for (i, color) in colors.iter().enumerate()
-    {
-        let ii = i + 1;
-        let inline =  ii % 3 != 0;
-        let space = if inline {" | "} else {""};
-        let s = format!("({}) {}{}", ii, color, space);
-        if inline {pp!(s)} else {p!(s)}
-    }
+    let v: Vec<u8> = ans.split(",")
+        .map(|s| s.trim())
+        .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
 
-    let ans = ask_string(&format!("Color {}", n), "", true);
-    if ans.is_empty() {return};
-    let num = ans.parse::<usize>().unwrap_or(0);
-    if num < 1 || num >= colors.len() - 1 {return}
-    let index = num - 1;
+    if v.len() != 3 {return}
     
     match n
     {
-        1 => g_set_color_1(s!(colors[index])),
-        2 => g_set_color_2(s!(colors[index])),
-        3 => g_set_color_3(s!(colors[index])),
-        _ => return
+        1 => g_set_color_1((v[0], v[1], v[2])),
+        2 => g_set_color_2((v[0], v[1], v[2])),
+        3 => g_set_color_3((v[0], v[1], v[2])),
+        _ => {}
     }
 
     create_menus(); update_header();
@@ -1668,10 +1681,22 @@ fn get_color(n: usize) -> String
 {
     match n
     {
-        1 => match_color(&g_get_color_1(), "bg"),
-        2 => match_color(&g_get_color_2(), "fg"),
-        3 => match_color(&g_get_color_3(), "fg"),
-        _ => s!("Reset")
+        1 => 
+        {
+            let t = g_get_color_1();
+            s!(color::Bg(color::Rgb(t.0, t.1, t.2)))
+        }
+        2 => 
+        {
+            let t = g_get_color_2();
+            s!(color::Fg(color::Rgb(t.0, t.1, t.2)))
+        }
+        3 => 
+        {
+            let t = g_get_color_3();
+            s!(color::Fg(color::Rgb(t.0, t.1, t.2)))
+        }
+        _ => s!("")
     }
 }
 
@@ -1730,33 +1755,6 @@ fn match_color(name: &str, kind: &str) -> String
         }
         _ => s!()
     }
-}
-
-// Creates the list of available themes
-fn create_colors()
-{
-    let colors =
-    [    
-        "Black",
-        "Blue",
-        "Cyan",
-        "Green",
-        "LightBlack",
-        "LightBlue",
-        "LightCyan",
-        "LightGreen",
-        "LightMagenta",
-        "LightRed",
-        "LightWhite",
-        "LightYellow",
-        "Magenta",
-        "Red",
-        "White",
-        "Yellow",
-        "Reset",
-    ];
-
-    g_set_colors(colors.iter().map(|s| s!(s)).collect());
 }
 
 // Show notes from a certain page

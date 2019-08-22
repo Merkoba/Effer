@@ -10,8 +10,7 @@ use std::
         {
             AtomicUsize, AtomicBool, Ordering
         }
-    },
-    slice::Iter
+    }
 };
 
 // Constants
@@ -20,9 +19,9 @@ pub const VERSION: &str = "v1.5.0";
 pub const RESET_FG_COLOR: &str = "\x1b[39m";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
-pub const DEFAULT_COLOR_1: &str = "Reset";
-pub const DEFAULT_COLOR_2: &str = "Reset";
-pub const DEFAULT_COLOR_3: &str = "Reset";
+pub const DEFAULT_COLOR_1: (u8, u8, u8) = (35, 38, 41);
+pub const DEFAULT_COLOR_2: (u8, u8, u8) = (191, 191, 189);
+pub const DEFAULT_COLOR_3: (u8, u8, u8) = (11, 104, 105);
 
 // Global variables
 lazy_static! 
@@ -32,11 +31,7 @@ lazy_static!
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
     static ref LAST_FIND: Mutex<String> = Mutex::new(s!());
-    static ref COLOR_1: Mutex<String> = Mutex::new(s!());
-    static ref COLOR_2: Mutex<String> = Mutex::new(s!());
-    static ref COLOR_3: Mutex<String> = Mutex::new(s!());
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
-    static ref COLORS: Mutex<Vec<String>> = Mutex::new(vec![]);
     static ref NOTES_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref PAGE: AtomicUsize = AtomicUsize::new(1);
     static ref CURRENT_MENU: AtomicUsize = AtomicUsize::new(0);
@@ -44,6 +39,9 @@ lazy_static!
     static ref LAST_EDIT: AtomicUsize = AtomicUsize::new(0);
     static ref STARTED: AtomicBool = AtomicBool::new(false);
     static ref ROW_SPACE: AtomicBool = AtomicBool::new(true);
+    static ref COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
+    static ref COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
+    static ref COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
 }
 
 
@@ -110,42 +108,6 @@ pub fn g_set_last_find(s: String)
     *LAST_FIND.lock().unwrap() = s;
 }
 
-// Returns the color_1 global value
-pub fn g_get_color_1() -> String
-{
-    s!(COLOR_1.lock().unwrap())
-}
-
-// Sets the color_1  global value
-pub fn g_set_color_1(s: String)
-{
-    *COLOR_1.lock().unwrap() = s;
-}
-
-// Returns the color_2 global value
-pub fn g_get_color_2() -> String
-{
-    s!(COLOR_2.lock().unwrap())
-}
-
-// Sets the color_2  global value
-pub fn g_set_color_2(s: String)
-{
-    *COLOR_2.lock().unwrap() = s;
-}
-
-// Returns the color_3 global value
-pub fn g_get_color_3() -> String
-{
-    s!(COLOR_3.lock().unwrap())
-}
-
-// Sets the color_3  global value
-pub fn g_set_color_3(s: String)
-{
-    *COLOR_3.lock().unwrap() = s;
-}
-
 
 /// MUTEX VECTOR
 
@@ -166,36 +128,6 @@ pub fn g_get_menus_length() -> usize
 pub fn g_set_menus(v: Vec<String>)
 {
     *MENUS.lock().unwrap() = v;
-}
-
-// Returns an item from the colors global
-pub fn g_get_colors_item(i: usize) -> String
-{
-    s!(COLORS.lock().unwrap()[i])
-}
-
-// Returns an item from the colors global
-pub fn g_get_colors_vec() -> Vec<String>
-{
-    COLORS.lock().unwrap().clone()
-}
-
-// Returns an item from the colors global
-pub fn g_get_colors_position(s: String) -> usize
-{
-    COLORS.lock().unwrap().iter().position(|i| *i == s).unwrap()
-}
-
-// Returns the length of the colors global
-pub fn g_get_colors_length() -> usize
-{
-    COLORS.lock().unwrap().len()
-}
-
-// Sets the colors global value
-pub fn g_set_colors(v: Vec<String>)
-{
-    *COLORS.lock().unwrap() = v;
 }
 
 
@@ -288,4 +220,44 @@ pub fn g_get_row_space() -> bool
 pub fn g_set_row_space(b: bool)
 {
     ROW_SPACE.store(b, Ordering::SeqCst);
+}
+
+
+/// MUTEX TUPLE
+
+
+// Returns the color_1 global value
+pub fn g_get_color_1() -> (u8, u8, u8)
+{
+    *COLOR_1.lock().unwrap()
+}
+
+// Sets the color_1  global value
+pub fn g_set_color_1(t: (u8, u8, u8))
+{
+    *COLOR_1.lock().unwrap() = t;
+}
+
+// Returns the color_2 global value
+pub fn g_get_color_2() -> (u8, u8, u8)
+{
+    *COLOR_2.lock().unwrap()
+}
+
+// Sets the color_2  global value
+pub fn g_set_color_2(t: (u8, u8, u8))
+{
+    *COLOR_2.lock().unwrap() = t;
+}
+
+// Returns the color_3 global value
+pub fn g_get_color_3() -> (u8, u8, u8)
+{
+    *COLOR_3.lock().unwrap()
+}
+
+// Sets the color_3  global value
+pub fn g_set_color_3(t: (u8, u8, u8))
+{
+    *COLOR_3.lock().unwrap() = t;
 }
