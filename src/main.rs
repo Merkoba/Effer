@@ -548,7 +548,15 @@ fn menu_input() -> (MenuAnswer, usize)
                         ' ' => MenuAnswer::ChangeMenu,
                         _ => MenuAnswer::Nothing
                     }
-                }
+                },
+                Key::Ctrl(ch) =>
+                {
+                    match ch
+                    {
+                        'c' => MenuAnswer::Exit,
+                        _ => MenuAnswer::Nothing
+                    }
+                },
                 _ => MenuAnswer::Nothing
             }
         },
