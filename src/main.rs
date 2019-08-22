@@ -40,7 +40,8 @@ use termion::
         MouseEvent, MouseButton
     },
     input::TermRead,
-    raw::IntoRawMode
+    raw::IntoRawMode,
+    color, style
 };
 use regex::Regex;
 use clap::{App, Arg};
@@ -49,11 +50,6 @@ use rustyline::
     Editor, Cmd, KeyPress,
     Config, OutputStreamType, CompletionType, 
     completion::FilenameCompleter
-};
-use prettytable::
-{
-    Table, Row, Cell, 
-    format::FormatBuilder
 };
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
@@ -65,7 +61,7 @@ fn main()
     handle_file_path_check(file_path_check(get_file_path()));
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
-    update_notes_statics(notes); get_settings(); create_themes(); 
+    update_notes_statics(notes); get_settings(); create_colors(); 
     create_menus(); change_screen(); g_set_started(true);
     
     // Start loop
@@ -127,12 +123,12 @@ fn check_arguments()
 
         for (i, line) in lines.iter().enumerate()
         {
-            if i == 0 {continue}
+            if i == 0 {continue}; let s = s!(line);
 
             match print_mode
             {
-                "print" => result.push(format_item(i, line)),
-                "print2" => result.push(s!(line)),
+                "print" => result.push(format_item(&(i, s), false)),
+                "print2" => result.push(s),
                 _ => {}
             }
         }
@@ -443,7 +439,7 @@ fn generate_iv(key: &[u8]) -> Vec<u8>
 fn menu_item(key: &str, label: &str, spacing:bool, separator: bool, newline: bool) -> String
 {
     let nline = if newline {"\n"} else {""};
-    let mut s = format!("{}{}({}){}", nline, get_current_theme().0, key, RESET);
+    let mut s = format!("{}{}({}){}", nline, get_color(3), key, get_color(2));
     if spacing {s += " "}; s += label;
     if separator {s += " | "} s
 }
@@ -460,7 +456,7 @@ fn create_menus()
             menu_item("f", "ind", false, true, false),
             menu_item("m", "ove", false, true, false),
             menu_item("d", "elete", false, false, false),
-            menu_item("Arrows", "Cycle Pages", true, true, true),
+            menu_item("Arrows", "Change Pages", true, true, true),
             menu_item("Backspace", "Edit Last", true, false, false),
             menu_item("H", "Show All", true, true, true),
             menu_item("?", "About", true, true, false),
@@ -469,23 +465,20 @@ fn create_menus()
         ].concat(),
         [
             menu_item("+/-", "Change Page Size", true, true, true),
-            menu_item("g", "Goto", true, true, false),
-            menu_item("T", "Stats", true, false, false),
+            menu_item("g", "Goto", true, false, false),
             menu_item("R", "Remake File", true, true, true),
-            menu_item("P", "Change Password", true, true, false),
-            menu_item(":", "😎", true, false, false),
-            menu_item("Home", "First Page", true, true, true),
-            menu_item("End", "Last Page", true, true, false),
-            menu_item("Space", ">", true, false, false)
+            menu_item("P", "Change Password", true, false, false),
+            menu_item("!", "Color 1", true, true, true),
+            menu_item("@", "Color 2", true, true, false),
+            menu_item("#", "Color 3", true, false, false)
         ].concat(),
         [
             menu_item("^", "Change Row Spacing", true, true, true),
-            menu_item("*", "Change Theme", true, false, false),
-            menu_item("O", "Open Other Encrypted File", true, true, true),
-            menu_item("X", "Destroy", true, false, false),
+            menu_item("s", "Swap", true, false, false),
+            menu_item("O", "Open Encrypted File", true, true, true),
+            menu_item("T", "Stats", true, false, false),
             menu_item("U", "Add From Source File", true, true, true),
-            menu_item("s", "Swap", true, true, false),
-            menu_item("Space", ">", true, false, false)
+            menu_item("X", "Destroy", true, false, false)
         ].concat()
     ]);
 }
@@ -544,7 +537,9 @@ fn menu_input() -> (MenuAnswer, usize)
                         'X' => MenuAnswer::Destroy,
                         '\n' => MenuAnswer::RefreshPage,
                         '^' => MenuAnswer::ChangeRowSpace,
-                        '*' => MenuAnswer::ChangeTheme,
+                        '!' => MenuAnswer::ChangeColor1,
+                        '@' => MenuAnswer::ChangeColor2,
+                        '#' => MenuAnswer::ChangeColor3,
                         ' ' => MenuAnswer::ChangeMenu,
                         _ => MenuAnswer::Nothing
                     }
@@ -614,7 +609,9 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::FetchSource => fetch_source(),
         MenuAnswer::Destroy => destroy(),
         MenuAnswer::ChangeRowSpace => change_row_space(),
-        MenuAnswer::ChangeTheme => change_theme(),
+        MenuAnswer::ChangeColor1 => change_color(1),
+        MenuAnswer::ChangeColor2 => change_color(2),
+        MenuAnswer::ChangeColor3 => change_color(3),
         MenuAnswer::MoveNotes => move_notes(),
         MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
@@ -629,18 +626,24 @@ fn show_notes(mut page: usize, lines: Vec<(usize, String)>, message: String)
     loop
     {
         // Clear the screen
-        p!("\x1b[2J");
+        p!("{}\x1b[2J", get_color(1));
 
         page = check_page_number(page, true);
         
         if page > 0
         {
-            create_table(&get_page_notes(page)).printstd();
+            for line in get_page_notes(page).iter() 
+            {
+                p!(format_item(line, true));
+            }
         }
 
         else
         {
-            create_table(&lines).printstd();
+            for line in lines.iter() 
+            {
+                p!(format_item(line, true));
+            }
         }
 
         if page > 0
@@ -751,17 +754,40 @@ fn get_settings()
         g_set_row_space(DEFAULT_ROW_SPACE);
     }
 
-    let re3 = Regex::new(r"theme=(?P<theme>\w+)").unwrap();
+    let re3 = Regex::new(r"color_1=(?P<color_1>\w+)").unwrap();
 
     if let Some(caps) = re3.captures(header)
     {
-        let ps = &caps["theme"]; 
-        g_set_theme(ps.parse::<usize>().unwrap_or(DEFAULT_THEME));
+        let ps = &caps["color_1"]; g_set_color_1(s!(ps));
     }
 
     else
     {
-        g_set_theme(DEFAULT_THEME);
+        g_set_color_1(s!(DEFAULT_COLOR_1));
+    }
+
+    let re4 = Regex::new(r"color_2=(?P<color_2>\w+)").unwrap();
+
+    if let Some(caps) = re4.captures(header)
+    {
+        let ps = &caps["color_2"]; g_set_color_2(s!(ps));
+    }
+
+    else
+    {
+        g_set_color_2(s!(DEFAULT_COLOR_2));
+    }
+
+    let re5 = Regex::new(r"color_3=(?P<color_3>\w+)").unwrap();
+
+    if let Some(caps) = re5.captures(header)
+    {
+        let ps = &caps["color_3"]; g_set_color_3(s!(ps));
+    }
+
+    else
+    {
+        g_set_color_3(s!(DEFAULT_COLOR_3));
     }
 }
 
@@ -873,7 +899,7 @@ fn find_notes()
     let filter = ask_string("Find", suggestion, true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
     if filter.is_empty() {return} let notes = get_notes(false);
-    let info = format!("{}{}{} >", get_current_theme().0, filter, RESET);
+    let info = format!("{}{}{} >", get_color(3), filter, RESET_FG_COLOR);
 
     if filter.starts_with("re:")
     {
@@ -1039,9 +1065,17 @@ fn refresh_page()
 }
 
 // Generic format for note items
-fn format_item(n: usize, s: &str) -> String
+fn format_item(t: &(usize, String), colors: bool) -> String
 {
-    format!("({}) {}", n, s)
+    if colors
+    {
+        format!("{}({}) {}{}", get_color(3), t.0, get_color(2), t.1)
+    }
+
+    else
+    {
+        format!("({}) {}", t.0, t.1)
+    }
 }
 
 // Asks the user if it wants to delete the current file and make a new one
@@ -1082,41 +1116,6 @@ fn get_page_notes(page: usize) -> Vec<(usize, String)>
     let b = min(page * page_size, lines.len() - 1);
     result = (a..).zip(lines[a..=b].iter().map(|x| s!(x))).collect();
     result
-}
-
-// Creates a table to display notes
-fn create_table(items: &[(usize, String)]) -> prettytable::Table
-{
-    let mut table = Table::new();
-
-    let format = FormatBuilder::new()
-        .padding(0, 1)
-        .build();
-
-    table.set_format(format);
-    let theme = &get_current_theme().1;
-
-    for item in items.iter()
-    {
-        let space = g_get_row_space();
-
-        if space
-        {
-            table.add_row(Row::new(vec!
-            [
-                Cell::new("").style_spec(""),
-                Cell::new("").style_spec("")
-            ]));
-        }
-
-        table.add_row(Row::new(vec!
-        [
-            Cell::new(&format!("({})", item.0)).style_spec(theme),
-            Cell::new(&item.1).style_spec("")
-        ]));
-    }
-
-    table
 }
 
 // Gets the maximum number of pages
@@ -1279,9 +1278,12 @@ fn update_header()
     let uc = UNLOCK_CHECK;
     let ps = g_get_page_size();
     let rs = g_get_row_space();
-    let th = g_get_theme();
+    let c1 = g_get_color_1();
+    let c2 = g_get_color_2();
+    let c3 = g_get_color_3();
 
-    let s = format!("{} page_size={} row_space={} theme={}", uc, ps, rs, th);
+    let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={}", 
+        uc, ps, rs, c1, c2, c3);
 
     replace_line(0, s);
 }
@@ -1574,42 +1576,132 @@ fn change_row_space()
     update_header();
 }
 
-// Changes the theme to the next one
-fn change_theme()
+// Changes some color to the next one
+fn change_color(n: usize)
 {
-    let len = g_get_themes_length(); let theme = g_get_theme();
-    if theme >= (len - 1) {g_set_theme(0)} else {g_set_theme(theme + 1)};
+    match n
+    {
+        1 =>
+        {
+            let color = g_get_color_1();
+            let len = g_get_colors_length();
+            let pos = g_get_colors_position(color);
+            if pos >= (len - 1) {g_set_color_1(g_get_colors_item(0))} else {g_set_color_1(g_get_colors_item(pos + 1))};
+        },
+        2 =>
+        {
+            let color = g_get_color_2();
+            let len = g_get_colors_length();
+            let pos = g_get_colors_position(color);
+            if pos >= (len - 1) {g_set_color_2(g_get_colors_item(0))} else {g_set_color_2(g_get_colors_item(pos + 1))};
+        },
+        3 =>
+        {
+            let color = g_get_color_3();
+            let len = g_get_colors_length();
+            let pos = g_get_colors_position(color);
+            if pos >= (len - 1) {g_set_color_3(g_get_colors_item(0))} else {g_set_color_3(g_get_colors_item(pos + 1))};
+        },
+        _ => {return}
+    }
+    
     create_menus(); update_header();
 }
 
 // Gets the current theme
-fn get_current_theme() -> (String, String)
+fn get_color(n: usize) -> String
 {
-    g_get_themes_item(g_get_theme())
+    match n
+    {
+        1 => match_color(&g_get_color_1(), "bg"),
+        2 => match_color(&g_get_color_2(), "fg"),
+        3 => match_color(&g_get_color_3(), "fg"),
+        _ => s!("Reset")
+    }
+}
+
+// Gets the color enum by name
+fn match_color(name: &str, kind: &str) -> String
+{
+    match kind
+    {
+        "bg" =>
+        {
+            match name
+            {
+                "Black" => s!(color::Bg(color::Black)),
+                "Blue" => s!(color::Bg(color::Blue)),
+                "Cyan" => s!(color::Bg(color::Cyan)),
+                "Green" => s!(color::Bg(color::Green)),
+                "LightBlack" => s!(color::Bg(color::LightBlack)),
+                "LightBlue" => s!(color::Bg(color::LightBlue)),
+                "LightCyan" => s!(color::Bg(color::LightCyan)),
+                "LightGreen" => s!(color::Bg(color::LightGreen)),
+                "LightMagenta" => s!(color::Bg(color::LightMagenta)),
+                "LightRed" => s!(color::Bg(color::LightRed)),
+                "LightWhite" => s!(color::Bg(color::LightWhite)),
+                "LightYellow" => s!(color::Bg(color::LightYellow)),
+                "Magenta" => s!(color::Bg(color::Magenta)),
+                "Red" => s!(color::Bg(color::Red)),
+                "White" => s!(color::Bg(color::White)),
+                "Yellow" => s!(color::Bg(color::Yellow)),
+                "Reset" => s!(color::Bg(color::Reset)),
+                _ => s!()
+            }
+        },
+        "fg" =>
+        {
+            match name
+            {
+                "Black" => s!(color::Fg(color::Black)),
+                "Blue" => s!(color::Fg(color::Blue)),
+                "Cyan" => s!(color::Fg(color::Cyan)),
+                "Green" => s!(color::Fg(color::Green)),
+                "LightBlack" => s!(color::Fg(color::LightBlack)),
+                "LightBlue" => s!(color::Fg(color::LightBlue)),
+                "LightCyan" => s!(color::Fg(color::LightCyan)),
+                "LightGreen" => s!(color::Fg(color::LightGreen)),
+                "LightMagenta" => s!(color::Fg(color::LightMagenta)),
+                "LightRed" => s!(color::Fg(color::LightRed)),
+                "LightWhite" => s!(color::Fg(color::LightWhite)),
+                "LightYellow" => s!(color::Fg(color::LightYellow)),
+                "Magenta" => s!(color::Fg(color::Magenta)),
+                "Red" => s!(color::Fg(color::Red)),
+                "White" => s!(color::Fg(color::White)),
+                "Yellow" => s!(color::Fg(color::Yellow)),
+                "Reset" => s!(color::Fg(color::Reset)),
+                _ => s!()
+            }
+        }
+        _ => s!()
+    }
 }
 
 // Creates the list of available themes
-fn create_themes()
+fn create_colors()
 {
-    g_set_themes(vec!
-    [
-        // Magenta
-        (s!("\x1b[1;35m"), s!("bFm")),
-        // Red
-        (s!("\x1b[1;31m"), s!("bFr")),
-        // Blue
-        (s!("\x1b[1;34m"), s!("bFb")),
-        // Green
-        (s!("\x1b[1;32m"), s!("bFg")),
-        // Yellow
-        (s!("\x1b[1;33m"), s!("bFy")),
-        // Cyan
-        (s!("\x1b[1;36m"), s!("bFc")),
-        // White
-        (s!("\x1b[1;97m"), s!("bFw")),
-        // Black
-        (s!("\x1b[1;30m"), s!("bFd")),
-    ]);
+    let colors =
+    [    
+        "Black",
+        "Blue",
+        "Cyan",
+        "Green",
+        "LightBlack",
+        "LightBlue",
+        "LightCyan",
+        "LightGreen",
+        "LightMagenta",
+        "LightRed",
+        "LightWhite",
+        "LightYellow",
+        "Magenta",
+        "Red",
+        "White",
+        "Yellow",
+        "Reset",
+    ];
+
+    g_set_colors(colors.iter().map(|s| s!(s)).collect());
 }
 
 // Show notes from a certain page

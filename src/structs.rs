@@ -36,7 +36,7 @@ pub enum MenuAnswer
     ShowAllNotes, ShowAbout, GotoPage, Exit,
     IncreasePageSize, DecreasePageSize, ShowStats, ScreenSaver,
     FetchSource, OpenFromPath, Destroy, ChangeRowSpace,
-    ChangeTheme, MoveNotes
+    MoveNotes, ChangeColor1, ChangeColor2, ChangeColor3
 }
 
 pub struct RustyHelper 
