@@ -51,7 +51,7 @@ Path autocompletion with Tab.
 
 Row spacing can be enabled or disabled.
 
-Color themes can be changed.
+Colors can be configured through RGB.
 
 # About Security
 
