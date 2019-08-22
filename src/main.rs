@@ -501,7 +501,6 @@ fn menu_input() -> (MenuAnswer, usize)
         Key::Right => MenuAnswer::CycleRight,
         Key::PageDown => MenuAnswer::CycleRight,
         Key::Up => MenuAnswer::EditLastNote,
-        Key::Down => MenuAnswer::LastPage,
         Key::Home => MenuAnswer::FirstPage,
         Key::End => MenuAnswer::LastPage,
         Key::Esc => MenuAnswer::RefreshPage,
