@@ -18,10 +18,15 @@ pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const VERSION: &str = "v1.6.0";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
-pub const DEFAULT_COLOR_1: (u8, u8, u8) = (37, 41, 51);
-pub const DEFAULT_COLOR_2: (u8, u8, u8) = (202, 207, 218);
-pub const DEFAULT_COLOR_3: (u8, u8, u8) = (136, 192, 209);
 pub const MAX_PAGE_SIZE: usize = 100;
+
+// Color Constants
+pub const DARK_THEME_COLOR_1: (u8, u8, u8) = (37, 41, 51);
+pub const DARK_THEME_COLOR_2: (u8, u8, u8) = (202, 207, 218);
+pub const DARK_THEME_COLOR_3: (u8, u8, u8) = (136, 192, 209);
+pub const LIGHT_THEME_COLOR_1: (u8, u8, u8) = (240, 240, 240);
+pub const LIGHT_THEME_COLOR_2: (u8, u8, u8) = (20, 20, 20);
+pub const LIGHT_THEME_COLOR_3: (u8, u8, u8) = (12, 130, 89);
 
 // Global variables
 lazy_static! 

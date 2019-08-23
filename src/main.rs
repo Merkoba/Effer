@@ -906,7 +906,7 @@ fn get_settings()
             .unwrap_or(0))
             .collect();
 
-        let c = if v.len() != 3 {DEFAULT_COLOR_1}
+        let c = if v.len() != 3 {DARK_THEME_COLOR_1}
         else {(v[0], v[1], v[2])};
         if !arg_empty && c != g_get_color_1() {update=true}
         g_set_color_1(c);
@@ -914,7 +914,7 @@ fn get_settings()
 
     else
     {
-        g_set_color_1(DEFAULT_COLOR_1);
+        g_set_color_1(DARK_THEME_COLOR_1);
     }
 
     let re = Regex::new(r"color_2=(?P<color_2>\d+,\d+,\d+)").unwrap();
@@ -933,7 +933,7 @@ fn get_settings()
             .unwrap_or(0))
             .collect();
 
-        let c = if v.len() != 3 {DEFAULT_COLOR_2}
+        let c = if v.len() != 3 {DARK_THEME_COLOR_2}
         else {(v[0], v[1], v[2])};
         if !arg_empty && c != g_get_color_2() {update=true}
         g_set_color_2(c);
@@ -941,7 +941,7 @@ fn get_settings()
 
     else
     {
-        g_set_color_2(DEFAULT_COLOR_2);
+        g_set_color_2(DARK_THEME_COLOR_2);
     }
 
     let re = Regex::new(r"color_3=(?P<color_3>\d+,\d+,\d+)").unwrap();
@@ -960,7 +960,7 @@ fn get_settings()
             .unwrap_or(0))
             .collect();
 
-        let c = if v.len() != 3 {DEFAULT_COLOR_3}
+        let c = if v.len() != 3 {DARK_THEME_COLOR_3}
         else {(v[0], v[1], v[2])};
         if !arg_empty && c != g_get_color_3() {update=true}
         g_set_color_3(c);
@@ -968,7 +968,7 @@ fn get_settings()
 
     else
     {
-        g_set_color_3(DEFAULT_COLOR_3);
+        g_set_color_3(DARK_THEME_COLOR_3);
     }
 
     if update {update_header()}
@@ -979,9 +979,9 @@ fn reset_settings()
 {
     g_set_page_size(DEFAULT_PAGE_SIZE);
     g_set_row_space(DEFAULT_ROW_SPACE);
-    g_set_color_1(DEFAULT_COLOR_1);
-    g_set_color_2(DEFAULT_COLOR_2);
-    g_set_color_3(DEFAULT_COLOR_3);
+    g_set_color_1(DARK_THEME_COLOR_1);
+    g_set_color_2(DARK_THEME_COLOR_2);
+    g_set_color_3(DARK_THEME_COLOR_3);
 }
 
 // Gets a specific line from the notes
@@ -1819,79 +1819,93 @@ fn change_row_space()
 fn change_colors()
 {
 
-    p!("(1) BG Color | (2) FG Color | (3) Other Color");
-    p!("(4) All Colors At Once | (5) Random Colors");
+    p!("(1) BG | (2) FG | (3) Other | (4) All");
+    p!("(d) Dark | (t) Light | (r) Random");
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
-    let n = ans.parse::<usize>().unwrap_or(0);
-    if n < 1 || n > 5 {return}
 
-    if n <= 3
+    match &ans[..]
     {
-        let suggestion = match n
+        "1" | "2" | "3" =>
         {
-            1 => color_to_string(g_get_color_1()),
-            2 => color_to_string(g_get_color_2()),
-            3 => color_to_string(g_get_color_3()),
-            _ => s!()
-        };
+            let n = ans.parse::<u8>().unwrap();
 
-        let ans = ask_string("Color (r,g,b)", &suggestion, true);
-        if ans.is_empty() {return}
+            let suggestion = match n
+            {
+                1 => color_to_string(g_get_color_1()),
+                2 => color_to_string(g_get_color_2()),
+                3 => color_to_string(g_get_color_3()),
+                _ => s!()
+            };
 
-        let v: Vec<u8> = ans.split(',')
-            .map(|s| s.trim())
-            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+            let ans = ask_string("Color (r,g,b)", &suggestion, true);
+            if ans.is_empty() {return}
 
-        if v.len() != 3 {return}
+            let v: Vec<u8> = ans.split(',')
+                .map(|s| s.trim())
+                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+
+            if v.len() != 3 {return}
         
-        match n
+            match n
+            {
+                1 => g_set_color_1((v[0], v[1], v[2])),
+                2 => g_set_color_2((v[0], v[1], v[2])),
+                3 => g_set_color_3((v[0], v[1], v[2])),
+                _ => {}
+            }
+        },
+        "4" =>
         {
-            1 => g_set_color_1((v[0], v[1], v[2])),
-            2 => g_set_color_2((v[0], v[1], v[2])),
-            3 => g_set_color_3((v[0], v[1], v[2])),
-            _ => {}
-        }
-    }
+            let mut suggestion = s!();
+            suggestion += &format!("{}", color_to_string(g_get_color_1()));
+            suggestion += &format!(" - {}", color_to_string(g_get_color_2()));
+            suggestion += &format!(" - {}", color_to_string(g_get_color_3()));
+            let ans = ask_string("All Colors", &suggestion, false);
+            if ans.is_empty() {return}
+            let mut split = ans.split('-').map(|s| s.trim());
 
-    if n == 4
-    {
-        let mut suggestion = s!();
-        suggestion += &format!("{}", color_to_string(g_get_color_1()));
-        suggestion += &format!(" - {}", color_to_string(g_get_color_2()));
-        suggestion += &format!(" - {}", color_to_string(g_get_color_3()));
-        let ans = ask_string("All Colors", &suggestion, false);
-        if ans.is_empty() {return}
-        let mut split = ans.split('-').map(|s| s.trim());
-
-        let v1: Vec<u8> = split.next().unwrap_or("0").split(',')
-            .map(|s| s.trim())
-            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+            let v1: Vec<u8> = split.next().unwrap_or("0").split(',')
+                .map(|s| s.trim())
+                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
         
-        if v1.len() != 3 {return}
+            if v1.len() != 3 {return}
 
-        let v2: Vec<u8> = split.next().unwrap_or("0").split(',')
-            .map(|s| s.trim())
-            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+            let v2: Vec<u8> = split.next().unwrap_or("0").split(',')
+                .map(|s| s.trim())
+                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
         
-        if v2.len() != 3 {return}
+            if v2.len() != 3 {return}
 
-        let v3: Vec<u8> = split.next().unwrap_or("0").split(',')
-            .map(|s| s.trim())
-            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+            let v3: Vec<u8> = split.next().unwrap_or("0").split(',')
+                .map(|s| s.trim())
+                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
         
-        if v3.len() != 3 {return}
+            if v3.len() != 3 {return}
 
-        g_set_color_1((v1[0], v1[1], v1[2]));
-        g_set_color_2((v2[0], v2[1], v2[2]));
-        g_set_color_3((v3[0], v3[1], v3[2]));
-    }
-
-    else if n == 5
-    {
-        g_set_color_1(random_color());
-        g_set_color_2(random_color());
-        g_set_color_3(random_color());
+            g_set_color_1((v1[0], v1[1], v1[2]));
+            g_set_color_2((v2[0], v2[1], v2[2]));
+            g_set_color_3((v3[0], v3[1], v3[2]));
+        },
+        "d" =>
+        {
+            g_set_color_1(DARK_THEME_COLOR_1);
+            g_set_color_2(DARK_THEME_COLOR_2);
+            g_set_color_3(DARK_THEME_COLOR_3);
+        },
+        "t" =>
+        {
+            g_set_color_1(LIGHT_THEME_COLOR_1);
+            g_set_color_2(LIGHT_THEME_COLOR_2);
+            g_set_color_3(LIGHT_THEME_COLOR_3);
+        },
+        "r" =>
+        {
+            g_set_color_1(random_color());
+            g_set_color_2(random_color());
+            g_set_color_3(random_color());
+        },
+        _ => return
     }
 
     create_menus(); update_header(); refresh_page();
