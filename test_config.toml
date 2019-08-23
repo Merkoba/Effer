@@ -9,6 +9,7 @@
 # from this file.
 # If a config file is provided, all other manual
 # settings like --page_size are ignored.
+# All values must be passed as "strings".
 
 page_size = "15"
 row_space = "false"
