@@ -23,3 +23,5 @@ unicode-width = "0.1.5"
 regex = "1.2.1"
 clap = "2.33.0"
 shellexpand = "1.0.0"
+toml = "0.5.3"
+serde = { version = "1.0.99", features = ["derive"] }

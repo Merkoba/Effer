@@ -1,0 +1,17 @@
+# This is an example config file.
+# This only applies to settings. Settings are the
+# data stored in the file's header. These are
+# saved to the header on use, so it's not necessary
+# to use the config file on every launch.
+# Here all possible values are configured.
+# It's not necessary to set every setting though.
+# If you're not going to use a setting, remove it
+# from this file.
+# If a config file is provided, all other manual
+# settings like --page_size are ignored.
+
+page_size = "15"
+row_space = "false"
+color_1 = "240,240,240"
+color_2 = "20,20,20"
+color_3 = "12,130,89"

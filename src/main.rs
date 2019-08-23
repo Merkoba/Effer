@@ -4,7 +4,8 @@ mod structs;
 use structs::
 {
     FilePathCheckResult,
-    MenuAnswer, RustyHelper
+    MenuAnswer, RustyHelper,
+    Settings
 };
 
 mod globals; 
@@ -82,6 +83,11 @@ fn check_arguments()
         .long("print2")
         .multiple(false)
         .help("Same as print but doesn't show the numbers"))
+    .arg(Arg::with_name("config")
+        .long("config")
+        .value_name("Path")
+        .help("Use a config TOML file to import settings")
+        .takes_value(true))
     .arg(Arg::with_name("path")
         .long("path")
         .value_name("Path")
@@ -166,29 +172,74 @@ fn check_arguments()
         get_source_content(path);
     }
 
-    if let Some(ps) = matches.value_of("page_size")
+    // Settings
+
+    if let Some(path) = matches.value_of("config")
     {
-        g_set_arg_page_size(s!(ps));
+        if let Ok(text) = read_file(path)
+        {
+            match toml::from_str(&text)
+            {
+                Ok(tom) =>
+                {
+                    let sets: Settings = tom;
+                    
+                    if let Some(ps) = sets.page_size
+                    {
+                        g_set_arg_page_size(ps);
+                    }
+                    
+                    if let Some(rs) = sets.row_space
+                    {
+                        g_set_arg_row_space(rs);
+                    }
+                    
+                    if let Some(c) = sets.color_1
+                    {
+                        g_set_arg_color_1(c);
+                    }
+                    
+                    if let Some(c) = sets.color_2
+                    {
+                        g_set_arg_color_2(c);
+                    }
+                    
+                    if let Some(c) = sets.color_3
+                    {
+                        g_set_arg_color_3(c);
+                    }
+                },
+                Err(_) => {}
+            }
+        }
     }
 
-    if let Some(rs) = matches.value_of("row_space")
+    else
     {
-        g_set_arg_row_space(s!(rs));
-    }
+        if let Some(ps) = matches.value_of("page_size")
+        {
+            g_set_arg_page_size(s!(ps));
+        }
 
-    if let Some(c) = matches.value_of("color_1")
-    {
-        g_set_arg_color_1(s!(c));
-    }
+        if let Some(rs) = matches.value_of("row_space")
+        {
+            g_set_arg_row_space(s!(rs));
+        }
 
-    if let Some(c) = matches.value_of("color_2")
-    {
-        g_set_arg_color_2(s!(c));
-    }
+        if let Some(c) = matches.value_of("color_1")
+        {
+            g_set_arg_color_1(s!(c));
+        }
 
-    if let Some(c) = matches.value_of("color_3")
-    {
-        g_set_arg_color_3(s!(c));
+        if let Some(c) = matches.value_of("color_2")
+        {
+            g_set_arg_color_2(s!(c));
+        }
+
+        if let Some(c) = matches.value_of("color_3")
+        {
+            g_set_arg_color_3(s!(c));
+        }
     }
 }
 
@@ -675,8 +726,8 @@ fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
 {
     loop
     {
-        // Clear the screen
-        p!("{}\x1b[2J", get_color(1));
+        // Clear the screen and sets colors
+        println!("{}{}\x1b[2J", get_color(1), get_color(2));
 
         page = check_page_number(page, true);
         
@@ -798,7 +849,7 @@ fn get_settings()
         let num = s.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
         let mut n5 = (5.0 * (num as f64 / 5.0).round()) as usize;
         if n5 <= 0 {n5 = 5} else if n5 > MAX_PAGE_SIZE {n5 = MAX_PAGE_SIZE};
-        if arg_empty && n5 != g_get_page_size() {update=true}
+        if !arg_empty && n5 != g_get_page_size() {update=true}
         g_set_page_size(n5);
     }
 
@@ -817,7 +868,7 @@ fn get_settings()
         let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["row_space"])};
         let rs = FromStr::from_str(&s).unwrap_or(DEFAULT_ROW_SPACE);
-        if arg_empty && rs != g_get_row_space() {update=true}
+        if !arg_empty && rs != g_get_row_space() {update=true}
         g_set_row_space(rs);
     }
 
@@ -837,13 +888,14 @@ fn get_settings()
         else {s!(cap.unwrap()["color_1"])};
 
         let v: Vec<u8> = s.split(",")
+            .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
         let c = if v.len() != 3 {DEFAULT_COLOR_1}
         else {(v[0], v[1], v[2])};
-        if arg_empty && c != g_get_color_1() {update=true}
+        if !arg_empty && c != g_get_color_1() {update=true}
         g_set_color_1(c);
     }
 
@@ -863,13 +915,14 @@ fn get_settings()
         else {s!(cap.unwrap()["color_2"])};
 
         let v: Vec<u8> = s.split(",")
+            .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
         let c = if v.len() != 3 {DEFAULT_COLOR_2}
         else {(v[0], v[1], v[2])};
-        if arg_empty && c != g_get_color_2() {update=true}
+        if !arg_empty && c != g_get_color_2() {update=true}
         g_set_color_2(c);
     }
 
@@ -889,13 +942,14 @@ fn get_settings()
         else {s!(cap.unwrap()["color_3"])};
 
         let v: Vec<u8> = s.split(",")
+            .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
         let c = if v.len() != 3 {DEFAULT_COLOR_3}
         else {(v[0], v[1], v[2])};
-        if arg_empty && c != g_get_color_3() {update=true}
+        if !arg_empty && c != g_get_color_3() {update=true}
         g_set_color_3(c);
     }
 
@@ -1025,7 +1079,7 @@ fn find_notes(suggest: bool)
     let filter = ask_string("Find", suggestion, true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
     if filter.is_empty() {return} let notes = get_notes(false);
-    let info = format!("{}{}{}{} >", get_color(3), filter, RESET_FG_COLOR, get_color(2));
+    let info = format!("{}{}{} >", get_color(3), filter, get_color(2));
 
     if filter.starts_with("re:")
     {
@@ -1387,10 +1441,10 @@ L/_____/--------\\_//W-------\_____\J"#;
 
     fn make_tip(s: &str) -> String
     {
-        format!("{}Tip:{} {}{}", get_color(3), RESET_FG_COLOR, get_color(2), s)
+        format!("{}Tip:{} {}", get_color(3), get_color(2), s)
     }
 
-    let info =
+    let tips =
     [
         make_tip("Different major versions are not compatible"),
         make_tip("You can use 'first' and 'last' as note numbers"),
@@ -1399,7 +1453,7 @@ L/_____/--------\\_//W-------\_____\J"#;
         make_tip("Shift+F uses the last find filter")
     ].join("\n");
 
-    let s = format!("{}\n\n{}\n\n{}", art,  name, info);
+    let s = format!("{}\n\n{}\n\n{}", art, name, tips);
 
     show_message(&s);
 }

@@ -5,6 +5,7 @@ use rustyline::hint::Hinter;
 use rustyline::error::ReadlineError;
 use rustyline::{Context, Helper};
 use unicode_width::UnicodeWidthStr;
+use serde::Deserialize;
 
 pub enum FilePathCheckResult
 {
@@ -37,6 +38,14 @@ pub enum MenuAnswer
     IncreasePageSize, DecreasePageSize, ShowStats, ScreenSaver,
     FetchSource, OpenFromPath, Destroy, ChangeRowSpace,
     MoveNotes, ChangeColors, FindNotesSuggest
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Settings
+{
+    pub page_size: Option<String>, pub row_space: Option<String>,
+    pub color_1: Option<String>, pub color_2: Option<String>, 
+    pub color_3: Option<String>
 }
 
 pub struct RustyHelper 

@@ -16,7 +16,6 @@ use std::
 // Constants
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const VERSION: &str = "v1.6.0";
-pub const RESET_FG_COLOR: &str = "\x1b[39m";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
 pub const DEFAULT_COLOR_1: (u8, u8, u8) = (25, 25, 25);
