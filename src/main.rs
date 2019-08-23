@@ -593,8 +593,21 @@ fn menu_input() -> (MenuAnswer, usize)
     write!(stdout, "{}{}{}", 
         color::Bg(color::Rgb(10,10,10)),  color::Fg(color::Rgb(210,210,210)), termion::cursor::Hide).unwrap();
     stdout.flush().unwrap(); let mut data = 0;
+    
+    let event = match stdin.events().next()
+    {
+        Some(ev) =>
+        {
+            match ev
+            {
+                Ok(eve) => eve,
+                Err(_) => {return (MenuAnswer::Nothing, 0)}
+            }
+        }
+        None => return (MenuAnswer::Nothing, 0)
+    };
 
-    let ans = match stdin.events().next().unwrap().unwrap()
+    let ans = match event
     {
         Event::Key(key) =>
         {
