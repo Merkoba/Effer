@@ -53,6 +53,8 @@ Row spacing can be enabled or disabled.
 
 Colors can be configured through RGB.
 
+Settings can be imported with a TOML config file.
+
 # About Security
 
 This is not to be taken as a real security tool. The encryption is relatively weak.

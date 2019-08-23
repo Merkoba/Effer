@@ -1017,6 +1017,11 @@ fn move_lines(from: Vec<usize>, to: usize)
     let mut joined: Vec<&str> = vec![];
     joined.extend(first_half); joined.extend(second_half);
     joined.splice(nto..nto, range.iter().cloned());
+    
+    // Reset last edit
+    // Fix Me: Ideally this should be smarter
+    // and only reset it when needed
+    g_set_last_edit(0);
     update_file(joined.join("\n"));
 }
 
