@@ -52,7 +52,7 @@ Path autocompletion with Tab.
 Row spacing can be enabled or disabled.
 
 Colors can be configured through RGB. Change individual colors,
-all colors at once, or get a random theme.
+all colors at once, use the dark/light theme or get a random theme.
 
 Settings can be imported with a TOML config file.
 
