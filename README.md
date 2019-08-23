@@ -1,4 +1,4 @@
-![](http://i.imgur.com/HUbffhq.png)
+![](https://i.imgur.com/7M43RWW.png)
 
 This is a small CLI program to store notes that will be saved to a text file in gibberish hex format.
 
