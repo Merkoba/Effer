@@ -42,7 +42,7 @@ use termion::
     },
     input::TermRead,
     raw::IntoRawMode,
-    color
+    screen, color
 };
 use regex::Regex;
 use clap::{App, Arg};
@@ -247,7 +247,7 @@ fn check_arguments()
 // Place the cursor at the bottom left
 fn change_screen()
 {
-    p!("\x1b[?1049h"); p!("\x1b[r");
+    p!("{}", screen::ToAlternateScreen);
     let size = termion::terminal_size().unwrap();
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(stdout, "{}", termion::cursor::Goto(1, size.1)).unwrap();
@@ -257,7 +257,7 @@ fn change_screen()
 // Switches back to main screen before exiting
 fn exit() -> !
 {
-    p!("\x1b[?1049l"); process::exit(0)
+    p!("{}", screen::ToMainScreen); process::exit(0)
 }
 
 // Tries to get the user's home path
@@ -740,7 +740,7 @@ fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
     loop
     {
         // Clear the screen and sets colors
-        println!("{}{}\x1b[2J", get_color(1), get_color(2));
+        println!("{}{}{}", get_color(1), get_color(2), termion::clear::All);
 
         page = check_page_number(page, true);
         
