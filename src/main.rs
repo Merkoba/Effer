@@ -761,9 +761,11 @@ fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
 
         else if !message.is_empty() {p!(format!("\n{}", message))}
 
-        let cm = g_get_current_menu();
-        let menu = g_get_menus_item(cm);
-        p!(menu); menu_action(menu_input());
+        // Print menu
+        p!(g_get_menus_item(g_get_current_menu())); 
+
+        // Listen and respond to input
+        menu_action(menu_input());
     }
 }
 
