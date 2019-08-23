@@ -1745,7 +1745,7 @@ fn change_row_space()
 fn change_colors()
 {
 
-    p!("(1) Background | (2) Foreground (3) Other");
+    p!("(1) BG Color | (2) FG Color | (3) Other Color");
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
     let n = ans.parse::<usize>().unwrap_or(0);
