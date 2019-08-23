@@ -1813,7 +1813,9 @@ fn change_row_space()
     update_header();
 }
 
-// Changes some color to the next one
+// Changes individual colors
+// Or all colors at once
+// Or generates a random theme
 fn change_colors()
 {
 
