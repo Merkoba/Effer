@@ -539,7 +539,8 @@ fn menu_input() -> (MenuAnswer, usize)
 {
     let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
-    write!(stdout, "{}", termion::cursor::Hide).unwrap();
+    write!(stdout, "{}{}{}", 
+        color::Bg(color::Rgb(10,10,10)),  color::Fg(color::Rgb(210,210,210)), termion::cursor::Hide).unwrap();
     stdout.flush().unwrap(); let mut data = 0;
 
     let ans = match stdin.events().next().unwrap().unwrap()
