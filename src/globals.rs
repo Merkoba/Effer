@@ -18,9 +18,9 @@ pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const VERSION: &str = "v1.6.0";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
-pub const DEFAULT_COLOR_1: (u8, u8, u8) = (25, 25, 25);
-pub const DEFAULT_COLOR_2: (u8, u8, u8) = (210, 210, 210);
-pub const DEFAULT_COLOR_3: (u8, u8, u8) = (36, 166, 188);
+pub const DEFAULT_COLOR_1: (u8, u8, u8) = (37, 41, 51);
+pub const DEFAULT_COLOR_2: (u8, u8, u8) = (202, 207, 218);
+pub const DEFAULT_COLOR_3: (u8, u8, u8) = (136, 192, 209);
 pub const MAX_PAGE_SIZE: usize = 100;
 
 // Global variables
