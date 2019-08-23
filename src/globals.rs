@@ -27,6 +27,9 @@ pub const DARK_THEME_COLOR_3: (u8, u8, u8) = (136, 192, 209);
 pub const LIGHT_THEME_COLOR_1: (u8, u8, u8) = (240, 240, 240);
 pub const LIGHT_THEME_COLOR_2: (u8, u8, u8) = (20, 20, 20);
 pub const LIGHT_THEME_COLOR_3: (u8, u8, u8) = (12, 130, 89);
+pub const PURPLE_THEME_COLOR_1: (u8, u8, u8) = (54,48,84);
+pub const PURPLE_THEME_COLOR_2: (u8, u8, u8) = (143,55,249);
+pub const PURPLE_THEME_COLOR_3: (u8, u8, u8) = (193,47,105);
 
 // Global variables
 lazy_static! 
@@ -56,6 +59,9 @@ lazy_static!
     static ref COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
     static ref COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
     static ref COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
+    static ref PREV_COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
+    static ref PREV_COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
+    static ref PREV_COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
 }
 
 
@@ -300,38 +306,62 @@ pub fn g_set_row_space(b: bool)
 /// MUTEX TUPLE
 
 
-// Returns the color_1 global value
+// Returns the color 1 global value
 pub fn g_get_color_1() -> (u8, u8, u8)
 {
     *COLOR_1.lock().unwrap()
 }
 
-// Sets the color_1  global value
+// Sets the color 1  global value
 pub fn g_set_color_1(t: (u8, u8, u8))
 {
-    *COLOR_1.lock().unwrap() = t;
+    let mut c = COLOR_1.lock().unwrap();
+    *PREV_COLOR_1.lock().unwrap() = *c; 
+    *c = t;
 }
 
-// Returns the color_2 global value
+// Returns the color 2 global value
 pub fn g_get_color_2() -> (u8, u8, u8)
 {
     *COLOR_2.lock().unwrap()
 }
 
-// Sets the color_2  global value
+// Sets the color 2  global value
 pub fn g_set_color_2(t: (u8, u8, u8))
 {
-    *COLOR_2.lock().unwrap() = t;
+    let mut c = COLOR_2.lock().unwrap();
+    *PREV_COLOR_2.lock().unwrap() = *c; 
+    *c = t;
 }
 
-// Returns the color_3 global value
+// Returns the color 3 global value
 pub fn g_get_color_3() -> (u8, u8, u8)
 {
     *COLOR_3.lock().unwrap()
 }
 
-// Sets the color_3  global value
+// Sets the color 3  global value
 pub fn g_set_color_3(t: (u8, u8, u8))
 {
-    *COLOR_3.lock().unwrap() = t;
+    let mut c = COLOR_3.lock().unwrap();
+    *PREV_COLOR_3.lock().unwrap() = *c; 
+    *c = t;
+}
+
+// Returns the pre color 1 global value
+pub fn g_get_prev_color_1() -> (u8, u8, u8)
+{
+    *PREV_COLOR_1.lock().unwrap()
+}
+
+// Returns the pre color 2 global value
+pub fn g_get_prev_color_2() -> (u8, u8, u8)
+{
+    *PREV_COLOR_2.lock().unwrap()
+}
+
+// Returns the pre color 3 global value
+pub fn g_get_prev_color_3() -> (u8, u8, u8)
+{
+    *PREV_COLOR_3.lock().unwrap()
 }

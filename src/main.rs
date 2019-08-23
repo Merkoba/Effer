@@ -1837,7 +1837,8 @@ fn change_row_space()
 fn change_colors()
 {
     p!("(1) BG | (2) FG | (3) Other | (4) All");
-    p!("(d) Dark | (t) Light | (r) Random");
+    p!("(d) Dark | (t) Light | (p) Purple");
+    p!("(r) Random | (v) Invert | (u) Undo");
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
 
@@ -1903,11 +1904,45 @@ fn change_colors()
             g_set_color_2(LIGHT_THEME_COLOR_2);
             g_set_color_3(LIGHT_THEME_COLOR_3);
         },
+        "p" =>
+        {
+            g_set_color_1(PURPLE_THEME_COLOR_1);
+            g_set_color_2(PURPLE_THEME_COLOR_2);
+            g_set_color_3(PURPLE_THEME_COLOR_3);
+        },
         "r" =>
         {
             g_set_color_1(random_color());
             g_set_color_2(random_color());
             g_set_color_3(random_color());
+        },
+        "v" =>
+        {
+            let c2 = g_get_color_2();
+            let c3 = g_get_color_3();
+            g_set_color_2(c3);
+            g_set_color_3(c2);
+        },
+        "u" =>
+        {
+            p!("(1) BG | (2) FG | (3) Other | (4) All");
+            let ans = ask_string("Undo", "", true);
+            if ans.is_empty() {return}
+            let n = ans.parse::<u8>().unwrap_or(0);
+
+            match n
+            {
+                1 => g_set_color_1(g_get_prev_color_1()),
+                2 => g_set_color_2(g_get_prev_color_2()),
+                3 => g_set_color_3(g_get_prev_color_3()),
+                4 =>
+                {
+                    g_set_color_1(g_get_prev_color_1());
+                    g_set_color_2(g_get_prev_color_2());
+                    g_set_color_3(g_get_prev_color_3());
+                },
+                _ => return
+            }
         },
         _ => return
     }
