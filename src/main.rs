@@ -1818,7 +1818,6 @@ fn change_row_space()
 // Or generates a random theme
 fn change_colors()
 {
-
     p!("(1) BG | (2) FG | (3) Other | (4) All");
     p!("(d) Dark | (t) Light | (r) Random");
     let ans = ask_string("Choice", "", true);
@@ -1840,11 +1839,7 @@ fn change_colors()
 
             let ans = ask_string("Color (r,g,b)", &suggestion, true);
             if ans.is_empty() {return}
-
-            let v: Vec<u8> = ans.split(',')
-                .map(|s| s.trim())
-                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
-
+            let v = parse_color(&ans);
             if v.len() != 3 {return}
         
             match n
@@ -1865,22 +1860,13 @@ fn change_colors()
             if ans.is_empty() {return}
             let mut split = ans.split('-').map(|s| s.trim());
 
-            let v1: Vec<u8> = split.next().unwrap_or("0").split(',')
-                .map(|s| s.trim())
-                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
-        
+            let v1 = parse_color(split.next().unwrap_or("0"));
             if v1.len() != 3 {return}
-
-            let v2: Vec<u8> = split.next().unwrap_or("0").split(',')
-                .map(|s| s.trim())
-                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
-        
+            
+            let v2 = parse_color(split.next().unwrap_or("0"));
             if v2.len() != 3 {return}
 
-            let v3: Vec<u8> = split.next().unwrap_or("0").split(',')
-                .map(|s| s.trim())
-                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
-        
+            let v3 = parse_color(split.next().unwrap_or("0"));
             if v3.len() != 3 {return}
 
             g_set_color_1((v1[0], v1[1], v1[2]));
@@ -2059,4 +2045,28 @@ fn random_color() -> (u8, u8, u8)
     }
 
     (v[0], v[1], v[2])
+}
+
+// Parses a color code
+// Replaces common color names to RGB,
+// Or returns the provided RGB values
+fn parse_color(ans: &str) -> Vec<u8>
+{
+    let v: Vec<u8> = match &ans[..]
+    {
+        "white" => vec![235, 235, 235],
+        "black" => vec![20, 20, 20],
+        "red" => vec![204, 0, 0],
+        "lightred" => vec![255, 102, 102],
+        "green" => vec![0, 204, 0],
+        "lightgreen" => vec![102, 255, 102],
+        "blue" => vec![0, 0, 204],
+        "lightblue" => vec![102, 102, 255],
+        _ =>
+        {
+            ans.split(',')
+                .map(|s| s.trim())
+                .map(|n| n.parse::<u8>().unwrap_or(0)).collect()
+        }
+    }; v
 }
