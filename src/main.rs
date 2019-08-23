@@ -2144,7 +2144,7 @@ fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
 {
     (
         (t.0 as f64 + (0.30 * (255 - t.0) as f64)) as u8, 
-        (t.1 as f64 + (0.30 * (255 - t.0) as f64)) as u8, 
-        (t.2 as f64 + (0.30 * (255 - t.0) as f64)) as u8
+        (t.1 as f64 + (0.30 * (255 - t.1) as f64)) as u8, 
+        (t.2 as f64 + (0.30 * (255 - t.2) as f64)) as u8
     )
 }
