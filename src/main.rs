@@ -1486,6 +1486,7 @@ __|  \/\|/   /(____|/ //                    /  /||~|~|
         make_tip("You can use 'first' and 'last' as note numbers"),
         make_tip("1-9 can be used to navigate the first 9 pages"),
         make_tip("Start the program with --help to check arguments"),
+        make_tip("Color shortcuts include 'red', 'darker', 'lighter'"),
         make_tip("Shift+F uses the last find filter")
     ].join("\n");
 
@@ -1848,49 +1849,43 @@ fn change_colors()
         {
             let n = ans.parse::<u8>().unwrap();
 
-            let suggestion = match n
+            let c = match n
             {
-                1 => color_to_string(g_get_color_1()),
-                2 => color_to_string(g_get_color_2()),
-                3 => color_to_string(g_get_color_3()),
-                _ => s!()
+                1 => g_get_color_1(),
+                2 => g_get_color_2(),
+                3 => g_get_color_3(),
+                _ => (0, 0, 0)
             };
 
+            let suggestion = color_to_string(c);
             let ans = ask_string("Color (r,g,b)", &suggestion, true);
             if ans.is_empty() {return}
-            let v = parse_color(&ans);
-            if v.len() != 3 {return}
+            let nc = parse_color(&ans, c);
         
             match n
             {
-                1 => g_set_color_1((v[0], v[1], v[2])),
-                2 => g_set_color_2((v[0], v[1], v[2])),
-                3 => g_set_color_3((v[0], v[1], v[2])),
+                1 => g_set_color_1(nc),
+                2 => g_set_color_2(nc),
+                3 => g_set_color_3(nc),
                 _ => {}
             }
         },
         "4" =>
         {
             let mut suggestion = s!();
-            suggestion += &format!("{}", color_to_string(g_get_color_1()));
-            suggestion += &format!(" - {}", color_to_string(g_get_color_2()));
-            suggestion += &format!(" - {}", color_to_string(g_get_color_3()));
+            let c1 = g_get_color_1(); 
+            let c2 = g_get_color_2();
+            let c3 = g_get_color_3();
+            suggestion += &format!("{}", color_to_string(c1));
+            suggestion += &format!(" - {}", color_to_string(c2));
+            suggestion += &format!(" - {}", color_to_string(c3));
             let ans = ask_string("All Colors", &suggestion, false);
             if ans.is_empty() {return}
             let mut split = ans.split('-').map(|s| s.trim());
 
-            let v1 = parse_color(split.next().unwrap_or("0"));
-            if v1.len() != 3 {return}
-            
-            let v2 = parse_color(split.next().unwrap_or("0"));
-            if v2.len() != 3 {return}
-
-            let v3 = parse_color(split.next().unwrap_or("0"));
-            if v3.len() != 3 {return}
-
-            g_set_color_1((v1[0], v1[1], v1[2]));
-            g_set_color_2((v2[0], v2[1], v2[2]));
-            g_set_color_3((v3[0], v3[1], v3[2]));
+            g_set_color_1(parse_color(split.next().unwrap_or("0"), c1));
+            g_set_color_2(parse_color(split.next().unwrap_or("0"), c2));
+            g_set_color_3(parse_color(split.next().unwrap_or("0"), c3));
         },
         "d" =>
         {
@@ -2103,23 +2098,53 @@ fn random_color() -> (u8, u8, u8)
 // Parses a color code
 // Replaces common color names to RGB,
 // Or returns the provided RGB values
-fn parse_color(ans: &str) -> Vec<u8>
+fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 {
-    let v: Vec<u8> = match &ans[..]
+    match &ans[..]
     {
-        "white" => vec![235, 235, 235],
-        "black" => vec![20, 20, 20],
-        "red" => vec![204, 0, 0],
-        "lightred" => vec![255, 102, 102],
-        "green" => vec![0, 204, 0],
-        "lightgreen" => vec![102, 255, 102],
-        "blue" => vec![0, 0, 204],
-        "lightblue" => vec![102, 102, 255],
+        "white" => (235, 235, 235),
+        "black" => (20, 20, 20),
+        "red" => (204, 0, 0),
+        "lightred" => (255, 102, 102),
+        "green" => (0, 204, 0),
+        "lightgreen" => (102, 255, 102),
+        "blue" => (0, 0, 204),
+        "lightblue" => (102, 102, 255),
+        "darker" =>
+        {
+            make_color_darker(reference)
+        },
+        "lighter" =>
+        {
+            make_color_lighter(reference)
+        }
         _ =>
         {
-            ans.split(',')
+            let v: Vec<u8> = ans.split(',')
                 .map(|s| s.trim())
-                .map(|n| n.parse::<u8>().unwrap_or(0)).collect()
+                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+            
+            if v.len() != 3 {return (0, 0, 0)} (v[0], v[1], v[2])
         }
-    }; v
+    }
+}
+
+// Turns a color a bit darker
+fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
+{
+    (
+        (t.0 as f64 * 0.70) as u8, 
+        (t.1 as f64 * 0.70) as u8, 
+        (t.2 as f64 * 0.70) as u8
+    )
+}
+
+// Turns a color a bit lighter
+fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
+{
+    (
+        (t.0 as f64 + (0.30 * (255 - t.0) as f64)) as u8, 
+        (t.0 as f64 + (0.30 * (255 - t.0) as f64)) as u8, 
+        (t.0 as f64 + (0.30 * (255 - t.0) as f64)) as u8
+    )
 }
