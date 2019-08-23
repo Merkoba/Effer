@@ -1494,15 +1494,12 @@ fn update_header()
     let uc = UNLOCK_CHECK;
     let ps = g_get_page_size();
     let rs = g_get_row_space();
-    let c1 = g_get_color_1();
-    let sc1 = format!("{},{},{}", c1.0, c1.1, c1.2);
-    let c2 = g_get_color_2();
-    let sc2 = format!("{},{},{}", c2.0, c2.1, c2.2);
-    let c3 = g_get_color_3();
-    let sc3 = format!("{},{},{}", c3.0, c3.1, c3.2);
+    let c1 = color_to_string(g_get_color_1());
+    let c2 = color_to_string(g_get_color_2());
+    let c3 = color_to_string(g_get_color_3());
 
     let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={}", 
-        uc, ps, rs, sc1, sc2, sc3);
+        uc, ps, rs, c1, c2, c3);
 
     replace_line(0, s);
 }
@@ -1799,12 +1796,21 @@ fn change_row_space()
 fn change_colors()
 {
 
-    p!("(1) BG Color | (2) FG Color | (3) Other Color");
+    p!("(1) BG Color | (2) FG Color | (3) Other Color");    
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
     let n = ans.parse::<usize>().unwrap_or(0);
     if n < 1 || n > 3 {return}
-    let ans = ask_string("Color (r,g,b)", "", true);
+
+    let suggestion = match n
+    {
+        1 => color_to_string(g_get_color_1()),
+        2 => color_to_string(g_get_color_2()),
+        3 => color_to_string(g_get_color_3()),
+        _ => s!()
+    };
+
+    let ans = ask_string("Color (r,g,b)", &suggestion, true);
     if ans.is_empty() {return}
 
     let v: Vec<u8> = ans.split(",")
@@ -1821,7 +1827,7 @@ fn change_colors()
         _ => {}
     }
 
-    create_menus(); update_header();
+    create_menus(); update_header(); refresh_page();
 }
 
 // Gets the current theme
@@ -1951,4 +1957,11 @@ fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
     }
 
     max
+}
+
+// Converts a color tuple 
+// into a comma separated string
+fn color_to_string(c: (u8, u8, u8)) -> String
+{
+    format!("{},{},{}", c.0, c.1, c.2)
 }
