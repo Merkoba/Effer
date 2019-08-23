@@ -900,7 +900,7 @@ fn get_settings()
         let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["color_1"])};
 
-        let v: Vec<u8> = s.split(",")
+        let v: Vec<u8> = s.split(',')
             .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
@@ -927,7 +927,7 @@ fn get_settings()
         let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["color_2"])};
 
-        let v: Vec<u8> = s.split(",")
+        let v: Vec<u8> = s.split(',')
             .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
@@ -954,7 +954,7 @@ fn get_settings()
         let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["color_3"])};
 
-        let v: Vec<u8> = s.split(",")
+        let v: Vec<u8> = s.split(',')
             .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
@@ -1817,35 +1817,79 @@ fn change_row_space()
 fn change_colors()
 {
 
-    p!("(1) BG Color | (2) FG Color | (3) Other Color");    
+    p!("(1) BG Color | (2) FG Color | (3) Other Color");
+    p!("(4) All Colors At Once | (5) Random Colors");
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
     let n = ans.parse::<usize>().unwrap_or(0);
-    if n < 1 || n > 3 {return}
+    if n < 1 || n > 5 {return}
 
-    let suggestion = match n
+    if n <= 3
     {
-        1 => color_to_string(g_get_color_1()),
-        2 => color_to_string(g_get_color_2()),
-        3 => color_to_string(g_get_color_3()),
-        _ => s!()
-    };
+        let suggestion = match n
+        {
+            1 => color_to_string(g_get_color_1()),
+            2 => color_to_string(g_get_color_2()),
+            3 => color_to_string(g_get_color_3()),
+            _ => s!()
+        };
 
-    let ans = ask_string("Color (r,g,b)", &suggestion, true);
-    if ans.is_empty() {return}
+        let ans = ask_string("Color (r,g,b)", &suggestion, true);
+        if ans.is_empty() {return}
 
-    let v: Vec<u8> = ans.split(",")
-        .map(|s| s.trim())
-        .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+        let v: Vec<u8> = ans.split(',')
+            .map(|s| s.trim())
+            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
 
-    if v.len() != 3 {return}
-    
-    match n
+        if v.len() != 3 {return}
+        
+        match n
+        {
+            1 => g_set_color_1((v[0], v[1], v[2])),
+            2 => g_set_color_2((v[0], v[1], v[2])),
+            3 => g_set_color_3((v[0], v[1], v[2])),
+            _ => {}
+        }
+    }
+
+    if n == 4
     {
-        1 => g_set_color_1((v[0], v[1], v[2])),
-        2 => g_set_color_2((v[0], v[1], v[2])),
-        3 => g_set_color_3((v[0], v[1], v[2])),
-        _ => {}
+        let mut suggestion = s!();
+        suggestion += &format!("{}", color_to_string(g_get_color_1()));
+        suggestion += &format!(" - {}", color_to_string(g_get_color_2()));
+        suggestion += &format!(" - {}", color_to_string(g_get_color_3()));
+        let ans = ask_string("All Colors", &suggestion, false);
+        if ans.is_empty() {return}
+        let mut split = ans.split('-').map(|s| s.trim());
+
+        let v1: Vec<u8> = split.next().unwrap_or("0").split(',')
+            .map(|s| s.trim())
+            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+        
+        if v1.len() != 3 {return}
+
+        let v2: Vec<u8> = split.next().unwrap_or("0").split(',')
+            .map(|s| s.trim())
+            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+        
+        if v2.len() != 3 {return}
+
+        let v3: Vec<u8> = split.next().unwrap_or("0").split(',')
+            .map(|s| s.trim())
+            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+        
+        if v3.len() != 3 {return}
+
+        g_set_color_1((v1[0], v1[1], v1[2]));
+        g_set_color_2((v2[0], v2[1], v2[2]));
+        g_set_color_3((v3[0], v3[1], v3[2]));
+    }
+
+    else if n == 5
+    {
+        g_set_color_1(random_color());
+        g_set_color_2(random_color());
+        g_set_color_3(random_color());
     }
 
     create_menus(); update_header(); refresh_page();
@@ -1985,4 +2029,18 @@ fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
 fn color_to_string(c: (u8, u8, u8)) -> String
 {
     format!("{},{},{}", c.0, c.1, c.2)
+}
+
+// Generates a random RGB tuple
+fn random_color() -> (u8, u8, u8)
+{
+    let mut rng = rand::thread_rng();
+    let mut v: Vec<u8> = vec![];
+
+    for _ in 1..=3
+    {   
+        let n: u8 = rng.gen(); v.push(n);
+    }
+
+    (v[0], v[1], v[2])
 }
