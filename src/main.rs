@@ -1713,7 +1713,10 @@ fn do_open_path(pth: String, create: bool)
 // Then exists the program
 fn destroy()
 {
-    if ask_bool("Are you sure you want to destroy this file and exit?", true)
+    p!("This overwrites the file with junk several times.");
+    p!("The file is then deleted and the program exits.");
+
+    if ask_bool("Are you sure you want to destroy the file?", true)
     {
         p!("Destroying...");
 
