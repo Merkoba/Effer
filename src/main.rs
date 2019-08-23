@@ -518,9 +518,10 @@ fn create_menus()
             menu_item("g", "Goto", true, false, false),
             menu_item("R", "Reset File", true, true, true),
             menu_item("P", "Change Password", true, false, false),
-            menu_item("!", "Color 1", true, true, true),
-            menu_item("@", "Color 2", true, true, false),
-            menu_item("#", "Color 3", true, false, false)
+            menu_item("$", "Change Colors", true, true, true),
+            menu_item(":", "Screen Saver", true, false, false),
+            // menu_item("@", "Color 2", true, true, false),
+            // menu_item("#", "Color 3", true, false, false)
         ].concat(),
         [
             menu_item("^", "Change Row Spacing", true, true, true),
@@ -588,9 +589,7 @@ fn menu_input() -> (MenuAnswer, usize)
                         'X' => MenuAnswer::Destroy,
                         '\n' => MenuAnswer::RefreshPage,
                         '^' => MenuAnswer::ChangeRowSpace,
-                        '!' => MenuAnswer::ChangeColor1,
-                        '@' => MenuAnswer::ChangeColor2,
-                        '#' => MenuAnswer::ChangeColor3,
+                        '$' => MenuAnswer::ChangeColors,
                         ' ' => MenuAnswer::ChangeMenu,
                         _ => MenuAnswer::Nothing
                     }
@@ -661,9 +660,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::FetchSource => fetch_source(),
         MenuAnswer::Destroy => destroy(),
         MenuAnswer::ChangeRowSpace => change_row_space(),
-        MenuAnswer::ChangeColor1 => change_color(1),
-        MenuAnswer::ChangeColor2 => change_color(2),
-        MenuAnswer::ChangeColor3 => change_color(3),
+        MenuAnswer::ChangeColors => change_colors(),
         MenuAnswer::MoveNotes => move_notes(),
         MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
@@ -786,18 +783,21 @@ fn get_settings()
 {
     let notes = get_notes(false);
     let header = notes.lines().nth(0).unwrap();
+    let mut update = false; 
 
     let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
     let cap = re.captures(header);
     let arg = g_get_arg_page_size();
+    let arg_empty = arg.is_empty();
 
-    if cap.is_some() || !arg.is_empty()
+    if cap.is_some() || !arg_empty
     {
-        let s = if !arg.is_empty() {arg} 
+        let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["page_size"])};
         let num = s.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
         let mut n5 = (5.0 * (num as f64 / 5.0).round()) as usize;
         if n5 <= 0 {n5 = 5} else if n5 > MAX_PAGE_SIZE {n5 = MAX_PAGE_SIZE};
+        if arg_empty && n5 != g_get_page_size() {update=true}
         g_set_page_size(n5);
     }
 
@@ -809,12 +809,15 @@ fn get_settings()
     let re = Regex::new(r"row_space=(?P<row_space>\w+)").unwrap();
     let cap = re.captures(header);
     let arg = g_get_arg_row_space();
+    let arg_empty = arg.is_empty();
 
-    if cap.is_some() || !arg.is_empty()
+    if cap.is_some() || !arg_empty
     {
-        let s = if !arg.is_empty() {arg} 
+        let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["row_space"])};
-        g_set_row_space(FromStr::from_str(&s).unwrap_or(DEFAULT_ROW_SPACE));
+        let rs = FromStr::from_str(&s).unwrap_or(DEFAULT_ROW_SPACE);
+        if arg_empty && rs != g_get_row_space() {update=true}
+        g_set_row_space(rs);
     }
 
     else
@@ -825,10 +828,11 @@ fn get_settings()
     let re = Regex::new(r"color_1=(?P<color_1>\d+,\d+,\d+)").unwrap();
     let cap = re.captures(header);
     let arg = g_get_arg_color_1();
+    let arg_empty = arg.is_empty();
 
-    if cap.is_some() || !arg.is_empty()
+    if cap.is_some() || !arg_empty
     {
-        let s = if !arg.is_empty() {arg} 
+        let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["color_1"])};
 
         let v: Vec<u8> = s.split(",")
@@ -836,8 +840,10 @@ fn get_settings()
             .unwrap_or(0))
             .collect();
 
-        if v.len() != 3 {g_set_color_1(DEFAULT_COLOR_1)}
-        else {g_set_color_1((v[0], v[1], v[2]))}
+        let c = if v.len() != 3 {DEFAULT_COLOR_1}
+        else {(v[0], v[1], v[2])};
+        if arg_empty && c != g_get_color_1() {update=true}
+        g_set_color_1(c);
     }
 
     else
@@ -848,10 +854,11 @@ fn get_settings()
     let re = Regex::new(r"color_2=(?P<color_2>\d+,\d+,\d+)").unwrap();
     let cap = re.captures(header);
     let arg = g_get_arg_color_2();
+    let arg_empty = arg.is_empty();
 
-    if cap.is_some() || !arg.is_empty()
+    if cap.is_some() || !arg_empty
     {
-        let s = if !arg.is_empty() {arg} 
+        let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["color_2"])};
 
         let v: Vec<u8> = s.split(",")
@@ -859,8 +866,10 @@ fn get_settings()
             .unwrap_or(0))
             .collect();
 
-        if v.len() != 3 {g_set_color_2(DEFAULT_COLOR_1)}
-        else {g_set_color_2((v[0], v[1], v[2]))}
+        let c = if v.len() != 3 {DEFAULT_COLOR_2}
+        else {(v[0], v[1], v[2])};
+        if arg_empty && c != g_get_color_2() {update=true}
+        g_set_color_2(c);
     }
 
     else
@@ -871,10 +880,11 @@ fn get_settings()
     let re = Regex::new(r"color_3=(?P<color_3>\d+,\d+,\d+)").unwrap();
     let cap = re.captures(header);
     let arg = g_get_arg_color_3();
+    let arg_empty = arg.is_empty();
 
-    if cap.is_some() || !arg.is_empty()
+    if cap.is_some() || !arg_empty
     {
-        let s = if !arg.is_empty() {arg} 
+        let s = if !arg_empty {arg} 
         else {s!(cap.unwrap()["color_3"])};
 
         let v: Vec<u8> = s.split(",")
@@ -882,14 +892,18 @@ fn get_settings()
             .unwrap_or(0))
             .collect();
 
-        if v.len() != 3 {g_set_color_3(DEFAULT_COLOR_1)}
-        else {g_set_color_3((v[0], v[1], v[2]))}
+        let c = if v.len() != 3 {DEFAULT_COLOR_3}
+        else {(v[0], v[1], v[2])};
+        if arg_empty && c != g_get_color_3() {update=true}
+        g_set_color_3(c);
     }
 
     else
     {
         g_set_color_3(DEFAULT_COLOR_3);
     }
+
+    if update {update_header()}
 }
 
 // Resets settings to default state
@@ -1727,9 +1741,15 @@ fn change_row_space()
 }
 
 // Changes some color to the next one
-fn change_color(n: usize)
+fn change_colors()
 {
-    let ans = ask_string(&format!("Color {} (r,g,b)", n), "", true);
+
+    p!("(1) Background | (2) Foreground (3) Other");
+    let ans = ask_string("Choice", "", true);
+    if ans.is_empty() {return};
+    let n = ans.parse::<usize>().unwrap_or(0);
+    if n < 1 || n > 3 {return}
+    let ans = ask_string("Color (r,g,b)", "", true);
     if ans.is_empty() {return}
 
     let v: Vec<u8> = ans.split(",")
