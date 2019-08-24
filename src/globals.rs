@@ -10,12 +10,14 @@ use std::
         {
             AtomicUsize, AtomicBool, Ordering
         }
-    }
+    },
+    collections::VecDeque,
+    cmp::min
 };
 
 // Constants
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
-pub const VERSION: &str = "v1.6.0";
+pub const VERSION: &str = "v1.7.0";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
 pub const MAX_PAGE_SIZE: usize = 100;
@@ -39,12 +41,16 @@ lazy_static!
     static ref NOTES: Mutex<String> = Mutex::new(s!());
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
     static ref LAST_FIND: Mutex<String> = Mutex::new(s!());
+    static ref MODE: Mutex<String> = Mutex::new(s!());
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
+    static ref FOUND: Mutex<VecDeque<(usize, String)>> = Mutex::new(VecDeque::new());
     static ref NOTES_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref PAGE: AtomicUsize = AtomicUsize::new(1);
     static ref CURRENT_MENU: AtomicUsize = AtomicUsize::new(0);
     static ref LAST_EDIT: AtomicUsize = AtomicUsize::new(0);
+    static ref FOUND_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref STARTED: AtomicBool = AtomicBool::new(false);
+    static ref USE_COLORS: AtomicBool = AtomicBool::new(true);
 
     // Settings Provided As Arguments
     static ref ARG_PAGE_SIZE: Mutex<String> = Mutex::new(s!());
@@ -182,10 +188,22 @@ pub fn g_get_arg_color_3() -> String
     s!(ARG_COLOR_3.lock().unwrap())
 }
 
-// Sets the arg_color_3 global value
+// Sets the arg color 3 global value
 pub fn g_set_arg_color_3(s: String)
 {
     *ARG_COLOR_3.lock().unwrap() = s;
+}
+
+// Returns the mode global value
+pub fn g_get_mode() -> String
+{
+    s!(MODE.lock().unwrap())
+}
+
+// Sets the mode global value
+pub fn g_set_mode(s: String)
+{
+    *MODE.lock().unwrap() = s;
 }
 
 
@@ -208,6 +226,21 @@ pub fn g_get_menus_length() -> usize
 pub fn g_set_menus(v: Vec<String>)
 {
     *MENUS.lock().unwrap() = v;
+}
+
+// Returns an item from the found global
+pub fn g_get_found_next() -> Vec<(usize, String)>
+{
+    let mut found = FOUND.lock().unwrap();
+    let upper = min(found.len(), 10);
+    found.drain(0..upper).collect::<Vec<(usize, String)>>()
+}
+
+// Sets the found global value
+pub fn g_set_found(v: Vec<(usize, String)>)
+{
+    FOUND_LENGTH.store(v.len(), Ordering::SeqCst);
+    *FOUND.lock().unwrap() = VecDeque::from(v);
 }
 
 
@@ -274,6 +307,12 @@ pub fn g_set_page_size(n: usize)
     PAGE_SIZE.store(n, Ordering::SeqCst);
 }
 
+// Returns the found length global value
+pub fn g_get_found_length() -> usize
+{
+    FOUND_LENGTH.load(Ordering::SeqCst)
+}
+
 
 /// MUTEX BOOL
 
@@ -300,6 +339,18 @@ pub fn g_get_row_space() -> bool
 pub fn g_set_row_space(b: bool)
 {
     ROW_SPACE.store(b, Ordering::SeqCst);
+}
+
+// Returns the use colors global value
+pub fn g_get_use_colors() -> bool
+{
+    USE_COLORS.load(Ordering::SeqCst)
+}
+
+// Sets the use colors global value
+pub fn g_set_use_colors(b: bool)
+{
+    USE_COLORS.store(b, Ordering::SeqCst);
 }
 
 
@@ -348,19 +399,19 @@ pub fn g_set_color_3(t: (u8, u8, u8))
     *c = t;
 }
 
-// Returns the pre color 1 global value
+// Returns the prev color 1 global value
 pub fn g_get_prev_color_1() -> (u8, u8, u8)
 {
     *PREV_COLOR_1.lock().unwrap()
 }
 
-// Returns the pre color 2 global value
+// Returns the prev color 2 global value
 pub fn g_get_prev_color_2() -> (u8, u8, u8)
 {
     *PREV_COLOR_2.lock().unwrap()
 }
 
-// Returns the pre color 3 global value
+// Returns the prev color 3 global value
 pub fn g_get_prev_color_3() -> (u8, u8, u8)
 {
     *PREV_COLOR_3.lock().unwrap()

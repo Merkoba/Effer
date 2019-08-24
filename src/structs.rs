@@ -37,7 +37,7 @@ pub enum MenuAnswer
     ShowAllNotes, ShowAbout, GotoPage, Exit,
     IncreasePageSize, DecreasePageSize, ShowStats, ScreenSaver,
     FetchSource, OpenFromPath, Destroy, ChangeRowSpace,
-    MoveNotes, ChangeColors, FindNotesSuggest
+    MoveNotes, ChangeColors, FindNotesSuggest, ModeAction
 }
 
 #[derive(Debug, Deserialize)]

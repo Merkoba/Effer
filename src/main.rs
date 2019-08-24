@@ -83,6 +83,10 @@ fn check_arguments()
         .long("print2")
         .multiple(false)
         .help("Same as print but doesn't show the numbers"))
+    .arg(Arg::with_name("no-colors")
+        .long("no-colors")
+        .multiple(false)
+        .help("Disables the custom color theme"))
     .arg(Arg::with_name("config")
         .long("config")
         .value_name("Path")
@@ -165,6 +169,16 @@ fn check_arguments()
         }
 
         pp!(result.join("\n")); exit();
+    }
+
+    if matches.occurrences_of("no-colors") > 0
+    {
+        g_set_use_colors(false);
+    }
+
+    else
+    {
+        g_set_use_colors(true);
     }
 
     if let Some(path) = matches.value_of("source")
@@ -591,7 +605,7 @@ fn menu_input() -> (MenuAnswer, usize)
     let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(stdout, "{}{}{}", 
-        color::Bg(color::Rgb(10,10,10)),  color::Fg(color::Rgb(210,210,210)), termion::cursor::Hide).unwrap();
+        get_color(4), get_color(5), termion::cursor::Hide).unwrap();
     stdout.flush().unwrap(); let mut data = 0;
     
     let event = match stdin.events().next()
@@ -652,7 +666,7 @@ fn menu_input() -> (MenuAnswer, usize)
                         '-' => MenuAnswer::DecreasePageSize,
                         ':' => MenuAnswer::ScreenSaver,
                         'X' => MenuAnswer::Destroy,
-                        '\n' => MenuAnswer::RefreshPage,
+                        '\n' => MenuAnswer::ModeAction,
                         '^' => MenuAnswer::ChangeRowSpace,
                         '$' => MenuAnswer::ChangeColors,
                         ' ' => MenuAnswer::ChangeMenu,
@@ -727,6 +741,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::ChangeRowSpace => change_row_space(),
         MenuAnswer::ChangeColors => change_colors(),
         MenuAnswer::MoveNotes => move_notes(),
+        MenuAnswer::ModeAction => mode_action(),
         MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
     }
@@ -1129,24 +1144,8 @@ fn find_notes(suggest: bool)
         }
     }
 
-    g_set_last_find(filter); let mut message;
-
-    if found.is_empty()
-    {
-        message = s!("< No Results for ");
-    }
-
-    else if found.len() == 1
-    {
-        message = s!("< 1 Result for ");
-    }
-
-    else
-    {
-        message = format!("< {} Results for ", found.len());
-    }
-
-    message += &info; show_notes(0, found, message);
+    g_set_last_find(filter); g_set_found(found); 
+    g_set_mode(s!("found")); next_found();
 }
 
 // Swaps 2 notes specified by 2 numbers separated by whitespace (1 10)
@@ -1439,6 +1438,17 @@ fn show_all_notes()
 // Information about the program
 fn show_about()
 {
+    if g_get_mode() == "about"
+    {
+        g_set_mode(s!("notes"));
+        return refresh_page();
+    }
+
+    else
+    {
+        g_set_mode(s!("about"));
+    }
+
     let art = 
 r#"
  ____________________________________________________
@@ -1542,7 +1552,18 @@ fn show_message(message: &str)
 
 // Show some statistics
 fn show_stats()
-{   
+{ 
+    if g_get_mode() == "stats"
+    {
+        g_set_mode(s!("notes"));
+        return refresh_page();
+    }
+
+    else
+    {
+        g_set_mode(s!("stats"));
+    }
+
     let notes = get_notes(false);
     let len = g_get_notes_length();
     let mut wcount = 0;
@@ -1568,6 +1589,17 @@ fn show_stats()
 // Hides notes from the screen with some characters
 fn show_screensaver()
 {
+    if g_get_mode() == "screen_saver"
+    {
+        g_set_mode(s!("notes"));
+        return refresh_page();
+    }
+
+    else
+    {
+        g_set_mode(s!("screen_saver"));
+    }
+
     let mut lines: Vec<String> = vec![];
 
     for _ in 0..7
@@ -1830,6 +1862,7 @@ fn change_row_space()
 // Or generates a random theme
 fn change_colors()
 {
+    if !g_get_use_colors() {return}
     p!("(1) BG | (2) FG | (3) Other | (4) All");
     p!("(d) Dark | (t) Light | (p) Purple");
     p!("(r) Random | (v) Invert | (u) Undo");
@@ -1941,6 +1974,8 @@ fn change_colors()
 // Gets the current theme
 fn get_color(n: usize) -> String
 {
+    if !g_get_use_colors() {return s!()}
+
     match n
     {
         1 => 
@@ -1957,7 +1992,10 @@ fn get_color(n: usize) -> String
         {
             let t = g_get_color_3();
             s!(color::Fg(color::Rgb(t.0, t.1, t.2)))
-        }
+        },
+        // Input Colors
+        4 => s!(color::Bg(color::Rgb(10,10,10))),
+        5 => s!(color::Fg(color::Rgb(210,210,210))),
         _ => s!("")
     }
 }
@@ -2140,4 +2178,53 @@ fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
         (t.1 as f64 + (0.30 * (255 - t.1) as f64)) as u8, 
         (t.2 as f64 + (0.30 * (255 - t.2) as f64)) as u8
     )
+}
+
+// Performs actions based on current mode
+fn mode_action()
+{
+    match &g_get_mode()[..]
+    {
+        "found" => next_found(),
+        _ => {g_set_mode(s!("notes")); refresh_page()}
+    }
+}
+
+// Attemps to show the next found item
+fn next_found()
+{
+    let found = g_get_found_next(); 
+
+    if found.len() == 0 
+    {
+        g_set_mode(s!("notes"));
+        return refresh_page()
+    }
+
+    let len = g_get_found_length(); 
+    let info = format!("{}{}{} >", 
+        get_color(3), g_get_last_find(), get_color(2));
+
+    let mut message; 
+
+    if len == 0
+    {
+        message = s!("< No Results for ");
+    }
+
+    else
+    {
+        if len == 1
+        {
+            message = s!("< 1 Result for ");
+        }
+
+        else
+        {
+            message = format!("< {} Results for ", len);
+        }
+    }
+
+    message += &info;
+    show_notes(0, found, message);
 }
