@@ -1144,6 +1144,11 @@ fn find_notes(suggest: bool)
         }
     }
 
+    if found.len() == 0
+    {
+        return show_message(&format!("< No Results for {}", info));
+    }
+
     g_set_last_find(filter); g_set_found(found); 
     g_set_mode(s!("found")); next_found();
 }
