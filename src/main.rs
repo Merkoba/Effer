@@ -761,7 +761,8 @@ fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
         
         if page > 0
         {
-           print_notes(&get_page_notes(page));
+            g_set_mode(s!("notes"));
+            print_notes(&get_page_notes(page));
         }
 
         else
@@ -1265,7 +1266,6 @@ fn goto_last_page()
 // This doesn't provoke a change unless on a different mode like Find results
 fn refresh_page()
 {
-    g_set_mode(s!("notes"));
     show_page(g_get_page());
 }
 
@@ -2197,40 +2197,35 @@ fn mode_action()
 fn next_found()
 {
     let found = g_get_found_next(); 
+    let remaining = g_get_found_remaining();
 
     if found.len() == 0 
     {
         return refresh_page()
     }
 
+    let tip = if remaining > 0 {" | (Enter) More"} else {""};
     let len = g_get_found_length(); 
-    let info = format!("{}{}{} >", 
-        get_color(3), g_get_last_find(), get_color(2));
 
-    let diff = len - g_get_found_remaining();
+    let info = format!("{}{}{}{} >", 
+        get_color(3), g_get_last_find(), get_color(2), tip);
+
+    let diff = len - remaining;
     let mut message; 
 
-    if len == 0
+    if len == 1
     {
-        message = s!("< No Results for ");
+        message = s!("< 1 Result for ");
+    }
+
+    else if len <= 10
+    {
+        message = format!("< {} Results for ", len);
     }
 
     else
     {
-        if len == 1
-        {
-            message = s!("< 1 Result for ");
-        }
-
-        else if len <= 10
-        {
-            message = format!("< {} Results for ", len);
-        }
-
-        else
-        {
-            message = format!("< {}/{} Results for ", diff, len);
-        }
+        message = format!("< {}/{} Results for ", diff, len);
     }
 
     message += &info;
