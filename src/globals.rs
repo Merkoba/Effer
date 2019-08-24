@@ -29,7 +29,7 @@ pub const DARK_THEME_COLOR_3: (u8, u8, u8) = (136, 192, 209);
 pub const LIGHT_THEME_COLOR_1: (u8, u8, u8) = (240, 240, 240);
 pub const LIGHT_THEME_COLOR_2: (u8, u8, u8) = (20, 20, 20);
 pub const LIGHT_THEME_COLOR_3: (u8, u8, u8) = (12, 130, 89);
-pub const PURPLE_THEME_COLOR_1: (u8, u8, u8) = (54,48,84);
+pub const PURPLE_THEME_COLOR_1: (u8, u8, u8) = (42,37,65);
 pub const PURPLE_THEME_COLOR_2: (u8, u8, u8) = (143,55,249);
 pub const PURPLE_THEME_COLOR_3: (u8, u8, u8) = (193,47,105);
 
