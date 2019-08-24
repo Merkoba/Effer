@@ -1260,6 +1260,7 @@ fn goto_last_page()
 // This doesn't provoke a change unless on a different mode like Find results
 fn refresh_page()
 {
+    g_set_mode(s!("notes"));
     show_page(g_get_page());
 }
 
@@ -1440,7 +1441,6 @@ fn show_about()
 {
     if g_get_mode() == "about"
     {
-        g_set_mode(s!("notes"));
         return refresh_page();
     }
 
@@ -1555,7 +1555,6 @@ fn show_stats()
 { 
     if g_get_mode() == "stats"
     {
-        g_set_mode(s!("notes"));
         return refresh_page();
     }
 
@@ -1591,7 +1590,6 @@ fn show_screensaver()
 {
     if g_get_mode() == "screen_saver"
     {
-        g_set_mode(s!("notes"));
         return refresh_page();
     }
 
@@ -2186,7 +2184,7 @@ fn mode_action()
     match &g_get_mode()[..]
     {
         "found" => next_found(),
-        _ => {g_set_mode(s!("notes")); refresh_page()}
+        _ => refresh_page()
     }
 }
 
@@ -2197,7 +2195,6 @@ fn next_found()
 
     if found.len() == 0 
     {
-        g_set_mode(s!("notes"));
         return refresh_page()
     }
 
