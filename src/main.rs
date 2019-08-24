@@ -2188,7 +2188,7 @@ fn mode_action()
     }
 }
 
-// Attemps to show the next found item
+// Attemps to show the next found notes
 fn next_found()
 {
     let found = g_get_found_next(); 
