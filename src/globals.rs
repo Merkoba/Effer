@@ -140,7 +140,7 @@ pub fn g_get_arg_page_size() -> String
     s!(ARG_PAGE_SIZE.lock().unwrap())
 }
 
-// Sets the arg_page_size global value
+// Sets the arg page size global value
 pub fn g_set_arg_page_size(s: String)
 {
     *ARG_PAGE_SIZE.lock().unwrap() = s;
@@ -164,7 +164,7 @@ pub fn g_get_arg_color_1() -> String
     s!(ARG_COLOR_1.lock().unwrap())
 }
 
-// Sets the arg_color_1 global value
+// Sets the arg color 1 global value
 pub fn g_set_arg_color_1(s: String)
 {
     *ARG_COLOR_1.lock().unwrap() = s;
@@ -176,7 +176,7 @@ pub fn g_get_arg_color_2() -> String
     s!(ARG_COLOR_2.lock().unwrap())
 }
 
-// Sets the arg_color_2 global value
+// Sets the arg color 2 global value
 pub fn g_set_arg_color_2(s: String)
 {
     *ARG_COLOR_2.lock().unwrap() = s;
@@ -259,7 +259,7 @@ pub fn g_get_page() -> usize
     PAGE.load(Ordering::SeqCst)
 }
 
-// Sets the page  global value
+// Sets the page global value
 pub fn g_set_page(n: usize)
 {
     PAGE.store(n, Ordering::SeqCst)
@@ -271,7 +271,7 @@ pub fn g_get_current_menu() -> usize
   CURRENT_MENU.load(Ordering::SeqCst)
 }
 
-// Sets the current menu  global value
+// Sets the current menu global value
 pub fn g_set_current_menu(n: usize)
 {
   CURRENT_MENU.store(n, Ordering::SeqCst)
@@ -283,7 +283,7 @@ pub fn g_get_last_edit() -> usize
   LAST_EDIT.load(Ordering::SeqCst)
 }
 
-// Sets the last edit  global value
+// Sets the last edit global value
 pub fn g_set_last_edit(n: usize)
 {
   LAST_EDIT.store(n, Ordering::SeqCst)
@@ -295,7 +295,7 @@ pub fn g_get_notes_length() -> usize
     NOTES_LENGTH.load(Ordering::SeqCst)
 }
 
-// Sets the notes length  global value
+// Sets the notes length global value
 pub fn g_set_notes_length(n: usize)
 {
     NOTES_LENGTH.store(n, Ordering::SeqCst);
@@ -369,7 +369,7 @@ pub fn g_get_color_1() -> (u8, u8, u8)
     *COLOR_1.lock().unwrap()
 }
 
-// Sets the color 1  global value
+// Sets the color 1 global value
 pub fn g_set_color_1(t: (u8, u8, u8))
 {
     let mut c = COLOR_1.lock().unwrap();
@@ -397,7 +397,7 @@ pub fn g_get_color_3() -> (u8, u8, u8)
     *COLOR_3.lock().unwrap()
 }
 
-// Sets the color 3  global value
+// Sets the color 3 global value
 pub fn g_set_color_3(t: (u8, u8, u8))
 {
     let mut c = COLOR_3.lock().unwrap();
