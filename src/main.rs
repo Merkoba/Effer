@@ -2202,6 +2202,7 @@ fn next_found()
     let info = format!("{}{}{} >", 
         get_color(3), g_get_last_find(), get_color(2));
 
+    let diff = len - g_get_found_remaining();
     let mut message; 
 
     if len == 0
@@ -2216,9 +2217,14 @@ fn next_found()
             message = s!("< 1 Result for ");
         }
 
-        else
+        else if len <= 10
         {
             message = format!("< {} Results for ", len);
+        }
+
+        else
+        {
+            message = format!("< {}/{} Results for ", diff, len);
         }
     }
 

@@ -236,6 +236,12 @@ pub fn g_get_found_next() -> Vec<(usize, String)>
     found.drain(0..upper).collect::<Vec<(usize, String)>>()
 }
 
+// Returns an item from the found global
+pub fn g_get_found_remaining() -> usize
+{
+    FOUND.lock().unwrap().len()
+}
+
 // Sets the found global value
 pub fn g_set_found(v: Vec<(usize, String)>)
 {
