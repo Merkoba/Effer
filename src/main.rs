@@ -192,38 +192,34 @@ fn check_arguments()
     {
         if let Ok(text) = read_file(path)
         {
-            match toml::from_str(&text)
+            if let Ok(tom) = toml::from_str(&text)
             {
-                Ok(tom) =>
+                let sets: Settings = tom;
+                
+                if let Some(ps) = sets.page_size
                 {
-                    let sets: Settings = tom;
-                    
-                    if let Some(ps) = sets.page_size
-                    {
-                        g_set_arg_page_size(ps);
-                    }
-                    
-                    if let Some(rs) = sets.row_space
-                    {
-                        g_set_arg_row_space(rs);
-                    }
-                    
-                    if let Some(c) = sets.color_1
-                    {
-                        g_set_arg_color_1(c);
-                    }
-                    
-                    if let Some(c) = sets.color_2
-                    {
-                        g_set_arg_color_2(c);
-                    }
-                    
-                    if let Some(c) = sets.color_3
-                    {
-                        g_set_arg_color_3(c);
-                    }
-                },
-                Err(_) => {}
+                    g_set_arg_page_size(ps);
+                }
+                
+                if let Some(rs) = sets.row_space
+                {
+                    g_set_arg_row_space(rs);
+                }
+                
+                if let Some(c) = sets.color_1
+                {
+                    g_set_arg_color_1(c);
+                }
+                
+                if let Some(c) = sets.color_2
+                {
+                    g_set_arg_color_2(c);
+                }
+                
+                if let Some(c) = sets.color_3
+                {
+                    g_set_arg_color_3(c);
+                }
             }
         }
     }
