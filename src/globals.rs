@@ -383,7 +383,7 @@ pub fn g_get_color_2() -> (u8, u8, u8)
     *COLOR_2.lock().unwrap()
 }
 
-// Sets the color 2  global value
+// Sets the color 2 global value
 pub fn g_set_color_2(t: (u8, u8, u8))
 {
     let mut c = COLOR_2.lock().unwrap();
