@@ -894,13 +894,24 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg}
-        else {s!(cap.unwrap()["page_size"])};
-        let num = s.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
-        let mut n5 = (5.0 * (num as f64 / 5.0).round()) as usize;
-        if n5 <= 0 {n5 = 5} else if n5 > MAX_PAGE_SIZE {n5 = MAX_PAGE_SIZE};
-        if !arg_empty && n5 != g_get_page_size() {update=true}
-        g_set_page_size(n5);
+        let stored_value = if cap.is_some() 
+            {s!(cap.unwrap()["page_size"])}
+            else {s!()};
+
+        let argx = if arg_empty 
+        {
+            stored_value
+        }
+
+        else 
+        {
+            update = stored_value != arg; arg
+        };
+
+        let num = argx.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
+        let mut value = (5.0 * (num as f64 / 5.0).round()) as usize;
+        if value <= 0 {value = 5} else if value > MAX_PAGE_SIZE {value = MAX_PAGE_SIZE};
+        g_set_page_size(value);
     }
 
     else
@@ -915,11 +926,22 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg}
-        else {s!(cap.unwrap()["row_space"])};
-        let rs = FromStr::from_str(&s).unwrap_or(DEFAULT_ROW_SPACE);
-        if !arg_empty && rs != g_get_row_space() {update=true}
-        g_set_row_space(rs);
+        let stored_value = if cap.is_some() 
+            {s!(cap.unwrap()["row_space"])}
+            else {s!()};
+
+        let argx = if arg_empty 
+        {
+            stored_value
+        }
+
+        else 
+        {
+            update = stored_value != arg; arg
+        };
+
+        let value = FromStr::from_str(&argx).unwrap_or(DEFAULT_ROW_SPACE);
+        g_set_row_space(value);
     }
 
     else
@@ -934,19 +956,30 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg}
-        else {s!(cap.unwrap()["color_1"])};
+        let stored_value = if cap.is_some() 
+            {s!(cap.unwrap()["color_1"])}
+            else {s!()};
 
-        let v: Vec<u8> = s.split(',')
+        let argx = if arg_empty 
+        {
+            stored_value
+        }
+
+        else 
+        {
+            update = stored_value != arg; arg
+        };
+
+        let v: Vec<u8> = argx.split(',')
             .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
-        let c = if v.len() != 3 {DARK_THEME_COLOR_1}
-        else {(v[0], v[1], v[2])};
-        if !arg_empty && c != g_get_color_1() {update=true}
-        g_set_color_1(c);
+        let value = if v.len() != 3 {DARK_THEME_COLOR_1}
+            else {(v[0], v[1], v[2])};
+
+        g_set_color_1(value);
     }
 
     else
@@ -961,19 +994,30 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg}
-        else {s!(cap.unwrap()["color_2"])};
+        let stored_value = if cap.is_some() 
+            {s!(cap.unwrap()["color_2"])}
+            else {s!()};
 
-        let v: Vec<u8> = s.split(',')
+        let argx = if arg_empty 
+        {
+            stored_value
+        }
+
+        else 
+        {
+            update = stored_value != arg; arg
+        };
+
+        let v: Vec<u8> = argx.split(',')
             .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
-        let c = if v.len() != 3 {DARK_THEME_COLOR_2}
-        else {(v[0], v[1], v[2])};
-        if !arg_empty && c != g_get_color_2() {update=true}
-        g_set_color_2(c);
+        let value = if v.len() != 3 {DARK_THEME_COLOR_2}
+            else {(v[0], v[1], v[2])};
+
+        g_set_color_2(value);
     }
 
     else
@@ -988,19 +1032,30 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg}
-        else {s!(cap.unwrap()["color_3"])};
+        let stored_value = if cap.is_some() 
+            {s!(cap.unwrap()["color_3"])}
+            else {s!()};
 
-        let v: Vec<u8> = s.split(',')
+        let argx = if arg_empty 
+        {
+            stored_value
+        }
+
+        else 
+        {
+            update = stored_value != arg; arg
+        };
+
+        let v: Vec<u8> = argx.split(',')
             .map(|s| s.trim())
             .map(|n| n.parse::<u8>()
             .unwrap_or(0))
             .collect();
 
-        let c = if v.len() != 3 {DARK_THEME_COLOR_3}
-        else {(v[0], v[1], v[2])};
-        if !arg_empty && c != g_get_color_3() {update=true}
-        g_set_color_3(c);
+        let value = if v.len() != 3 {DARK_THEME_COLOR_3}
+            else {(v[0], v[1], v[2])};
+
+        g_set_color_3(value);
     }
 
     else
