@@ -58,7 +58,7 @@ type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 // First function to execute
 fn main()
 {
-    check_arguments();
+    check_arguments(); // <-- It might exit here
     handle_file_path_check(file_path_check(get_file_path()));
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
