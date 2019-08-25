@@ -153,7 +153,6 @@ fn check_arguments()
     {
         let lines = get_notes_vec();
         if lines.is_empty() {exit()}
-        let mut result: Vec<String> = vec![];
 
         for (i, line) in lines.iter().enumerate()
         {
@@ -161,13 +160,13 @@ fn check_arguments()
 
             match print_mode
             {
-                "print" => result.push(format_note(&(i, s), false, 0)),
-                "print2" => result.push(s),
+                "print" => p!(format_note(&(i, s), false, 0)),
+                "print2" => p!(s),
                 _ => {}
             }
         }
 
-        pp!(result.join("\n")); exit();
+        exit();
     }
 
     if matches.occurrences_of("no-colors") > 0
