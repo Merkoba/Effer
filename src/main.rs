@@ -1068,10 +1068,6 @@ fn move_lines(from: Vec<usize>, to: usize)
         g_set_last_edit(0);
     }
 
-// if FROM contains ITEM or TO equals ITEM
-// if FROM is after ITEM and TO is before ITEM
-// if FROM is before ITEM and TO is after ITEM
-
     update_file(joined.join("\n"));
 }
 
