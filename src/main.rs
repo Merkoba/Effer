@@ -258,6 +258,7 @@ fn check_arguments()
 fn change_screen()
 {
     p!("{}", screen::ToAlternateScreen);
+    g_set_altscreen(true);
     let size = termion::terminal_size().unwrap();
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(stdout, "{}", termion::cursor::Goto(1, size.1)).unwrap();
@@ -267,7 +268,12 @@ fn change_screen()
 // Switches back to main screen before exiting
 fn exit() -> !
 {
-    p!("{}", screen::ToMainScreen); process::exit(0)
+    if g_get_altscreen() 
+    {
+        p!("{}", screen::ToMainScreen);
+    }
+    
+    process::exit(0)
 }
 
 // Tries to get the user's home path
@@ -470,8 +476,10 @@ fn create_file() -> bool
 // Turns the encrypted data into hex
 fn encrypt_text(plain_text: &str) -> String
 {
-    let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
-    let key = hasher.result(); let iv = generate_iv(&key);
+    let mut hasher = Sha3_256::new(); 
+    hasher.input(get_password(false).as_bytes());
+    let key = hasher.result(); 
+    let iv = generate_iv(&key);
 
     let cipher = match Aes256Cbc::new_var(&key, &iv)
     {
@@ -485,8 +493,10 @@ fn encrypt_text(plain_text: &str) -> String
 fn decrypt_text(encrypted_text: &str) -> String
 {
     if encrypted_text.trim().is_empty() {return s!()}
-    let mut hasher = Sha3_256::new(); hasher.input(get_password(false).as_bytes());
-    let key = hasher.result(); let iv = generate_iv(&key);
+    let mut hasher = Sha3_256::new(); 
+    hasher.input(get_password(false).as_bytes());
+    let key = hasher.result(); 
+    let iv = generate_iv(&key);
 
     let ciphertext = match hex::decode(encrypted_text)
     {

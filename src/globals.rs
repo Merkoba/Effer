@@ -17,7 +17,7 @@ use std::
 
 // Constants
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
-pub const VERSION: &str = "v1.7.0";
+pub const VERSION: &str = "v1.7.1";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
 pub const MAX_PAGE_SIZE: usize = 100;
@@ -51,6 +51,7 @@ lazy_static!
     static ref FOUND_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref STARTED: AtomicBool = AtomicBool::new(false);
     static ref USE_COLORS: AtomicBool = AtomicBool::new(true);
+    static ref ALTSCREEN: AtomicBool = AtomicBool::new(false);
 
     // Settings Provided As Arguments
     static ref ARG_PAGE_SIZE: Mutex<String> = Mutex::new(s!());
@@ -250,6 +251,70 @@ pub fn g_set_found(v: Vec<(usize, String)>)
 }
 
 
+/// MUTEX TUPLE
+
+
+// Returns the color 1 global value
+pub fn g_get_color_1() -> (u8, u8, u8)
+{
+    *COLOR_1.lock().unwrap()
+}
+
+// Sets the color 1 global value
+pub fn g_set_color_1(t: (u8, u8, u8))
+{
+    let mut c = COLOR_1.lock().unwrap();
+    *PREV_COLOR_1.lock().unwrap() = *c; 
+    *c = t;
+}
+
+// Returns the color 2 global value
+pub fn g_get_color_2() -> (u8, u8, u8)
+{
+    *COLOR_2.lock().unwrap()
+}
+
+// Sets the color 2 global value
+pub fn g_set_color_2(t: (u8, u8, u8))
+{
+    let mut c = COLOR_2.lock().unwrap();
+    *PREV_COLOR_2.lock().unwrap() = *c; 
+    *c = t;
+}
+
+// Returns the color 3 global value
+pub fn g_get_color_3() -> (u8, u8, u8)
+{
+    *COLOR_3.lock().unwrap()
+}
+
+// Sets the color 3 global value
+pub fn g_set_color_3(t: (u8, u8, u8))
+{
+    let mut c = COLOR_3.lock().unwrap();
+    *PREV_COLOR_3.lock().unwrap() = *c; 
+    *c = t;
+}
+
+// Returns the prev color 1 global value
+pub fn g_get_prev_color_1() -> (u8, u8, u8)
+{
+    *PREV_COLOR_1.lock().unwrap()
+}
+
+// Returns the prev color 2 global value
+pub fn g_get_prev_color_2() -> (u8, u8, u8)
+{
+    *PREV_COLOR_2.lock().unwrap()
+}
+
+// Returns the prev color 3 global value
+pub fn g_get_prev_color_3() -> (u8, u8, u8)
+{
+    *PREV_COLOR_3.lock().unwrap()
+}
+
+
 /// ATOMIC USIZE
 
 
@@ -320,7 +385,7 @@ pub fn g_get_found_length() -> usize
 }
 
 
-/// MUTEX BOOL
+/// ATOMIC BOOL
 
 
 // Returns the started global value
@@ -359,66 +424,14 @@ pub fn g_set_use_colors(b: bool)
     USE_COLORS.store(b, Ordering::SeqCst);
 }
 
-
-/// MUTEX TUPLE
-
-
-// Returns the color 1 global value
-pub fn g_get_color_1() -> (u8, u8, u8)
+// Returns the altscreen global value
+pub fn g_get_altscreen() -> bool
 {
-    *COLOR_1.lock().unwrap()
+    ALTSCREEN.load(Ordering::SeqCst)
 }
 
-// Sets the color 1 global value
-pub fn g_set_color_1(t: (u8, u8, u8))
+// Sets the use altscreen global value
+pub fn g_set_altscreen(b: bool)
 {
-    let mut c = COLOR_1.lock().unwrap();
-    *PREV_COLOR_1.lock().unwrap() = *c; 
-    *c = t;
-}
-
-// Returns the color 2 global value
-pub fn g_get_color_2() -> (u8, u8, u8)
-{
-    *COLOR_2.lock().unwrap()
-}
-
-// Sets the color 2 global value
-pub fn g_set_color_2(t: (u8, u8, u8))
-{
-    let mut c = COLOR_2.lock().unwrap();
-    *PREV_COLOR_2.lock().unwrap() = *c; 
-    *c = t;
-}
-
-// Returns the color 3 global value
-pub fn g_get_color_3() -> (u8, u8, u8)
-{
-    *COLOR_3.lock().unwrap()
-}
-
-// Sets the color 3 global value
-pub fn g_set_color_3(t: (u8, u8, u8))
-{
-    let mut c = COLOR_3.lock().unwrap();
-    *PREV_COLOR_3.lock().unwrap() = *c; 
-    *c = t;
-}
-
-// Returns the prev color 1 global value
-pub fn g_get_prev_color_1() -> (u8, u8, u8)
-{
-    *PREV_COLOR_1.lock().unwrap()
-}
-
-// Returns the prev color 2 global value
-pub fn g_get_prev_color_2() -> (u8, u8, u8)
-{
-    *PREV_COLOR_2.lock().unwrap()
-}
-
-// Returns the prev color 3 global value
-pub fn g_get_prev_color_3() -> (u8, u8, u8)
-{
-    *PREV_COLOR_3.lock().unwrap()
+    ALTSCREEN.store(b, Ordering::SeqCst);
 }
