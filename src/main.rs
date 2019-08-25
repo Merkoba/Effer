@@ -1576,7 +1576,7 @@ fn show_stats()
     let mut wcount = 0;
     let mut lcount = 0;
 
-    for (i, line) in get_notes_vec().iter().enumerate()
+    for (i, line) in notes.lines().enumerate()
     {
         if i == 0 {continue}
         wcount += line.split_whitespace().count();
