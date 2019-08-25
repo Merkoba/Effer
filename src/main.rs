@@ -8,7 +8,7 @@ use structs::
     Settings
 };
 
-mod globals; 
+mod globals;
 use globals::*;
 
 use std::
@@ -22,7 +22,7 @@ use std::
 };
 use block_modes::
 {
-    BlockMode, Cbc, 
+    BlockMode, Cbc,
     block_padding::Pkcs7
 };
 use aes_soft::Aes256;
@@ -37,7 +37,7 @@ use termion::
 {
     event::
     {
-        Event, Key, 
+        Event, Key,
         MouseEvent, MouseButton
     },
     input::TermRead,
@@ -49,22 +49,22 @@ use clap::{App, Arg};
 use rustyline::
 {
     Editor, Cmd, KeyPress,
-    Config, OutputStreamType, CompletionType, 
+    Config, OutputStreamType, CompletionType,
     completion::FilenameCompleter
 };
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 
 // First function to execute
-fn main() 
+fn main()
 {
     check_arguments();
     handle_file_path_check(file_path_check(get_file_path()));
     handle_source(); if get_password(false).is_empty() {exit()};
     let notes = get_notes(false); if notes.is_empty() {exit()}
-    update_notes_statics(notes); get_settings(); create_menus(); 
+    update_notes_statics(notes); get_settings(); create_menus();
     change_screen(); g_set_started(true);
-    
+
     // Start loop
     goto_last_page();
 }
@@ -134,7 +134,7 @@ fn check_arguments()
         Some(pth) => s!(pth),
         None => s!(get_default_file_path().to_str().unwrap())
     };
-    
+
     g_set_path(shell_expand(&path));
 
     let mut print_mode = "";
@@ -195,27 +195,27 @@ fn check_arguments()
             if let Ok(tom) = toml::from_str(&text)
             {
                 let sets: Settings = tom;
-                
+
                 if let Some(ps) = sets.page_size
                 {
                     g_set_arg_page_size(ps);
                 }
-                
+
                 if let Some(rs) = sets.row_space
                 {
                     g_set_arg_row_space(rs);
                 }
-                
+
                 if let Some(c) = sets.color_1
                 {
                     g_set_arg_color_1(c);
                 }
-                
+
                 if let Some(c) = sets.color_2
                 {
                     g_set_arg_color_2(c);
                 }
-                
+
                 if let Some(c) = sets.color_3
                 {
                     g_set_arg_color_3(c);
@@ -268,11 +268,11 @@ fn change_screen()
 // Switches back to main screen before exiting
 fn exit() -> !
 {
-    if g_get_altscreen() 
+    if g_get_altscreen()
     {
         p!("{}", screen::ToMainScreen);
     }
-    
+
     process::exit(0)
 }
 
@@ -282,7 +282,7 @@ fn get_home_path() -> PathBuf
     match dirs::home_dir()
     {
         Some(path) => path,
-        None => 
+        None =>
         {
             e!("Can't get your Home path."); exit();
         }
@@ -312,7 +312,7 @@ fn file_path_check(path: PathBuf) -> FilePathCheckResult
 {
     match fs::metadata(path)
     {
-        Ok(attr) => 
+        Ok(attr) =>
         {
             if !attr.is_file()
             {
@@ -324,7 +324,7 @@ fn file_path_check(path: PathBuf) -> FilePathCheckResult
             return FilePathCheckResult::DoesNotExist;
         }
     }
-    
+
     FilePathCheckResult::Exists
 }
 
@@ -354,7 +354,7 @@ fn handle_file_path_check(result: FilePathCheckResult)
 // It's generic and can return different types
 // Closures are supplied to react on success or failure
 // Can make typing invisible for cases like password input
-fn get_input<F, E, T>(message: &str, initial: &str, f_ok: F, f_err: E, mask: bool) -> T 
+fn get_input<F, E, T>(message: &str, initial: &str, f_ok: F, f_err: E, mask: bool) -> T
 where F: Fn(String) -> T, E: Fn() -> T
 {
     let config: Config = Config::builder()
@@ -372,11 +372,11 @@ where F: Fn(String) -> T, E: Fn() -> T
 
     let ans = match editor.readline_with_initial(&prompt, (initial, &s!()))
     {
-        Ok(input) => 
+        Ok(input) =>
         {
             f_ok(input)
         },
-        Err(_) => 
+        Err(_) =>
         {
             f_err()
         }
@@ -476,9 +476,9 @@ fn create_file() -> bool
 // Turns the encrypted data into hex
 fn encrypt_text(plain_text: &str) -> String
 {
-    let mut hasher = Sha3_256::new(); 
+    let mut hasher = Sha3_256::new();
     hasher.input(get_password(false).as_bytes());
-    let key = hasher.result(); 
+    let key = hasher.result();
     let iv = generate_iv(&key);
 
     let cipher = match Aes256Cbc::new_var(&key, &iv)
@@ -493,9 +493,9 @@ fn encrypt_text(plain_text: &str) -> String
 fn decrypt_text(encrypted_text: &str) -> String
 {
     if encrypted_text.trim().is_empty() {return s!()}
-    let mut hasher = Sha3_256::new(); 
+    let mut hasher = Sha3_256::new();
     hasher.input(get_password(false).as_bytes());
-    let key = hasher.result(); 
+    let key = hasher.result();
     let iv = generate_iv(&key);
 
     let ciphertext = match hex::decode(encrypted_text)
@@ -531,14 +531,14 @@ fn decrypt_text(encrypted_text: &str) -> String
     text
 }
 
-// <Alipha> madprops: an IV is an Initialization Vector and (generally) must be randomly-generated 
-// and different each and every time you encrypt using the same key. Not using a different, 
+// <Alipha> madprops: an IV is an Initialization Vector and (generally) must be randomly-generated
+// and different each and every time you encrypt using the same key. Not using a different,
 // random IV means someone will be able to decrypt your ciphertext
 
-// <Alipha> madprops: AES-CBC works by xor'ing the previous block with the current block. 
+// <Alipha> madprops: AES-CBC works by xor'ing the previous block with the current block.
 // So for the first block, there's no previous block. So the IV is used as the previous block.
-// <Alipha> madprops: also, for your encryption scheme to be secure, you need to authenticate your 
-// ciphertext to make sure it hasn't been maliciously modified. This can be done with HMAC, poly1305 
+// <Alipha> madprops: also, for your encryption scheme to be secure, you need to authenticate your
+// ciphertext to make sure it hasn't been maliciously modified. This can be done with HMAC, poly1305
 // or other algorithms. Or, you can use AES-GCM instead of AES-CBC, which authenticates the ciphertext for you.
 
 // Generates the IV used to encrypt and decrypt the file
@@ -590,9 +590,7 @@ fn create_menus()
             menu_item("R", "Reset File", true, true, true),
             menu_item("P", "Change Password", true, false, false),
             menu_item("$", "Change Colors", true, true, true),
-            menu_item(":", "Screen Saver", true, false, false),
-            // menu_item("@", "Color 2", true, true, false),
-            // menu_item("#", "Color 3", true, false, false)
+            menu_item(":", "Screen Saver", true, false, false)
         ].concat(),
         [
             menu_item("^", "Change Row Spacing", true, true, true),
@@ -610,10 +608,12 @@ fn menu_input() -> (MenuAnswer, usize)
 {
     let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
-    write!(stdout, "{}{}{}", 
+
+    write!(stdout, "{}{}{}",
         get_color(4), get_color(5), termion::cursor::Hide).unwrap();
+
     stdout.flush().unwrap(); let mut data = 0;
-    
+
     let event = match stdin.events().next()
     {
         Some(ev) =>
@@ -647,9 +647,9 @@ fn menu_input() -> (MenuAnswer, usize)
                 {
                     match ch
                     {
-                        d if d.is_digit(10) => 
+                        d if d.is_digit(10) =>
                         {
-                            data = d.to_digit(10).unwrap() as usize; 
+                            data = d.to_digit(10).unwrap() as usize;
                             MenuAnswer::PageNumber
                         },
                         'a' => MenuAnswer::AddNote,
@@ -709,7 +709,7 @@ fn menu_input() -> (MenuAnswer, usize)
         _ => MenuAnswer::Nothing
     };
 
-    write!(stdout, "{}", termion::cursor::Show).unwrap(); 
+    write!(stdout, "{}", termion::cursor::Show).unwrap();
     stdout.flush().unwrap(); (ans, data)
 }
 
@@ -764,7 +764,7 @@ fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
         println!("{}{}{}", get_color(1), get_color(2), termion::clear::All);
 
         page = check_page_number(page, true);
-        
+
         if page > 0
         {
             g_set_mode(s!("notes"));
@@ -784,7 +784,7 @@ fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
         else if !message.is_empty() {p!(format!("\n{}", message))}
 
         // Print menu
-        p!(g_get_menus_item(g_get_current_menu())); 
+        p!(g_get_menus_item(g_get_current_menu()));
 
         // Listen and respond to input
         menu_action(menu_input());
@@ -796,8 +796,8 @@ fn print_notes(notes: &Vec<(usize, String)>)
 {
     let space = g_get_row_space();
     let padding = calculate_padding(&notes);
-            
-    for note in notes.iter() 
+
+    for note in notes.iter()
     {
         if space {p!("")}
         p!(format_note(note, true, padding));
@@ -825,14 +825,17 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
 fn get_notes(update: bool) -> String
 {
     let notes = g_get_notes();
-    if notes.is_empty() || update {decrypt_text(&get_file_text())} else {notes}
+
+    if notes.is_empty() || update 
+        {decrypt_text(&get_file_text())} 
+    else {notes}
 }
 
 // Encrypts and saves the updated notes to the file
 fn update_file(text: String)
 {
     let encrypted = encrypt_text(&text);
-    
+
     if encrypted.is_empty()
     {
         show_message("< Error Encrypting File >");
@@ -843,8 +846,8 @@ fn update_file(text: String)
 
     match fs::write(get_file_path(), encrypted.as_bytes())
     {
-        Ok(_) => {}, 
-        Err(_) => 
+        Ok(_) => {},
+        Err(_) =>
         {
             if g_get_started()
             {
@@ -862,7 +865,7 @@ fn update_file(text: String)
 // Updates the notes and notes length global variables
 fn update_notes_statics(text: String) -> String
 {
-    g_set_notes_length(text.lines().count() - 1); 
+    g_set_notes_length(text.lines().count() - 1);
     g_set_notes(text); g_get_notes()
 }
 
@@ -872,7 +875,7 @@ fn get_settings()
 {
     let notes = get_notes(false);
     let header = notes.lines().nth(0).unwrap();
-    let mut update = false; 
+    let mut update = false;
 
     let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
     let cap = re.captures(header);
@@ -881,7 +884,7 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg} 
+        let s = if !arg_empty {arg}
         else {s!(cap.unwrap()["page_size"])};
         let num = s.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
         let mut n5 = (5.0 * (num as f64 / 5.0).round()) as usize;
@@ -902,7 +905,7 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg} 
+        let s = if !arg_empty {arg}
         else {s!(cap.unwrap()["row_space"])};
         let rs = FromStr::from_str(&s).unwrap_or(DEFAULT_ROW_SPACE);
         if !arg_empty && rs != g_get_row_space() {update=true}
@@ -921,7 +924,7 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg} 
+        let s = if !arg_empty {arg}
         else {s!(cap.unwrap()["color_1"])};
 
         let v: Vec<u8> = s.split(',')
@@ -948,7 +951,7 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg} 
+        let s = if !arg_empty {arg}
         else {s!(cap.unwrap()["color_2"])};
 
         let v: Vec<u8> = s.split(',')
@@ -975,7 +978,7 @@ fn get_settings()
 
     if cap.is_some() || !arg_empty
     {
-        let s = if !arg_empty {arg} 
+        let s = if !arg_empty {arg}
         else {s!(cap.unwrap()["color_3"])};
 
         let v: Vec<u8> = s.split(',')
@@ -1047,18 +1050,28 @@ fn move_lines(from: Vec<usize>, to: usize)
 {
     let notes = get_notes(false);
     let lines: Vec<&str> = notes.lines().collect();
-    let range = &lines[from[0]..=from[1]]; 
+    let range = &lines[from[0]..=from[1]];
     let nto = if to < from[0] {to} else {to - range.len() + 1};
     let first_half = &lines[0..from[0]];
     let second_half = &lines[(from[1] + 1)..];
     let mut joined: Vec<&str> = vec![];
     joined.extend(first_half); joined.extend(second_half);
     joined.splice(nto..nto, range.iter().cloned());
+
+    // Reset last edit if it's no longer valid
+    let last_edit = g_get_last_edit();
     
-    // Reset last edit
-    // Fix Me: Ideally this should be smarter
-    // and only reset it when needed
-    g_set_last_edit(0);
+    if from.contains(&last_edit) || to == last_edit
+    || (*from.first().unwrap() > last_edit && to < last_edit)
+    || (*from.last().unwrap() < last_edit && to > last_edit)
+    {
+        g_set_last_edit(0);
+    }
+
+// if FROM contains ITEM or TO equals ITEM
+// if FROM is after ITEM and TO is before ITEM
+// if FROM is before ITEM and TO is after ITEM
+
     update_file(joined.join("\n"));
 }
 
@@ -1097,14 +1110,14 @@ fn edit_note(mut n: usize)
     if n == 0
     {
         let last_edit = g_get_last_edit();
-        let suggestion = if last_edit == 0 {s!()} 
+        let suggestion = if last_edit == 0 {s!()}
         else {expand_note_number(last_edit)};
         n = parse_note_ans(&ask_string("Edit #", &(suggestion), true));
     }
 
     if !check_line_exists(n) {return}
     let edited = ask_string("Edit Note", &get_line(n), false);
-    if edited.is_empty() {return} 
+    if edited.is_empty() {return}
     g_set_last_edit(n);
     replace_line(n, edited);
     show_page(get_note_page(n));
@@ -1156,7 +1169,7 @@ fn find_notes(suggest: bool)
         return show_message(&format!("< No Results for {}", info));
     }
 
-    g_set_last_find(filter); g_set_found(found); 
+    g_set_last_find(filter); g_set_found(found);
     g_set_mode(s!("found")); next_found();
 }
 
@@ -1204,7 +1217,7 @@ fn delete_notes()
             }
         }
 
-        else 
+        else
         {
             return show_message("< Invalid Regex | (Enter) Return >");
         }
@@ -1233,7 +1246,10 @@ fn delete_notes()
         numbers.push(parse_note_ans(&ans));
     }
 
-    numbers = numbers.iter().filter(|n| check_line_exists(**n)).copied().collect();
+    numbers = numbers.iter()
+        .filter(|n| check_line_exists(**n))
+        .copied().collect();
+
     let length = numbers.len();
 
     if length >= 5
@@ -1369,7 +1385,7 @@ fn get_max_page_number() -> usize
 
 // Goes to the previous page
 fn cycle_left()
-{   
+{
     let page = g_get_page();
     if page == 1 {return}
     show_page(page - 1);
@@ -1426,7 +1442,7 @@ fn cycle_menu()
 {
     let mlength = g_get_menus_length();
     let menu = g_get_current_menu();
-    if menu >= (mlength -1) {g_set_current_menu(0)} 
+    if menu >= (mlength -1) {g_set_current_menu(0)}
     else {g_set_current_menu(menu + 1)}
     refresh_page();
 }
@@ -1460,15 +1476,15 @@ fn show_about()
         g_set_mode(s!("about"));
     }
 
-    let art = 
+    let art =
 r#"
-8888888888  .d888  .d888                 
-888        d88P"  d88P"                  
-888        888    888                    
-8888888    888888 888888 .d88b.  888d888 
-888        888    888   d8P  Y8b 888P"   
-888        888    888   88888888 888     
-888        888    888   Y8b.     888     
+8888888888  .d888  .d888
+888        d88P"  d88P"
+888        888    888
+8888888    888888 888888 .d88b.  888d888
+888        888    888   d8P  Y8b 888P"
+888        888    888   88888888 888
+888        888    888   Y8b.     888
 8888888888 888    888    "Y8888  888"#;
 
     let name = format!("Effer {} | Encrypted Notepad", VERSION);
@@ -1514,7 +1530,7 @@ fn change_page_size(increase: bool)
     {
         if page_size < MAX_PAGE_SIZE && max_page > 1 {g_set_page_size(page_size + 5)} else {return}
     }
-    
+
     else
     {
         if page_size >= 10 {g_set_page_size(page_size - 5)} else {return}
@@ -1525,7 +1541,7 @@ fn change_page_size(increase: bool)
 
 // Modifies the header (first line) with new settings
 fn update_header()
-{   
+{
     let uc = UNLOCK_CHECK;
     let ps = g_get_page_size();
     let rs = g_get_row_space();
@@ -1533,7 +1549,7 @@ fn update_header()
     let c2 = color_to_string(g_get_color_2());
     let c3 = color_to_string(g_get_color_3());
 
-    let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={}", 
+    let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={}",
         uc, ps, rs, c1, c2, c3);
 
     replace_line(0, s);
@@ -1547,7 +1563,7 @@ fn show_message(message: &str)
 
 // Show some statistics
 fn show_stats()
-{ 
+{
     if g_get_mode() == "stats"
     {
         return refresh_page();
@@ -1564,7 +1580,7 @@ fn show_stats()
     let mut lcount = 0;
 
     for (i, line) in notes.lines().enumerate()
-    {   
+    {
         if i == 0 {continue}
         wcount += line.split_whitespace().count();
         lcount += line.chars().filter(|c| *c != ' ').count();
@@ -1574,7 +1590,7 @@ fn show_stats()
     let dec_size = notes.as_bytes().len();
     let path = shell_contract(&g_get_path().to_string());
 
-    let s = format!("Stats For: {}\n\nNotes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes", 
+    let s = format!("Stats For: {}\n\nNotes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes",
         path, len, wcount, lcount, enc_size, dec_size);
 
     show_message(&s);
@@ -1609,11 +1625,11 @@ fn get_source_content(path: &str)
 {
     match read_file(path)
     {
-        Ok(text) => 
+        Ok(text) =>
         {
             g_set_source(if text.is_empty() {s!()} else {text});
         }
-        Err(_) => 
+        Err(_) =>
         {
             if g_get_started()
             {
@@ -1629,7 +1645,7 @@ fn get_source_content(path: &str)
     }
 }
 
-// What to do when a source path is given 
+// What to do when a source path is given
 // Either replaces, appends, or prepends notes
 // using the source file lines
 fn handle_source()
@@ -1643,7 +1659,7 @@ fn handle_source()
     if notes.lines().count() == 1
     {
         let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
-        lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
+        lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
         update_file(lines.join("\n")); if started {goto_last_page()}
     }
 
@@ -1660,7 +1676,7 @@ fn handle_source()
                 if ask_bool("Are you sure you want to replace everything?", true)
                 {
                     let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
-                    lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
+                    lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
                     update_file(lines.join("\n")); g_set_last_edit(0);
                     if started {goto_last_page()}
                 }
@@ -1669,7 +1685,7 @@ fn handle_source()
             "a" =>
             {
                 let mut lines: Vec<&str> = notes.lines().collect();
-                lines.extend(source.lines().filter(|s| !s.trim().is_empty())); 
+                lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
                 update_file(lines.join("\n")); if started {goto_last_page()}
             },
             // Prepend
@@ -1680,7 +1696,7 @@ fn handle_source()
                 let nlines: Vec<&str> = source.lines()
                     .filter(|s| !s.trim().is_empty()).collect();
                 let olines: Vec<&str> = lines.collect();
-                xlines.extend(nlines); xlines.extend(olines); 
+                xlines.extend(nlines); xlines.extend(olines);
                 update_file(xlines.join("\n")); g_set_last_edit(0);
                 if started {goto_first_page()}
             },
@@ -1715,7 +1731,7 @@ fn open_from_path()
         FilePathCheckResult::DoesNotExist =>
         {
             e!("File doesn't exist.");
-            
+
             if ask_bool("Do you want to make the file now?", false)
             {
                 do_open_path(pth, true)
@@ -1756,7 +1772,7 @@ fn do_open_path(pth: String, create: bool)
         g_set_password(opassword); g_set_path(opath);
         show_message("< Can't Decrypt File >");
     }
-            
+
     else
     {
         reset_state(notes); goto_last_page();
@@ -1781,7 +1797,7 @@ fn destroy()
         {
             match fs::write(&path, gibberish(10_000))
             {
-                Ok(_) => 
+                Ok(_) =>
                 {
                     if i < 10
                     {
@@ -1880,7 +1896,7 @@ fn change_colors()
             let ans = ask_string("Color (r,g,b)", &suggestion, true);
             if ans.is_empty() {return}
             let nc = parse_color(&ans, c);
-        
+
             match n
             {
                 1 => g_set_color_1(nc),
@@ -1892,7 +1908,7 @@ fn change_colors()
         "4" =>
         {
             let mut suggestion = s!();
-            let c1 = g_get_color_1(); 
+            let c1 = g_get_color_1();
             let c2 = g_get_color_2();
             let c3 = g_get_color_3();
             suggestion += &format!("{}", color_to_string(c1));
@@ -1971,17 +1987,20 @@ fn get_color(n: usize) -> String
 
     match n
     {
-        1 => 
+        // Background Color
+        1 =>
         {
             let t = g_get_color_1();
             s!(color::Bg(color::Rgb(t.0, t.1, t.2)))
         }
-        2 => 
+        // Foreground Color
+        2 =>
         {
             let t = g_get_color_2();
             s!(color::Fg(color::Rgb(t.0, t.1, t.2)))
         }
-        3 => 
+        // Other Color
+        3 =>
         {
             let t = g_get_color_3();
             s!(color::Fg(color::Rgb(t.0, t.1, t.2)))
@@ -2035,7 +2054,7 @@ fn move_notes()
         let dest = parse_note_ans(split_right.next().unwrap_or("0"));
         if num1 == 0 || num2 == 0 || dest == 0 {return}
         if num2 > note_length {num2 = note_length}
-        if num1 >= num2 {return} 
+        if num1 >= num2 {return}
         if !check_line_exists(dest) {return}
         if dest >= num1 && dest <= num2 {return}
         move_lines(vec![num1, num2], dest);
@@ -2049,7 +2068,7 @@ fn move_notes()
         if num1 == 0 || dest == 0 {return}
         if !check_line_exists(num1) {return}
         if !check_line_exists(dest) {return}
-        if num1 == dest {return} 
+        if num1 == dest {return}
         move_lines(vec![num1, num1], dest);
     }
 }
@@ -2057,8 +2076,8 @@ fn move_notes()
 // Shows the page indicator above the menu
 fn show_page_indicator(page: usize)
 {
-    p!(format!("\n< Page {} of {} >\n{}", 
-        page, get_max_page_number(), 
+    p!(format!("\n< Page {} of {} >\n{}",
+        page, get_max_page_number(),
         shell_contract(&g_get_path().to_string())));
 }
 
@@ -2071,7 +2090,7 @@ fn expand_note_number(n: usize) -> String
     else {s!(n)}
 }
 
-// Calculates if some padding 
+// Calculates if some padding
 // must be given between note numbers
 // and note text. So all notes look aligned
 // Returns the difference and the max length
@@ -2084,7 +2103,7 @@ fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
     {
         let nl = note.0.to_string().len();
 
-        if len == 0 
+        if len == 0
         {
             len = nl; continue;
         }
@@ -2098,7 +2117,7 @@ fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
     max
 }
 
-// Converts a color tuple 
+// Converts a color tuple
 // into a comma separated string
 fn color_to_string(c: (u8, u8, u8)) -> String
 {
@@ -2112,7 +2131,7 @@ fn random_color() -> (u8, u8, u8)
     let mut v: Vec<u8> = vec![];
 
     for _ in 1..=3
-    {   
+    {
         let n: u8 = rng.gen(); v.push(n);
     }
 
@@ -2147,7 +2166,7 @@ fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
             let v: Vec<u8> = ans.split(',')
                 .map(|s| s.trim())
                 .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
-            
+
             if v.len() != 3 {return (0, 0, 0)} (v[0], v[1], v[2])
         }
     }
@@ -2157,8 +2176,8 @@ fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
 {
     (
-        (t.0 as f64 * 0.70) as u8, 
-        (t.1 as f64 * 0.70) as u8, 
+        (t.0 as f64 * 0.70) as u8,
+        (t.1 as f64 * 0.70) as u8,
         (t.2 as f64 * 0.70) as u8
     )
 }
@@ -2167,8 +2186,8 @@ fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
 fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
 {
     (
-        (t.0 as f64 + (0.30 * (255 - t.0) as f64)) as u8, 
-        (t.1 as f64 + (0.30 * (255 - t.1) as f64)) as u8, 
+        (t.0 as f64 + (0.30 * (255 - t.0) as f64)) as u8,
+        (t.1 as f64 + (0.30 * (255 - t.1) as f64)) as u8,
         (t.2 as f64 + (0.30 * (255 - t.2) as f64)) as u8
     )
 }
@@ -2186,22 +2205,22 @@ fn mode_action()
 // Attemps to show the next found notes
 fn next_found()
 {
-    let found = g_get_found_next(); 
+    let found = g_get_found_next();
     let remaining = g_get_found_remaining();
 
-    if found.len() == 0 
+    if found.len() == 0
     {
         return refresh_page()
     }
 
     let tip = if remaining > 0 {" | (Enter) More"} else {""};
-    let len = g_get_found_length(); 
+    let len = g_get_found_length();
 
-    let info = format!("{}{}{}{} >", 
+    let info = format!("{}{}{}{} >",
         get_color(3), g_get_last_find(), get_color(2), tip);
 
     let diff = len - remaining;
-    let mut message; 
+    let mut message;
 
     if len == 1
     {
@@ -2218,6 +2237,5 @@ fn next_found()
         message = format!("< {}/{} Results for ", diff, len);
     }
 
-    message += &info;
-    show_notes(0, found, message);
+    message += &info; show_notes(0, found, message);
 }
