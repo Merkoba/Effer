@@ -78,6 +78,8 @@ To build an optimized binary
 
 Or just use the binary provided in the latest release.
 
+There's a simple bash script to move the release binary to /bin
+
 # Arguments
 Check --help to find out about arguments that can be used.
 
