@@ -151,8 +151,7 @@ fn check_arguments()
 
     if print_mode == "print" || print_mode == "print2"
     {
-        let notes = get_notes(false);
-        let lines: Vec<&str> = notes.lines().collect();
+        let lines = get_notes_vec();
         if lines.is_empty() {exit()}
         let mut result: Vec<String> = vec![];
 
@@ -520,7 +519,7 @@ fn decrypt_text(encrypted_text: &str) -> String
 
     let header = match text.lines().nth(0)
     {
-        Some(hd) => hd, None => {e!("Can't read last line from the file."); return s!()}
+        Some(hd) => hd, None => {e!("Can't read the header."); return s!()}
     };
 
     if !header.starts_with(UNLOCK_CHECK)
@@ -831,6 +830,18 @@ fn get_notes(update: bool) -> String
     else {notes}
 }
 
+// Returns the notes in a vector
+fn get_notes_vec() -> Vec<String>
+{
+    get_notes(false).lines().map(|s| s!(s)).collect()
+}
+
+// Returns the file's header
+fn get_header() -> String
+{
+    s!(get_notes(false).lines().nth(0).unwrap())
+}
+
 // Encrypts and saves the updated notes to the file
 fn update_file(text: String)
 {
@@ -873,12 +884,11 @@ fn update_notes_statics(text: String) -> String
 // Sets defaults if they're not defined
 fn get_settings()
 {
-    let notes = get_notes(false);
-    let header = notes.lines().nth(0).unwrap();
+    let header = get_header();
     let mut update = false;
 
     let re = Regex::new(r"page_size=(?P<page_size>\d+)").unwrap();
-    let cap = re.captures(header);
+    let cap = re.captures(&header);
     let arg = g_get_arg_page_size();
     let arg_empty = arg.is_empty();
 
@@ -899,7 +909,7 @@ fn get_settings()
     }
 
     let re = Regex::new(r"row_space=(?P<row_space>\w+)").unwrap();
-    let cap = re.captures(header);
+    let cap = re.captures(&header);
     let arg = g_get_arg_row_space();
     let arg_empty = arg.is_empty();
 
@@ -918,7 +928,7 @@ fn get_settings()
     }
 
     let re = Regex::new(r"color_1=(?P<color_1>\d+,\d+,\d+)").unwrap();
-    let cap = re.captures(header);
+    let cap = re.captures(&header);
     let arg = g_get_arg_color_1();
     let arg_empty = arg.is_empty();
 
@@ -945,7 +955,7 @@ fn get_settings()
     }
 
     let re = Regex::new(r"color_2=(?P<color_2>\d+,\d+,\d+)").unwrap();
-    let cap = re.captures(header);
+    let cap = re.captures(&header);
     let arg = g_get_arg_color_2();
     let arg_empty = arg.is_empty();
 
@@ -972,7 +982,7 @@ fn get_settings()
     }
 
     let re = Regex::new(r"color_3=(?P<color_3>\d+,\d+,\d+)").unwrap();
-    let cap = re.captures(header);
+    let cap = re.captures(&header);
     let arg = g_get_arg_color_3();
     let arg_empty = arg.is_empty();
 
@@ -1014,8 +1024,7 @@ fn reset_settings()
 // Gets a specific line from the notes
 fn get_line(n: usize) -> String
 {
-    let notes = get_notes(false);
-    let lines: Vec<&str> = notes.lines().collect();
+    let lines = get_notes_vec();
     if n >= lines.len() {return s!()}
     lines[n].to_string()
 }
@@ -1023,17 +1032,15 @@ fn get_line(n: usize) -> String
 // Replaces a line from the notes with a new line
 fn replace_line(n: usize, new_text: String)
 {
-    let notes = get_notes(false);
-    let mut lines: Vec<&str> = notes.lines().collect();
-    lines[n] = &new_text[..];
+    let mut lines = get_notes_vec();
+    lines[n] = new_text;
     update_file(lines.join("\n"));
 }
 
 // Swaps two lines from the notes
 fn swap_lines(n1: usize, n2: usize)
 {
-    let notes = get_notes(false);
-    let mut lines: Vec<&str> = notes.lines().collect();
+    let mut lines = get_notes_vec();
     lines.swap(n1, n2);
 
     // If one of the two items is the last edited note
@@ -1048,15 +1055,13 @@ fn swap_lines(n1: usize, n2: usize)
 // Moves a range of lines to another index
 fn move_lines(from: Vec<usize>, to: usize)
 {
-    let notes = get_notes(false);
-    let lines: Vec<&str> = notes.lines().collect();
-    let range = &lines[from[0]..=from[1]];
-    let nto = if to < from[0] {to} else {to - range.len() + 1};
-    let first_half = &lines[0..from[0]];
-    let second_half = &lines[(from[1] + 1)..];
-    let mut joined: Vec<&str> = vec![];
-    joined.extend(first_half); joined.extend(second_half);
-    joined.splice(nto..nto, range.iter().cloned());
+    let mut left = get_notes_vec();
+    let mut joined: Vec<String> = vec![];
+    let mut moved = left.split_off(from[0]);
+    let mut right = moved.split_off(from[1] - from[0] + 1);
+    let nto = if to < from[0] {to} else {to - moved.len() + 1};
+    joined.append(&mut left); joined.append(&mut right);
+    joined.splice(nto..nto, moved.iter().cloned());
 
     // Reset last edit if it's no longer valid
     let last_edit = g_get_last_edit();
@@ -1648,13 +1653,13 @@ fn handle_source()
 {
     let source = g_get_source();
     if source.is_empty() {return}
-    let notes = get_notes(false);
+    let mut notes = get_notes_vec();
     let started = g_get_started();
 
     // If there are no notes just fill it with source
-    if notes.lines().count() == 1
+    if notes.len() == 1
     {
-        let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
+        let mut lines: Vec<&str> = vec![&notes[0]];
         lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
         update_file(lines.join("\n")); if started {goto_last_page()}
     }
@@ -1671,7 +1676,7 @@ fn handle_source()
             {
                 if ask_bool("Are you sure you want to replace everything?", true)
                 {
-                    let mut lines: Vec<&str> = vec![notes.lines().nth(0).unwrap()];
+                    let mut lines: Vec<&str> = vec![&notes[0]];
                     lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
                     update_file(lines.join("\n")); g_set_last_edit(0);
                     if started {goto_last_page()}
@@ -1680,20 +1685,28 @@ fn handle_source()
             // Append
             "a" =>
             {
-                let mut lines: Vec<&str> = notes.lines().collect();
-                lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
+                let mut lines: Vec<String> = vec![]; lines.append(&mut notes);
+
+                lines.append(&mut source.lines()
+                    .filter(|s| !s.trim().is_empty())
+                    .map(|s| s!(s))
+                    .collect());
+
                 update_file(lines.join("\n")); if started {goto_last_page()}
             },
             // Prepend
             "p" =>
             {
-                let mut lines = notes.lines();
-                let mut xlines = vec![lines.next().unwrap()];
-                let nlines: Vec<&str> = source.lines()
-                    .filter(|s| !s.trim().is_empty()).collect();
-                let olines: Vec<&str> = lines.collect();
-                xlines.extend(nlines); xlines.extend(olines);
-                update_file(xlines.join("\n")); g_set_last_edit(0);
+                let mut lines: Vec<String> = vec![]; 
+                let mut notes2 = notes.split_off(1);
+                lines.append(&mut notes);
+                let mut new_lines: Vec<String> = source.lines()
+                    .filter(|s| !s.trim().is_empty())
+                    .map(|s| s!(s))
+                    .collect();
+                lines.append(&mut new_lines);
+                lines.append(&mut notes2);
+                update_file(lines.join("\n")); g_set_last_edit(0);
                 if started {goto_first_page()}
             },
             _ => {}
