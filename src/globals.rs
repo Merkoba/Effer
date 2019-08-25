@@ -430,7 +430,7 @@ pub fn g_get_altscreen() -> bool
     ALTSCREEN.load(Ordering::SeqCst)
 }
 
-// Sets the use altscreen global value
+// Sets the altscreen global value
 pub fn g_set_altscreen(b: bool)
 {
     ALTSCREEN.store(b, Ordering::SeqCst);
