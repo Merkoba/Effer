@@ -1066,7 +1066,7 @@ fn move_lines(from: Vec<usize>, to: usize)
     // Reset last edit if it's no longer valid
     let last_edit = g_get_last_edit();
     
-    if from.contains(&last_edit) || to == last_edit
+    if (from[0]..=from[1]).contains(&last_edit) || to == last_edit
     || (*from.first().unwrap() > last_edit && to < last_edit)
     || (*from.last().unwrap() < last_edit && to > last_edit)
     {
