@@ -4,13 +4,15 @@ This is a small CLI program to store notes that will be saved to a text file in 
 
 To read the notes you need to use the password used to encrypt the file within the program.
 
-It can, edit, find, and delete notes.
+It can, add, edit, find, move, swap, delete, notes.
 
 It can find using a case insensitive regex.
 
 Last find filter remembered.
 
 It can delete using a single number, a list, a range, or a case insensitive regex.
+
+It can move 1 or several items at a time to a new index or by steps (up/down).
 
 The file can be remade (replaced with an empty one).
 

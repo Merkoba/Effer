@@ -2096,40 +2096,71 @@ fn reset_state(notes: String)
 // and a destination. The moves it
 fn move_notes()
 {
-    pp!("From To (n1 n2) | "); p!("Or Range (4-10 2)");
+    pp!("From To (n1 n2) | "); 
+    p!("Or Range (4-10 2)");
+    pp!("Or Up (4 up 2) | ");
+    p!("Or Down (4 down 2)");
 
     let ans = ask_string("Move", "", true);
     if ans.is_empty() {return}
+    let num1; let mut num2;
+    let max = g_get_notes_length();
 
+    // Get the range to move
     if ans.contains('-')
     {
         if ans.matches('-').count() > 1 {return}
-        let note_length = g_get_notes_length();
         let mut split = ans.split('-').map(|n| n.trim());
-        let num1 = parse_note_ans(split.next().unwrap_or("0"));
+        num1 = parse_note_ans(split.next().unwrap_or("0"));
         let right_side = split.next().unwrap_or("nothing");
         let mut split_right = right_side.split_whitespace().map(|n| n.trim());
-        let mut num2 = parse_note_ans(split_right.next().unwrap_or("0"));
-        let dest = parse_note_ans(split_right.next().unwrap_or("0"));
-        if num1 == 0 || num2 == 0 || dest == 0 {return}
-        if num2 > note_length {num2 = note_length}
+        num2 = parse_note_ans(split_right.next().unwrap_or("0"));
+        if num1 == 0 || num2 == 0 {return}
+        if num2 > max {num2 = max}
         if num1 >= num2 {return}
-        if !check_line_exists(dest) {return}
-        if dest >= num1 && dest <= num2 {return}
-        move_lines(vec![num1, num2], dest);
     }
 
     else
     {
         let mut split = ans.split_whitespace().map(|n| n.trim());
-        let num1 = parse_note_ans(split.next().unwrap_or("0"));
-        let dest = parse_note_ans(split.next().unwrap_or("0"));
-        if num1 == 0 || dest == 0 {return}
+        num1 = parse_note_ans(split.next().unwrap_or("0"));
+        if num1 == 0 {return}
         if !check_line_exists(num1) {return}
-        if !check_line_exists(dest) {return}
-        if num1 == dest {return}
-        move_lines(vec![num1, num1], dest);
+        num2 = num1;
     }
+
+    // Get the destination index
+    let dest = if ans.contains("up")
+    {
+        let steps = ans.split("up").last().unwrap_or("0").trim().parse::<usize>()
+            .unwrap_or(0);
+            
+        if steps == 0 {return}
+        if (num1 as isize - steps as isize) < 1 {return}
+        num1 - steps
+    }
+
+    else if ans.contains("down")
+    {
+        let steps = ans.split("down").last().unwrap_or("0").trim().parse::<usize>()
+            .unwrap_or(0);
+            
+        if steps == 0 {return}
+        if num2 + steps > max {return}
+        num2 + steps
+    }
+
+    else
+    {
+        let split = ans.split_whitespace().map(|n| n.trim());
+        parse_note_ans(split.last().unwrap_or("0"))
+    };
+    
+    if !check_line_exists(dest) {return}
+    if dest >= num1 && dest <= num2 {return}
+    if num1 == dest {return}
+    
+    move_lines(vec![num1, num2], dest);
 }
 
 // Shows the page indicator above the menu
