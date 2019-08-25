@@ -1079,8 +1079,7 @@ fn move_lines(from: Vec<usize>, to: usize)
 // Deletes a line from the notes then updates the file
 fn delete_lines(numbers: Vec<usize>)
 {
-    let notes = get_notes(false);
-    let lines: Vec<&str> = notes.lines().collect();
+    let lines = get_notes_vec();
     let mut new_lines: Vec<&str> = vec![];
 
     for (i, line) in lines.iter().enumerate()
@@ -1134,14 +1133,15 @@ fn find_notes(suggest: bool)
     let suggestion = if suggest && !last_find.is_empty() {&last_find} else {""};
     let filter = ask_string("Find", suggestion, true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
-    if filter.is_empty() {return} let notes = get_notes(false);
-    let info = format!("{}{}{} >", get_color(3), filter, get_color(2));
+    if filter.is_empty() {return}
+    let info = format!("{}{}{} >", 
+        get_color(3), filter, get_color(2));
 
     if filter.starts_with("re:")
     {
         if let Ok(re) = Regex::new(format!("(?i){}", filter.replacen("re:", "", 1)).trim())
         {
-            for (i, line) in notes.lines().enumerate()
+            for (i, line) in get_notes_vec().iter().enumerate()
             {
                 if i == 0 {continue}
                 if re.is_match(line) {found.push((i, s!(line)))}
@@ -1158,7 +1158,7 @@ fn find_notes(suggest: bool)
     {
         let ifilter = filter.to_lowercase();
 
-        for (i, line) in notes.lines().enumerate()
+        for (i, line) in get_notes_vec().iter().enumerate()
         {
             if i == 0 {continue}
             if line.to_lowercase().contains(&ifilter) {found.push((i, s!(line)))}
@@ -1200,7 +1200,6 @@ fn delete_notes()
     let ans = ask_string("Delete", "", true);
     if ans.is_empty() {return}
     let mut numbers: Vec<usize> = vec![];
-    let notes = get_notes(false);
 
     fn nope()
     {
@@ -1211,7 +1210,7 @@ fn delete_notes()
     {
         if let Ok(re) = Regex::new(format!("(?i){}", ans.replacen("re:", "", 1)).trim())
         {
-            for (i, line) in notes.lines().enumerate()
+            for (i, line) in get_notes_vec().iter().enumerate()
             {
                 if i == 0 {continue}
                 if re.is_match(line) {numbers.push(i)}
@@ -1366,8 +1365,7 @@ fn check_page_number(page: usize, allow_zero: bool) -> usize
 fn get_page_notes(page: usize) -> Vec<(usize, String)>
 {
     let mut result: Vec<(usize, String)> = vec![];
-    let notes = get_notes(false);
-    let lines: Vec<&str> = notes.lines().collect();
+    let lines = get_notes_vec();
     if lines.is_empty() {return result}
     let page_size = g_get_page_size();
     let a = if page > 1 {((page - 1) * page_size) + 1} else {1};
@@ -1451,11 +1449,9 @@ fn cycle_menu()
 // Shows all notes at once
 fn show_all_notes()
 {
-    let notes = get_notes(false);
-    let lines: Vec<&str> = notes.lines().collect();
     let mut notes: Vec<(usize, String)> = vec![];
 
-    for (i, line) in lines.iter().enumerate()
+    for (i, line) in get_notes_vec().iter().enumerate()
     {
         if i == 0 {continue}
         notes.push((i, s!(line)));
@@ -1580,7 +1576,7 @@ fn show_stats()
     let mut wcount = 0;
     let mut lcount = 0;
 
-    for (i, line) in notes.lines().enumerate()
+    for (i, line) in get_notes_vec().iter().enumerate()
     {
         if i == 0 {continue}
         wcount += line.split_whitespace().count();
