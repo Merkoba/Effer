@@ -1,3 +1,6 @@
+#![allow(clippy::suspicious_else_formatting)]
+#![allow(clippy::collapsible_if)]
+
 mod macros;
 
 mod structs;
@@ -790,7 +793,7 @@ fn show_notes(mut page: usize, notes: Vec<(usize, String)>, message: String)
 }
 
 // Prints notes to the screen
-fn print_notes(notes: &Vec<(usize, String)>)
+fn print_notes(notes: &[(usize, String)])
 {
     let space = g_get_row_space();
     let padding = calculate_padding(&notes);
@@ -908,8 +911,9 @@ fn get_settings()
         };
 
         let num = argx.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
-        let mut value = (5.0 * (num as f64 / 5.0).round()) as usize;
-        if value <= 0 {value = 5} else if value > MAX_PAGE_SIZE {value = MAX_PAGE_SIZE};
+        let mut mult = 5.0 * (num as f64 / 5.0).round();
+        if mult <= 0.0 {mult = 5.0}; let mut value = mult as usize;
+        if value > MAX_PAGE_SIZE {value = MAX_PAGE_SIZE};
         g_set_page_size(value);
     }
 
@@ -1219,7 +1223,7 @@ fn find_notes(suggest: bool)
         }
     }
 
-    if found.len() == 0
+    if found.is_empty()
     {
         return show_message(&format!("< No Results for {}", info));
     }
@@ -1970,7 +1974,7 @@ fn change_colors()
             let c1 = g_get_color_1();
             let c2 = g_get_color_2();
             let c3 = g_get_color_3();
-            suggestion += &format!("{}", color_to_string(c1));
+            suggestion += &color_to_string(c1);
             suggestion += &format!(" - {}", color_to_string(c2));
             suggestion += &format!(" - {}", color_to_string(c3));
             let ans = ask_string("All Colors", &suggestion, false);
@@ -2184,7 +2188,7 @@ fn expand_note_number(n: usize) -> String
 // must be given between note numbers
 // and note text. So all notes look aligned
 // Returns the difference and the max length
-fn calculate_padding(notes: &Vec<(usize, String)>) -> usize
+fn calculate_padding(notes: &[(usize, String)]) -> usize
 {
     let mut max = 0;
     let mut len = 0;
@@ -2266,9 +2270,9 @@ fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
 {
     (
-        (t.0 as f64 * 0.70) as u8,
-        (t.1 as f64 * 0.70) as u8,
-        (t.2 as f64 * 0.70) as u8
+        (f64::from(t.0) * 0.70) as u8,
+        (f64::from(t.1) * 0.70) as u8,
+        (f64::from(t.2) * 0.70) as u8
     )
 }
 
@@ -2276,9 +2280,9 @@ fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
 fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
 {
     (
-        (t.0 as f64 + (0.30 * (255 - t.0) as f64)) as u8,
-        (t.1 as f64 + (0.30 * (255 - t.1) as f64)) as u8,
-        (t.2 as f64 + (0.30 * (255 - t.2) as f64)) as u8
+        (f64::from(t.0) + (0.30 * f64::from(255 - t.0))) as u8,
+        (f64::from(t.1) + (0.30 * f64::from(255 - t.1))) as u8,
+        (f64::from(t.2) + (0.30 * f64::from(255 - t.2))) as u8
     )
 }
 
@@ -2298,7 +2302,7 @@ fn next_found()
     let found = g_get_found_next();
     let remaining = g_get_found_remaining();
 
-    if found.len() == 0
+    if found.is_empty()
     {
         return refresh_page()
     }
