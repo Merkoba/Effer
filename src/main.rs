@@ -2241,6 +2241,7 @@ fn move_notes()
     }
     
     move_lines(vec![num1, num2], dest);
+    show_page(get_note_page(dest));
 }
 
 // Shows the page indicator above the menu
