@@ -1158,12 +1158,20 @@ fn delete_lines(numbers: Vec<usize>)
 // Provides an input to add a new note
 fn add_note(prepend: bool)
 {
-    if !prepend
+    let prompt;
+
+    if prepend
     {
+        prompt = "Add At Start";
+    }
+
+    else
+    {
+        prompt = "Add At End";
         p!("Shift+A To Add At Start");
     }
     
-    let note = ask_string("Add Note", "", false);
+    let note = ask_string(prompt, "", false);
     if note.is_empty() {return} let new_text;
 
     if prepend
