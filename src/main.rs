@@ -656,6 +656,7 @@ fn menu_input() -> (MenuAnswer, usize)
                                 else {MenuAnswer::Nothing}
                         },
                         'a' => MenuAnswer::AddNote,
+                        'A' => MenuAnswer::AddNoteStart,
                         'e' => MenuAnswer::EditNote,
                         'f' => MenuAnswer::FindNotes,
                         'm' => MenuAnswer::MoveNotes,
@@ -721,7 +722,8 @@ fn menu_action(ans: (MenuAnswer, usize))
 {
     match ans.0
     {
-        MenuAnswer::AddNote => add_note(),
+        MenuAnswer::AddNote => add_note(false),
+        MenuAnswer::AddNoteStart => add_note(true),
         MenuAnswer::EditNote => edit_note(0),
         MenuAnswer::FindNotes => find_notes(false),
         MenuAnswer::FindNotesSuggest => find_notes(true),
@@ -1154,13 +1156,33 @@ fn delete_lines(numbers: Vec<usize>)
 }
 
 // Provides an input to add a new note
-fn add_note()
+fn add_note(prepend: bool)
 {
+    if !prepend
+    {
+        p!("Shift+A To Add At Start");
+    }
+    
     let note = ask_string("Add Note", "", false);
-    if note.is_empty() {return}
-    let new_text = format!("{}\n{}", get_notes(false), note);
-    update_file(new_text); g_set_last_edit(g_get_notes_length());
-    goto_last_page();
+    if note.is_empty() {return} let new_text;
+
+    if prepend
+    {
+        let mut notes = get_notes_vec();
+        let rest = notes.split_off(1);
+        new_text = format!("{}\n{}\n{}", notes[0], note, rest.join("\n"));
+        update_file(new_text);
+        g_set_last_edit(1);
+        goto_first_page();
+    }
+
+    else
+    {
+        new_text = format!("{}\n{}", get_notes(false), note);
+        update_file(new_text);
+        g_set_last_edit(g_get_notes_length());
+        goto_last_page();
+    }
 }
 
 // Asks for a note number to edit
