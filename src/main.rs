@@ -1998,9 +1998,24 @@ fn change_colors()
         },
         "r" =>
         {
-            g_set_color_1(random_color());
-            g_set_color_2(random_color());
-            g_set_color_3(random_color());
+            p!("(1) BG | (2) FG | (3) Other | (4) All");
+            let ans = ask_string("Undo", "", true);
+            if ans.is_empty() {return}
+            let n = ans.parse::<u8>().unwrap_or(0);
+
+            match n
+            {
+                1 => g_set_color_1(random_color()),
+                2 => g_set_color_2(random_color()),
+                3 => g_set_color_3(random_color()),
+                4 =>
+                {
+                    g_set_color_1(random_color());
+                    g_set_color_2(random_color());
+                    g_set_color_3(random_color());
+                },
+                _ => return
+            }
         },
         "v" =>
         {
