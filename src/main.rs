@@ -352,11 +352,8 @@ fn handle_file_path_check(result: FilePathCheckResult)
 }
 
 // Centralized function to handle user input
-// It's generic and can return different types
-// Closures are supplied to react on success or failure
 // Can make typing invisible for cases like password input
-fn get_input<F, E, T>(message: &str, initial: &str, f_ok: F, f_err: E, mask: bool) -> T
-where F: Fn(String) -> T, E: Fn() -> T
+fn get_input(message: &str, initial: &str, mask: bool) -> String
 {
     let config: Config = Config::builder()
         .keyseq_timeout(50)
@@ -373,14 +370,8 @@ where F: Fn(String) -> T, E: Fn() -> T
 
     let ans = match editor.readline_with_initial(&prompt, (initial, &s!()))
     {
-        Ok(input) =>
-        {
-            f_ok(input)
-        },
-        Err(_) =>
-        {
-            f_err()
-        }
+        Ok(input) => input,
+        Err(_) => s!()
     };
 
     if mask {ee!("{}", termion::cursor::Show)} ans
@@ -389,29 +380,31 @@ where F: Fn(String) -> T, E: Fn() -> T
 // Asks the user for a yes/no answer
 fn ask_bool(message: &str, critical:bool) -> bool
 {
-    if critical
-    {
-        get_input(&[message, " (Y, n)"].concat(), "", |a| a.trim() == "Y", || false, false)
-    }
+    let prompt = if critical {" (Y, n)"} else {" (y, n)"};
 
-    else
+    loop
     {
-        get_input(&[message, " (y, n)"].concat(), "", |a| a.trim().to_lowercase() == "y", || false, false)
+        let ans = get_input(&[message, prompt].concat(), "", false);
+
+        match ans.trim()
+        {
+            "y" => 
+            {
+                if !critical {return true}
+            },
+            "Y" => return true,
+            "n" => return false,
+            "" => return false,
+            _ => {}
+        }
     }
 }
 
 // Asks the user to input a string
 fn ask_string(message: &str, initial: &str, trim: bool) -> String
 {
-    if trim
-    {
-        get_input(message, initial, |a| a.trim().to_string(), String::new, false)
-    }
-
-    else
-    {
-        get_input(message, initial, |a| a, String::new, false)
-    }
+    let ans = get_input(message, initial, false);
+    if trim {s!(ans.trim())} else {ans}
 }
 
 // Gets the file's password saved globally
@@ -429,16 +422,16 @@ fn get_password(change: bool) -> String
         {
             loop
             {
-                password = get_input("New Password", "", |a| a, String::new, true);
+                password = get_input("New Password", "", true);
                 if password.is_empty() {return s!()}
-                let confirmation = get_input("Confirm Password", "", |a| a, String::new, true);
+                let confirmation = get_input("Confirm Password", "", true);
                 if password != confirmation {e!("Error: Passwords Don't Match.")} else {break}
             }
         }
 
         else
         {
-            password = get_input("Password", "", |a| a, String::new, true);
+            password = get_input("Password", "", true);
         }
 
         pw = s!(password); g_set_password(password);
@@ -1389,17 +1382,17 @@ fn reset_file()
 
     if ans == "f"
     {
-        if ask_bool("Are you sure you want to replace the file with an empty one?", true)
+        if ask_bool("Are you sure you want to reset the file?", true)
         {
             fs::remove_file(get_file_path()).unwrap();
-            if !create_file() {return}
+            if !create_file() {exit()}
             reset_state(get_notes(true));
         }
     }
 
     else if ans == "s"
     {
-        if ask_bool("Are you sure you want to reset settings to default?", true)
+        if ask_bool("Are you sure you want to reset settings?", true)
         {
             reset_settings(); update_header(); create_menus();
         }
