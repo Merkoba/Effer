@@ -2013,8 +2013,9 @@ fn change_colors()
         },
         "r" =>
         {
+            p!("Apply a random color to:");
             p!("(1) BG | (2) FG | (3) Other | (4) All");
-            let ans = ask_string("Undo", "", true);
+            let ans = ask_string("Choice", "", true);
             if ans.is_empty() {return}
             let n = ans.parse::<u8>().unwrap_or(0);
 
@@ -2041,8 +2042,9 @@ fn change_colors()
         },
         "u" =>
         {
+            p!("Restore the previous color of:");
             p!("(1) BG | (2) FG | (3) Other | (4) All");
-            let ans = ask_string("Undo", "", true);
+            let ans = ask_string("Choice", "", true);
             if ans.is_empty() {return}
             let n = ans.parse::<u8>().unwrap_or(0);
 

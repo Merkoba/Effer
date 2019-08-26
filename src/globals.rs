@@ -63,12 +63,12 @@ lazy_static!
     // Settings Globals
     static ref PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
     static ref ROW_SPACE: AtomicBool = AtomicBool::new(true);
-    static ref COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
-    static ref COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
-    static ref COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
-    static ref PREV_COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
-    static ref PREV_COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
-    static ref PREV_COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((0, 0, 0));
+    static ref COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
+    static ref COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
+    static ref COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
+    static ref PREV_COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
+    static ref PREV_COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
+    static ref PREV_COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
 }
 
 
