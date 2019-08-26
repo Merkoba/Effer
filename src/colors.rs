@@ -185,7 +185,7 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
     
     else if c == "lighter" {make_color_lighter(reference)}
 
-    else if ans.contains('(') && ans.contains(',')
+    else if ans.contains(',')
     {
         let v: Vec<u8> = ans.split(',')
             .map(|s| s.trim())
