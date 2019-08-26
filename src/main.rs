@@ -1945,6 +1945,7 @@ fn change_colors()
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
     let tip = "Example Keywords: 'red', 'darker', 'lighter'";
+    let prompts = ["BG Color", "FG Color", "Other Color"];
 
     match &ans[..]
     {
@@ -1960,8 +1961,9 @@ fn change_colors()
                 _ => (0, 0, 0)
             };
 
+            let prompt = format!("{} (r,g,b)", prompts[n as usize - 1]);
             let suggestion = color_to_string(c); p!(tip);
-            let ans = ask_string("Color (r,g,b)", &suggestion, true);
+            let ans = ask_string(&prompt, &suggestion, true);
             if ans.is_empty() {return}
             let nc = parse_color(&ans, c);
 
