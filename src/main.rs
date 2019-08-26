@@ -1395,7 +1395,9 @@ fn reset_file()
 
     if ans == "f"
     {
-        if ask_bool("Are you sure you want to reset the file?", true)
+        p!("This will delete all notes");
+        
+        if ask_bool("Are you sure?", true)
         {
             fs::remove_file(get_file_path()).unwrap();
             if !create_file() {exit()}
@@ -1405,7 +1407,10 @@ fn reset_file()
 
     else if ans == "s"
     {
-        if ask_bool("Are you sure you want to reset settings?", true)
+        p!("This will restore settings to defaults");
+        p!("E.g: page_size, row_space, color_1");
+
+        if ask_bool("Are you sure?", true)
         {
             reset_settings(); update_header(); create_menus();
         }
@@ -1415,6 +1420,7 @@ fn reset_file()
 // Changes the password and updates the file with it
 fn change_password()
 {
+    p!("This will change the file's password");
     if !get_password(true).is_empty() {update_file(get_notes(false))};
 }
 
