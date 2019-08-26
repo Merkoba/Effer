@@ -3,7 +3,7 @@ use rand::Rng;
 // Gets an RGB tuple from a color name
 fn get_color_name_rgb(name: &str) -> (u8, u8, u8)
 {
-    match &name.to_lowercase()[..]
+    match name
     {
         "maroon" => (128,0,0),
         "darkred" => (139,0,0),
@@ -179,11 +179,11 @@ pub fn random_color() -> (u8, u8, u8)
 // Or returns the provided RGB values
 pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 {
-    let c = ans.trim();
+    let ans = ans.trim().to_lowercase();
 
-    if c == "darker" {make_color_darker(reference)}
+    if ans == "darker" {make_color_darker(reference)}
     
-    else if c == "lighter" {make_color_lighter(reference)}
+    else if ans == "lighter" {make_color_lighter(reference)}
 
     else if ans.contains(',')
     {
@@ -196,7 +196,7 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 
     else
     {
-        get_color_name_rgb(c)
+        get_color_name_rgb(&ans)
     }
 }
 
