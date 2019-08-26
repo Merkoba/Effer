@@ -2292,7 +2292,7 @@ fn mode_action()
 // Attemps to show the next found notes
 fn next_found()
 {
-    let found = g_get_found_next();
+    let found = g_get_found_next(g_get_page_size());
     let remaining = g_get_found_remaining();
 
     if found.is_empty()

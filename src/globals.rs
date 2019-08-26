@@ -230,10 +230,10 @@ pub fn g_set_menus(v: Vec<String>)
 }
 
 // Returns an item from the found global
-pub fn g_get_found_next() -> Vec<(usize, String)>
+pub fn g_get_found_next(amount: usize) -> Vec<(usize, String)>
 {
     let mut found = FOUND.lock().unwrap();
-    let upper = min(found.len(), 10);
+    let upper = min(found.len(), amount);
     found.drain(0..upper).collect::<Vec<(usize, String)>>()
 }
 
