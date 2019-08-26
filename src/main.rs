@@ -1513,6 +1513,16 @@ fn cycle_menu()
 // Shows all notes at once
 fn show_all_notes()
 {
+    if g_get_mode() == "all_notes"
+    {
+        return refresh_page();
+    }
+
+    else
+    {
+        g_set_mode(s!("all_notes"));
+    }
+
     let mut notes: Vec<(usize, String)> = vec![];
 
     for (i, line) in get_notes_vec().iter().enumerate()
