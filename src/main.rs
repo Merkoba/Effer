@@ -393,7 +393,7 @@ fn ask_bool(message: &str, critical:bool) -> bool
                 if !critical {return true}
             },
             "Y" => return true,
-            "n" => return false,
+            "n" | "N" => return false,
             "" => return false,
             _ => {}
         }
