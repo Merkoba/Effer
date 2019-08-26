@@ -1187,6 +1187,12 @@ fn edit_note(mut n: usize)
 fn find_notes(suggest: bool)
 {
     pp!("Enter Filter | "); p!("Or Regex (re:\\d+)");
+    
+    if !suggest && !g_get_last_find().is_empty()
+    {
+        p!("Shift+F To Use Previous Filter");
+    }
+
     let last_find = g_get_last_find();
     let suggestion = if suggest && !last_find.is_empty() {&last_find} else {""};
     let filter = ask_string("Find", suggestion, true).to_lowercase();
@@ -1554,9 +1560,7 @@ r#"
         make_tip("Different major versions are not compatible"),
         make_tip("You can use 'first' and 'last' as note numbers"),
         make_tip("1-9 can be used to navigate the first 9 pages"),
-        make_tip("Start the program with --help to check arguments"),
-        make_tip("Color shortcuts include 'red', 'darker', 'lighter'"),
-        make_tip("Shift+F uses the last find filter")
+        make_tip("Start the program with --help to check arguments")
     ].join("\n");
 
     let s = format!("{}{}{}\n\n{}\n\n{}", get_color(3), art, get_color(2), name, tips);
@@ -1940,6 +1944,7 @@ fn change_colors()
     p!("(r) Random | (v) Invert | (u) Undo");
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
+    let tip = "Example Keywords: 'red', 'darker', 'lighter'";
 
     match &ans[..]
     {
@@ -1955,7 +1960,7 @@ fn change_colors()
                 _ => (0, 0, 0)
             };
 
-            let suggestion = color_to_string(c);
+            let suggestion = color_to_string(c); p!(tip);
             let ans = ask_string("Color (r,g,b)", &suggestion, true);
             if ans.is_empty() {return}
             let nc = parse_color(&ans, c);
@@ -1977,6 +1982,7 @@ fn change_colors()
             suggestion += &color_to_string(c1);
             suggestion += &format!(" - {}", color_to_string(c2));
             suggestion += &format!(" - {}", color_to_string(c3));
+            p!(tip);
             let ans = ask_string("All Colors", &suggestion, false);
             if ans.is_empty() {return}
             let mut split = ans.split('-').map(|s| s.trim());
