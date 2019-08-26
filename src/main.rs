@@ -650,8 +650,10 @@ fn menu_input() -> (MenuAnswer, usize)
                     {
                         d if d.is_digit(10) =>
                         {
-                            data = d.to_digit(10).unwrap() as usize;
-                            MenuAnswer::PageNumber
+                            let n = d.to_digit(10).unwrap() as usize;
+                            
+                            if n > 0 {data = n; MenuAnswer::PageNumber}
+                                else {MenuAnswer::Nothing}
                         },
                         'a' => MenuAnswer::AddNote,
                         'e' => MenuAnswer::EditNote,
