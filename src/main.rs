@@ -14,6 +14,13 @@ use structs::
 mod globals;
 use globals::*;
 
+mod colors;
+use colors::
+{
+    parse_color, random_color,
+    color_to_string
+};
+
 use std::
 {
     fs, process, iter,
@@ -2217,81 +2224,6 @@ fn calculate_padding(notes: &[(usize, String)]) -> usize
     }
 
     max
-}
-
-// Converts a color tuple
-// into a comma separated string
-fn color_to_string(c: (u8, u8, u8)) -> String
-{
-    format!("{},{},{}", c.0, c.1, c.2)
-}
-
-// Generates a random RGB tuple
-fn random_color() -> (u8, u8, u8)
-{
-    let mut rng = rand::thread_rng();
-    let mut v: Vec<u8> = vec![];
-
-    for _ in 1..=3
-    {
-        let n: u8 = rng.gen(); v.push(n);
-    }
-
-    (v[0], v[1], v[2])
-}
-
-// Parses a color code
-// Replaces common color names to RGB,
-// Or returns the provided RGB values
-fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
-{
-    match &ans[..]
-    {
-        "white" => (235, 235, 235),
-        "black" => (20, 20, 20),
-        "red" => (204, 0, 0),
-        "lightred" => (255, 102, 102),
-        "green" => (0, 204, 0),
-        "lightgreen" => (102, 255, 102),
-        "blue" => (0, 0, 204),
-        "lightblue" => (102, 102, 255),
-        "darker" =>
-        {
-            make_color_darker(reference)
-        },
-        "lighter" =>
-        {
-            make_color_lighter(reference)
-        }
-        _ =>
-        {
-            let v: Vec<u8> = ans.split(',')
-                .map(|s| s.trim())
-                .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
-
-            if v.len() != 3 {return (0, 0, 0)} (v[0], v[1], v[2])
-        }
-    }
-}
-
-// Turns a color a bit darker
-fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
-{
-    (
-        (f64::from(t.0) * 0.70) as u8,
-        (f64::from(t.1) * 0.70) as u8,
-        (f64::from(t.2) * 0.70) as u8
-    )
-}
-
-// Turns a color a bit lighter
-fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
-{
-    (
-        (f64::from(t.0) + (0.30 * f64::from(255 - t.0))) as u8,
-        (f64::from(t.1) + (0.30 * f64::from(255 - t.1))) as u8,
-        (f64::from(t.2) + (0.30 * f64::from(255 - t.2))) as u8
-    )
 }
 
 // Performs actions based on current mode
