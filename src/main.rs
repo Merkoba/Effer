@@ -1408,7 +1408,7 @@ fn reset_file()
 
     else if ans == "s"
     {
-        p!("This will restore settings to defaults");
+        p!("This will restore all settings to defaults");
         p!("E.g: page_size, row_space, color_1");
 
         if ask_bool("Are you sure?", true)
