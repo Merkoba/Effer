@@ -1396,6 +1396,7 @@ fn reset_file()
     if ans == "f"
     {
         p!("This will delete all notes");
+        p!("And remake the file with a new password");
         
         if ask_bool("Are you sure?", true)
         {
