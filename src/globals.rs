@@ -16,8 +16,8 @@ use std::
 };
 
 // Constants
-pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const VERSION: &str = "v1.9.0";
+pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const DEFAULT_ROW_SPACE: bool = true;
 pub const MAX_PAGE_SIZE: usize = 100;
