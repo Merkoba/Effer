@@ -1104,13 +1104,6 @@ fn swap_lines(n1: usize, n2: usize)
 {
     let mut lines = get_notes_vec();
     lines.swap(n1, n2);
-
-    // If one of the two items is the last edited note
-    // Swap it so it points to the correct one
-    let  last_edit = g_get_last_edit();
-    if last_edit == n1 {g_set_last_edit(n2)}
-    else if last_edit == n2 {g_set_last_edit(n1)}
-
     update_file(lines.join("\n"));
 }
 
@@ -1124,17 +1117,6 @@ fn move_lines(from: Vec<usize>, to: usize)
     let nto = if to < from[0] {to} else {to - moved.len() + 1};
     joined.append(&mut left); joined.append(&mut right);
     joined.splice(nto..nto, moved.iter().cloned());
-
-    // Reset last edit if it's no longer valid
-    let last_edit = g_get_last_edit();
-    
-    if (from[0]..=from[1]).contains(&last_edit) || to == last_edit
-    || (*from.first().unwrap() > last_edit && to < last_edit)
-    || (*from.last().unwrap() < last_edit && to > last_edit)
-    {
-        g_set_last_edit(0);
-    }
-
     update_file(joined.join("\n"));
 }
 
@@ -1279,6 +1261,13 @@ fn swap_notes()
     let n1 = parse_note_ans(split.next().unwrap_or("0"));
     let n2 = parse_note_ans(split.next().unwrap_or("0"));
     if !check_line_exists(n1) || !check_line_exists(n2) {return}
+
+    // If one of the two items is the last edited note
+    // Swap it so it points to the correct one
+    let  last_edit = g_get_last_edit();
+    if last_edit == n1 {g_set_last_edit(n2)}
+    else if last_edit == n2 {g_set_last_edit(n1)}
+
     swap_lines(n1, n2);
 }
 
@@ -1365,6 +1354,7 @@ fn delete_notes()
     // reset last edit since it's now invalid
     let last_edit = g_get_last_edit();
     if numbers.contains(&last_edit) {g_set_last_edit(0)}
+
     delete_lines(numbers);
 }
 
@@ -2239,6 +2229,16 @@ fn move_notes()
     if !check_line_exists(dest) {return}
     if dest >= num1 && dest <= num2 {return}
     if num1 == dest {return}
+
+    // Reset last edit if it's no longer valid
+    let last_edit = g_get_last_edit();
+    
+    if (num1..=num2).contains(&last_edit) || dest == last_edit
+    || (num1 > last_edit && dest < last_edit)
+    || (num2 < last_edit && dest > last_edit)
+    {
+        g_set_last_edit(0);
+    }
     
     move_lines(vec![num1, num2], dest);
 }
