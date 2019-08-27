@@ -1,4 +1,5 @@
 use rand::Rng;
+use colorsys::{Rgb, Hsl};
 
 // Gets an RGB tuple from a color name
 fn get_color_name_rgb(name: &str) -> (u8, u8, u8)
@@ -203,19 +204,57 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 // Turns a color a bit darker
 pub fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
 {
+    // Get RGB struct
+    let rgb = Rgb::from
+    ((
+        f64::from(t.0),
+        f64::from(t.1),
+        f64::from(t.2)
+    ));
+
+    // Convert to HSL and decrease
+    // lightness by 15 degrees
+    let mut hsl = Hsl::from(&rgb);
+    let mut lightness = hsl.get_lightness() - 15.0;
+    if lightness < 0.0 {lightness = 0.0}
+    hsl.set_lightness(lightness);
+
+    // Convert back to RGB
+    let rgb2 = Rgb::from(&hsl);
+
+    // Return RGB tuple
     (
-        (f64::from(t.0) * 0.70) as u8,
-        (f64::from(t.1) * 0.70) as u8,
-        (f64::from(t.2) * 0.70) as u8
+        rgb2.get_red().round() as u8, 
+        rgb2.get_green().round() as u8, 
+        rgb2.get_blue().round() as u8
     )
 }
 
 // Turns a color a bit lighter
 pub fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
 {
+    // Get RGB struct
+    let rgb = Rgb::from
+    ((
+        f64::from(t.0),
+        f64::from(t.1),
+        f64::from(t.2)
+    ));
+
+    // Convert to HSL and increase
+    // lightness by 15 degrees
+    let mut hsl = Hsl::from(&rgb);
+    let mut lightness = hsl.get_lightness() + 15.0;
+    if lightness > 359.0 {lightness = 359.0}
+    hsl.set_lightness(lightness);
+
+    // Convert back to RGB
+    let rgb2 = Rgb::from(&hsl);
+
+    // Return RGB tuple
     (
-        (f64::from(t.0) + (0.30 * f64::from(255 - t.0))) as u8,
-        (f64::from(t.1) + (0.30 * f64::from(255 - t.1))) as u8,
-        (f64::from(t.2) + (0.30 * f64::from(255 - t.2))) as u8
+        rgb2.get_red().round() as u8, 
+        rgb2.get_green().round() as u8, 
+        rgb2.get_blue().round() as u8
     )
 }
