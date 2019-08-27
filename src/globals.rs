@@ -54,7 +54,10 @@ lazy_static!
     static ref FOUND_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref STARTED: AtomicBool = AtomicBool::new(false);
     static ref ALTSCREEN: AtomicBool = AtomicBool::new(false);
+}
 
+lazy_static!
+{
     // Settings Provided As Arguments
     static ref ARG_PAGE_SIZE: Mutex<String> = Mutex::new(s!());
     static ref ARG_ROW_SPACE: Mutex<String> = Mutex::new(s!());
