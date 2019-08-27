@@ -1603,12 +1603,31 @@ r#"
     show_message(&s);
 }
 
-// Asks the user to input a page number to go to
+// Go to a page or note's page
 fn goto_page()
 {
-    let n = parse_page_ans(&ask_string("Page #", "", true));
-    if n < 1 || n > get_max_page_number() {return}
-    show_page(n);
+    let ans = ask_string("(p) Page | (n) Note", "", true);
+    if ans.is_empty() {return}
+    
+    match &ans[..]
+    {
+        // Goto Page
+        "p" =>
+        {
+            let pn = parse_page_ans(&ask_string("Page #", "", true));
+            if pn < 1 || pn > get_max_page_number() {return}
+            show_page(pn);
+        },
+        // Goto Note's Page
+        "n" =>
+        {
+            let nn = parse_note_ans(&ask_string("Note #", "", true));
+            if nn < 1 || nn > g_get_notes_length() {return}
+            show_page(get_note_page(nn));
+        },
+        _ => {}
+    }
+
 }
 
 // Changes how many items appear per page
