@@ -877,10 +877,9 @@ fn update_file(text: String)
 // Updates the notes and notes length global variables
 fn update_notes_statics(text: String) -> String
 {
-    let length = text.lines().count();
-    g_set_notes_vec(text.lines().map(|s| s!(s)).collect());
-    g_set_notes(text); g_set_notes_length(length - 1); 
-    g_get_notes()
+    let v: Vec<String> = text.lines().map(|s| s!(s)).collect();
+    g_set_notes(text); g_set_notes_length(v.len() - 1); 
+    g_set_notes_vec(v); g_get_notes()
 }
 
 // Gets settings from the header
