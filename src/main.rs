@@ -1627,7 +1627,6 @@ fn goto_page()
         },
         _ => {}
     }
-
 }
 
 // Changes how many items appear per page
