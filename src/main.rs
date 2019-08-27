@@ -85,6 +85,10 @@ fn check_arguments()
     let matches = App::new("Effer")
     .version(VERSION)
     .about("Encrypted CLI Notepad")
+    .arg(Arg::with_name("PATH")
+        .help("Use a custom file path")
+        .required(false)
+        .index(1))
     .arg(Arg::with_name("print")
         .long("print")
         .multiple(false)
@@ -105,7 +109,7 @@ fn check_arguments()
     .arg(Arg::with_name("path")
         .long("path")
         .value_name("Path")
-        .help("Sets a custom file path")
+        .help("Use a custom file path")
         .takes_value(true))
     .arg(Arg::with_name("source")
         .long("source")
@@ -139,11 +143,25 @@ fn check_arguments()
         .takes_value(true))
     .get_matches();
 
-    let path = match matches.value_of("path")
+    let path;
+
+    // Check for normal path argument
+    if let Some(pth) = matches.value_of("PATH")
     {
-        Some(pth) => s!(pth),
-        None => s!(get_default_file_path().to_str().unwrap())
-    };
+        path = s!(pth);
+    }
+
+    // If not check for option path argument
+    else if let Some(pth) = matches.value_of("path")
+    {
+        path = s!(pth);
+    }
+
+    else
+    {
+        // Else use default path
+        path = s!(get_default_file_path().to_str().unwrap());
+    }
 
     g_set_path(shell_expand(&path));
 
