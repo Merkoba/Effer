@@ -1108,13 +1108,13 @@ fn swap_lines(n1: usize, n2: usize)
 }
 
 // Moves a range of lines to another index
-fn move_lines(from: Vec<usize>, to: usize)
+fn move_lines(n1: usize, n2: usize, dest: usize)
 {
     let mut left = get_notes_vec();
     let mut joined: Vec<String> = vec![];
-    let mut moved = left.split_off(from[0]);
-    let mut right = moved.split_off(from[1] - from[0] + 1);
-    let nto = if to < from[0] {to} else {to - moved.len() + 1};
+    let mut moved = left.split_off(n1);
+    let mut right = moved.split_off(n2 - n1 + 1);
+    let nto = if dest < n1 {dest} else {dest - moved.len() + 1};
     joined.append(&mut left); joined.append(&mut right);
     joined.splice(nto..nto, moved.iter().cloned());
     update_file(joined.join("\n"));
@@ -1817,9 +1817,11 @@ fn handle_source()
 fn fetch_source()
 {
     p!("Add notes from a plain text file");
-    let ans = ask_string("Path", "", true);
+    let ans = ask_string("Path", &g_get_last_path(), true);
     if ans.is_empty() {return}
-    get_source_content(&ans);
+    let path = shell_expand(&ans);
+    g_set_last_path(s!(path));
+    get_source_content(&path);
     handle_source();
 }
 
@@ -1827,14 +1829,16 @@ fn fetch_source()
 fn open_from_path()
 {
     p!("Open and switch to other encrypted file");
-    let ans = ask_string("Path", "", true);
-    if ans.is_empty() {return}; let pth = shell_expand(&ans);
+    let ans = ask_string("Path", &g_get_last_path(), true);
+    if ans.is_empty() {return}; 
+    let path = shell_expand(&ans);
+    g_set_last_path(s!(path));
 
-    match file_path_check(Path::new(&pth).to_path_buf())
+    match file_path_check(Path::new(&path).to_path_buf())
     {
         FilePathCheckResult::Exists =>
         {
-            do_open_path(pth, false);
+            do_open_path(path, false);
         },
         FilePathCheckResult::DoesNotExist =>
         {
@@ -1842,7 +1846,7 @@ fn open_from_path()
 
             if ask_bool("Do you want to make the file now?", false)
             {
-                do_open_path(pth, true)
+                do_open_path(path, true)
             }
         },
         FilePathCheckResult::NotAFile =>
@@ -2184,7 +2188,7 @@ fn move_notes()
 
     let ans = ask_string("Move", "", true);
     if ans.is_empty() {return}
-    let num1; let mut num2;
+    let n1; let mut n2;
     let max = g_get_notes_length();
 
     // Get the range to move
@@ -2192,22 +2196,22 @@ fn move_notes()
     {
         if ans.matches('-').count() > 1 {return}
         let mut split = ans.split('-').map(|n| n.trim());
-        num1 = parse_note_ans(split.next().unwrap_or("0"));
+        n1 = parse_note_ans(split.next().unwrap_or("0"));
         let right_side = split.next().unwrap_or("nothing");
         let mut split_right = right_side.split_whitespace().map(|n| n.trim());
-        num2 = parse_note_ans(split_right.next().unwrap_or("0"));
-        if num1 == 0 || num2 == 0 {return}
-        if num2 > max {num2 = max}
-        if num1 >= num2 {return}
+        n2 = parse_note_ans(split_right.next().unwrap_or("0"));
+        if n1 == 0 || n2 == 0 {return}
+        if n2 > max {n2 = max}
+        if n1 >= n2 {return}
     }
 
     else
     {
         let mut split = ans.split_whitespace().map(|n| n.trim());
-        num1 = parse_note_ans(split.next().unwrap_or("0"));
-        if num1 == 0 {return}
-        if !check_line_exists(num1) {return}
-        num2 = num1;
+        n1 = parse_note_ans(split.next().unwrap_or("0"));
+        if n1 == 0 {return}
+        if !check_line_exists(n1) {return}
+        n2 = n1;
     }
 
     // Get the destination index
@@ -2217,8 +2221,8 @@ fn move_notes()
             .unwrap_or(0);
             
         if steps == 0 {return}
-        if (num1 as isize - steps as isize) < 1 {return}
-        num1 - steps
+        if (n1 as isize - steps as isize) < 1 {return}
+        n1 - steps
     }
 
     else if ans.contains("down")
@@ -2227,8 +2231,8 @@ fn move_notes()
             .unwrap_or(0);
             
         if steps == 0 {return}
-        if num2 + steps > max {return}
-        num2 + steps
+        if n2 + steps > max {return}
+        n2 + steps
     }
 
     else
@@ -2238,21 +2242,58 @@ fn move_notes()
     };
     
     if !check_line_exists(dest) {return}
-    if dest >= num1 && dest <= num2 {return}
-    if num1 == dest {return}
+    if dest >= n1 && dest <= n2 {return}
+    if n1 == dest {return}
 
-    // Reset last edit if it's no longer valid
-    let last_edit = g_get_last_edit();
-    
-    if (num1..=num2).contains(&last_edit) || dest == last_edit
-    || (num1 > last_edit && dest < last_edit)
-    || (num2 < last_edit && dest > last_edit)
-    {
-        g_set_last_edit(0);
-    }
-    
-    move_lines(vec![num1, num2], dest);
+    move_lines(n1, n2, dest);
+    fix_last_edit_after_move(n1, n2, dest);
     show_page(get_note_page(dest));
+}
+
+// Changes the last edit value after a move
+// to reflect the new correct position
+fn fix_last_edit_after_move(n1: usize, n2:usize, dest:usize)
+{
+    let last_edit = g_get_last_edit();
+    let mut new_last_edit = last_edit;
+
+    if (n1..=n2).contains(&last_edit)
+    {
+        if dest < n1
+        {
+            new_last_edit = last_edit - (n1 - dest);
+        }
+
+        else if dest > n2
+        {
+            new_last_edit = last_edit + (dest - n2);
+        }
+    }
+
+    else if dest == last_edit
+    {
+        if dest < n1
+        {
+            new_last_edit = last_edit + (n2 - n1) + 1;
+        }
+
+        else if dest > n2
+        {
+            new_last_edit = last_edit - (n2 - n1) - 1;
+        }
+    }
+
+    else if n1 > last_edit && dest < last_edit
+    {
+        new_last_edit = last_edit + (n2 - n1) + 1;
+    }
+
+    else if n2 < last_edit && dest > last_edit
+    {
+        new_last_edit = last_edit - (n2 - n1) - 1;
+    }
+
+    g_set_last_edit(new_last_edit);
 }
 
 // Shows the page indicator above the menu

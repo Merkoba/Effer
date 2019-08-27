@@ -42,6 +42,7 @@ lazy_static!
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
     static ref LAST_FIND: Mutex<String> = Mutex::new(s!());
     static ref MODE: Mutex<String> = Mutex::new(s!());
+    static ref LAST_PATH: Mutex<String> = Mutex::new(s!());
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
     static ref FOUND: Mutex<VecDeque<(usize, String)>> = Mutex::new(VecDeque::new());
     static ref NOTES_LENGTH: AtomicUsize = AtomicUsize::new(0);
@@ -205,6 +206,18 @@ pub fn g_get_mode() -> String
 pub fn g_set_mode(s: String)
 {
     *MODE.lock().unwrap() = s;
+}
+
+// Returns the last path global value
+pub fn g_get_last_path() -> String
+{
+    s!(LAST_PATH.lock().unwrap())
+}
+
+// Sets the last path global value
+pub fn g_set_last_path(s: String)
+{
+    *LAST_PATH.lock().unwrap() = s;
 }
 
 
