@@ -182,9 +182,9 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 {
     let ans = ans.trim().to_lowercase();
 
-    if ans == "darker" {make_color_darker(reference)}
+    if ans == "darker" {make_color_darker(reference, 15.0)}
     
-    else if ans == "lighter" {make_color_lighter(reference)}
+    else if ans == "lighter" {make_color_lighter(reference, 15.0)}
 
     else if ans.contains(',')
     {
@@ -201,37 +201,20 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
     }
 }
 
-// Turns a color a bit darker
-pub fn make_color_darker(t: (u8, u8, u8)) -> (u8, u8, u8)
+// Wrapper function to make a color darker
+fn make_color_darker(t: (u8, u8, u8), amount: f64) -> (u8, u8, u8)
 {
-    // Get RGB struct
-    let rgb = Rgb::from
-    ((
-        f64::from(t.0),
-        f64::from(t.1),
-        f64::from(t.2)
-    ));
-
-    // Convert to HSL and decrease
-    // lightness by 15 degrees
-    let mut hsl = Hsl::from(&rgb);
-    let mut lightness = hsl.get_lightness() - 15.0;
-    if lightness < 0.0 {lightness = 0.0}
-    hsl.set_lightness(lightness);
-
-    // Convert back to RGB
-    let rgb2 = Rgb::from(&hsl);
-
-    // Return RGB tuple
-    (
-        rgb2.get_red().round() as u8, 
-        rgb2.get_green().round() as u8, 
-        rgb2.get_blue().round() as u8
-    )
+    change_color_lightness(t, true, amount)
 }
 
-// Turns a color a bit lighter
-pub fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
+// Wrapper function to make a color lighter
+fn make_color_lighter(t: (u8, u8, u8), amount: f64) -> (u8, u8, u8)
+{
+    change_color_lightness(t, false, amount)
+}
+
+// Turns a color a bit darker or a bit lighter
+pub fn change_color_lightness(t: (u8, u8, u8), darker: bool, amount: f64) -> (u8, u8, u8)
 {
     // Get RGB struct
     let rgb = Rgb::from
@@ -241,12 +224,25 @@ pub fn make_color_lighter(t: (u8, u8, u8)) -> (u8, u8, u8)
         f64::from(t.2)
     ));
 
-    // Convert to HSL and increase
-    // lightness by 15 degrees
+    // Convert to HSL
     let mut hsl = Hsl::from(&rgb);
-    let mut lightness = hsl.get_lightness() + 15.0;
-    if lightness > 359.0 {lightness = 359.0}
-    hsl.set_lightness(lightness);
+    let current_lightness = hsl.get_lightness();
+
+    if darker
+    {
+        // Decrease lightness by the specified degrees
+        let mut lightness = current_lightness - amount;
+        if lightness < 0.0 {lightness = 0.0}
+        hsl.set_lightness(lightness);
+    }
+
+    else
+    {
+        // Increase lightness by the specified degrees
+        let mut lightness = current_lightness + amount;
+        if lightness > 359.0 {lightness = 359.0}
+        hsl.set_lightness(lightness);
+    }
 
     // Convert back to RGB
     let rgb2 = Rgb::from(&hsl);
