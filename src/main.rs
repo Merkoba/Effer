@@ -1339,7 +1339,7 @@ fn delete_notes()
 
     if length >= 5
     {
-        if !ask_bool(&format!("Are you sure you want to delete {} notes?", length), false)
+        if !ask_bool(&format!("Delete {} notes?", length), true)
         {
             return;
         }
@@ -1417,8 +1417,8 @@ fn reset_file()
 
     if ans == "f"
     {
-        p!("This will delete all the notes");
-        p!("And remake the file with a new password");
+        p!("This will delete all the notes.");
+        p!("And remake the file with a new password.");
         
         if ask_bool("Are you sure?", true)
         {
@@ -1430,7 +1430,7 @@ fn reset_file()
 
     else if ans == "s"
     {
-        p!("This will restore all settings to defaults");
+        p!("This will restore all settings to defaults.");
         p!("E.g: page_size, row_space, color_1");
 
         if ask_bool("Are you sure?", true)
@@ -1443,7 +1443,7 @@ fn reset_file()
 // Changes the password and updates the file with it
 fn change_password()
 {
-    p!("This will change the file's password");
+    p!("This will change the file's password.");
     if !get_password(true).is_empty() {update_file(get_notes(false))};
 }
 
@@ -1771,7 +1771,7 @@ fn handle_source()
             // Replace
             "r" =>
             {
-                if ask_bool("Are you sure you want to replace everything?", true)
+                if ask_bool("Replace everything?", true)
                 {
                     let mut lines: Vec<&str> = vec![&notes[0]];
                     lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
@@ -1899,7 +1899,7 @@ fn destroy()
     p!("This overwrites the file with junk several times.");
     p!("The file is then deleted and the program exits.");
 
-    if ask_bool("Are you sure you want to destroy the file?", true)
+    if ask_bool("Destroy the file?", true)
     {
         p!("Destroying...");
 
