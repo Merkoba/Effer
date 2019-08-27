@@ -302,6 +302,15 @@ fn exit() -> !
     process::exit(0)
 }
 
+// Asks before exit
+fn ask_exit()
+{
+    if ask_bool("Exit?", false)
+    {
+        exit();
+    }
+}
+
 // Tries to get the user's home path
 fn get_home_path() -> PathBuf
 {
@@ -771,7 +780,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::ChangeColors => change_colors(),
         MenuAnswer::MoveNotes => move_notes(),
         MenuAnswer::ModeAction => mode_action(),
-        MenuAnswer::Exit => exit(),
+        MenuAnswer::Exit => ask_exit(),
         MenuAnswer::Nothing => {}
     }
 }
