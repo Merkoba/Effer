@@ -184,6 +184,7 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 
     match &ans[..]
     {
+        // Check if color should be darker or lighter
         "darker" | "darker1" => make_color_darker(reference, 10.0),
         "darker2" => make_color_darker(reference, 20.0),
         "darker3" => make_color_darker(reference, 30.0),
@@ -192,6 +193,7 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
         "lighter3" => make_color_lighter(reference, 30.0),
         _ => 
         {
+            // If not then check if it's an RGB value
             if ans.contains(',')
             {
                 let v: Vec<u8> = ans.split(',')
@@ -202,6 +204,7 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 
             else
             {
+                // If not then check if it's a color name
                 get_color_name_rgb(&ans, reference)
             }
         }
