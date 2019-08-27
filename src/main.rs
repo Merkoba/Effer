@@ -2049,7 +2049,7 @@ fn change_colors()
                 _ => (0, 0, 0)
             };
 
-            let prompt = format!("{}", prompts[n as usize - 1]);
+            let prompt = s!(prompts[n as usize - 1]);
             let suggestion = color_to_string(c); p!(tip);
             let ans = ask_string(&prompt, &suggestion, true);
             if ans.is_empty() {return}
