@@ -180,7 +180,7 @@ pub fn random_color() -> (u8, u8, u8)
 // Or returns the provided RGB values
 pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 {
-    let ans = ans.trim().to_lowercase();
+    let ans = ans.trim().to_lowercase().replace(" ", "");
 
     match &ans[..]
     {
@@ -195,10 +195,9 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
             if ans.contains(',')
             {
                 let v: Vec<u8> = ans.split(',')
-                    .map(|s| s.trim())
                     .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
 
-                if v.len() != 3 {return (50, 50, 50)} (v[0], v[1], v[2])
+                if v.len() != 3 {return reference} (v[0], v[1], v[2])
             }
 
             else
