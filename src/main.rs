@@ -1979,6 +1979,17 @@ fn change_row_space()
 // Or generates a random theme
 fn change_colors()
 {
+    if !g_get_use_colors()
+    {
+        if ask_bool("Enable colors?", false)
+        {
+            g_set_use_colors(true);
+            create_menus(); refresh_page();
+        }
+
+        return
+    }
+
     if !g_get_use_colors() {return}
     p!("(1) BG | (2) FG | (3) Other | (4) All");
     p!("(d) Dark | (t) Light | (p) Purple");
