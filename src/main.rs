@@ -2041,6 +2041,7 @@ fn change_colors()
             suggestion += &format!(" - {}", color_to_string(c2));
             suggestion += &format!(" - {}", color_to_string(c3));
             p!(tip);
+            
             let ans = ask_string("All Colors", &suggestion, false);
             if ans.is_empty() {return}
             let mut split = ans.split('-').map(|s| s.trim());
