@@ -213,7 +213,7 @@ fn make_color_lighter(t: (u8, u8, u8), amount: f64) -> (u8, u8, u8)
     change_color_lightness(t, false, amount)
 }
 
-// Turns a color a bit darker or a bit lighter
+// Turns a color a darker or lighter
 pub fn change_color_lightness(t: (u8, u8, u8), darker: bool, amount: f64) -> (u8, u8, u8)
 {
     // Get RGB struct
