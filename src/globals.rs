@@ -19,8 +19,9 @@ use std::
 pub const VERSION: &str = "v1.10.0";
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
-pub const DEFAULT_ROW_SPACE: bool = true;
 pub const MAX_PAGE_SIZE: usize = 100;
+pub const DEFAULT_ROW_SPACE: bool = true;
+pub const DEFAULT_USE_COLORS: bool = true;
 
 // Color Constants
 pub const DARK_THEME_COLOR_1: (u8, u8, u8) = (37, 41, 51);
@@ -52,7 +53,6 @@ lazy_static!
     static ref LAST_EDIT: AtomicUsize = AtomicUsize::new(0);
     static ref FOUND_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref STARTED: AtomicBool = AtomicBool::new(false);
-    static ref USE_COLORS: AtomicBool = AtomicBool::new(true);
     static ref ALTSCREEN: AtomicBool = AtomicBool::new(false);
 
     // Settings Provided As Arguments
@@ -61,6 +61,7 @@ lazy_static!
     static ref ARG_COLOR_1: Mutex<String> = Mutex::new(s!());
     static ref ARG_COLOR_2: Mutex<String> = Mutex::new(s!());
     static ref ARG_COLOR_3: Mutex<String> = Mutex::new(s!());
+    static ref ARG_USE_COLORS: Mutex<String> = Mutex::new(s!());
 
     // Settings Globals
     static ref PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
@@ -71,6 +72,7 @@ lazy_static!
     static ref PREV_COLOR_1: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
     static ref PREV_COLOR_2: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
     static ref PREV_COLOR_3: Mutex<(u8, u8, u8)> = Mutex::new((50, 50, 50));
+    static ref USE_COLORS: AtomicBool = AtomicBool::new(true);
 }
 
 
@@ -195,6 +197,18 @@ pub fn g_get_arg_color_3() -> String
 pub fn g_set_arg_color_3(s: String)
 {
     *ARG_COLOR_3.lock().unwrap() = s;
+}
+
+// Returns the arg use colors global value
+pub fn g_get_arg_use_colors() -> String
+{
+    s!(ARG_USE_COLORS.lock().unwrap())
+}
+
+// Sets the arg use colors global value
+pub fn g_set_arg_use_colors(s: String)
+{
+    *ARG_USE_COLORS.lock().unwrap() = s;
 }
 
 // Returns the mode global value

@@ -197,6 +197,7 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
         "lighter" | "lighter1" => make_color_lighter(reference, DEGREES_1),
         "lighter2" => make_color_lighter(reference, DEGREES_2),
         "lighter3" => make_color_lighter(reference, DEGREES_3),
+        "random" => random_color(),
         _ => 
         {
             // If not then check if it's an RGB value

@@ -42,11 +42,11 @@ pub enum MenuAnswer
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Settings
+pub struct SettingsArgs
 {
     pub page_size: Option<String>, pub row_space: Option<String>,
     pub color_1: Option<String>, pub color_2: Option<String>, 
-    pub color_3: Option<String>
+    pub color_3: Option<String>, pub use_colors: Option<String>
 }
 
 pub struct RustyHelper 

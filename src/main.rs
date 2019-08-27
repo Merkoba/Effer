@@ -1,3 +1,4 @@
+#![recursion_limit="128"]
 #![allow(clippy::suspicious_else_formatting)]
 #![allow(clippy::collapsible_if)]
 
@@ -8,7 +9,7 @@ use structs::
 {
     FilePathCheckResult,
     MenuAnswer, RustyHelper,
-    Settings
+    SettingsArgs
 };
 
 mod globals;
@@ -17,8 +18,7 @@ use globals::*;
 mod colors;
 use colors::
 {
-    parse_color, random_color,
-    color_to_string
+    parse_color, color_to_string
 };
 
 use std::
@@ -97,10 +97,6 @@ fn check_arguments()
         .long("print2")
         .multiple(false)
         .help("Same as print but doesn't show the numbers"))
-    .arg(Arg::with_name("no-colors")
-        .long("no-colors")
-        .multiple(false)
-        .help("Disables the custom color theme"))
     .arg(Arg::with_name("config")
         .long("config")
         .value_name("Path")
@@ -140,6 +136,11 @@ fn check_arguments()
         .long("color_3")
         .value_name("r,g,b")
         .help("Set the color 3 setting")
+        .takes_value(true))
+    .arg(Arg::with_name("use_colors")
+        .long("use_colors")
+        .value_name("true|false")
+        .help("Set the use colors setting")
         .takes_value(true))
     .get_matches();
 
@@ -197,16 +198,6 @@ fn check_arguments()
         exit();
     }
 
-    if matches.occurrences_of("no-colors") > 0
-    {
-        g_set_use_colors(false);
-    }
-
-    else
-    {
-        g_set_use_colors(true);
-    }
-
     if let Some(path) = matches.value_of("source")
     {
         get_source_content(path);
@@ -220,31 +211,36 @@ fn check_arguments()
         {
             if let Ok(tom) = toml::from_str(&text)
             {
-                let sets: Settings = tom;
+                let sets: SettingsArgs = tom;
 
-                if let Some(ps) = sets.page_size
+                if let Some(x) = sets.page_size
                 {
-                    g_set_arg_page_size(ps);
+                    g_set_arg_page_size(x);
                 }
 
-                if let Some(rs) = sets.row_space
+                if let Some(x) = sets.row_space
                 {
-                    g_set_arg_row_space(rs);
+                    g_set_arg_row_space(x);
                 }
 
-                if let Some(c) = sets.color_1
+                if let Some(x) = sets.color_1
                 {
-                    g_set_arg_color_1(c);
+                    g_set_arg_color_1(x);
                 }
 
-                if let Some(c) = sets.color_2
+                if let Some(x) = sets.color_2
                 {
-                    g_set_arg_color_2(c);
+                    g_set_arg_color_2(x);
                 }
 
-                if let Some(c) = sets.color_3
+                if let Some(x) = sets.color_3
                 {
-                    g_set_arg_color_3(c);
+                    g_set_arg_color_3(x);
+                }
+
+                if let Some(x) = sets.use_colors
+                {
+                    g_set_arg_use_colors(x);
                 }
             }
         }
@@ -252,29 +248,34 @@ fn check_arguments()
 
     else
     {
-        if let Some(ps) = matches.value_of("page_size")
+        if let Some(x) = matches.value_of("page_size")
         {
-            g_set_arg_page_size(s!(ps));
+            g_set_arg_page_size(s!(x));
         }
 
-        if let Some(rs) = matches.value_of("row_space")
+        if let Some(x) = matches.value_of("row_space")
         {
-            g_set_arg_row_space(s!(rs));
+            g_set_arg_row_space(s!(x));
         }
 
-        if let Some(c) = matches.value_of("color_1")
+        if let Some(x) = matches.value_of("color_1")
         {
-            g_set_arg_color_1(s!(c));
+            g_set_arg_color_1(s!(x));
         }
 
-        if let Some(c) = matches.value_of("color_2")
+        if let Some(x) = matches.value_of("color_2")
         {
-            g_set_arg_color_2(s!(c));
+            g_set_arg_color_2(s!(x));
         }
 
-        if let Some(c) = matches.value_of("color_3")
+        if let Some(x) = matches.value_of("color_3")
         {
-            g_set_arg_color_3(s!(c));
+            g_set_arg_color_3(s!(x));
+        }
+
+        if let Some(x) = matches.value_of("use_colors")
+        {
+            g_set_arg_use_colors(s!(x));
         }
     }
 }
@@ -1084,6 +1085,38 @@ fn get_settings()
         g_set_color_3(DARK_THEME_COLOR_3);
     }
 
+    let re = Regex::new(r"use_colors=(?P<use_colors>\w+)").unwrap();
+    let cap = re.captures(&header);
+    let arg = g_get_arg_use_colors();
+    let arg_empty = arg.is_empty();
+
+    if cap.is_some() || !arg_empty
+    {
+        let stored_value = if cap.is_some() 
+            {s!(cap.unwrap()["use_colors"])}
+            else {s!()};
+
+        let argx = if arg_empty 
+        {
+            stored_value
+        }
+
+        else 
+        {
+            update = stored_value != arg; arg
+        };
+
+        let value = FromStr::from_str(&argx).unwrap_or(DEFAULT_USE_COLORS);
+        g_set_use_colors(value);
+    }
+
+    else
+    {
+        g_set_use_colors(DEFAULT_USE_COLORS);
+    }
+
+    // If any setting is new
+    // update the header
     if update {update_header()}
 }
 
@@ -1678,9 +1711,10 @@ fn update_header()
     let c1 = color_to_string(g_get_color_1());
     let c2 = color_to_string(g_get_color_2());
     let c3 = color_to_string(g_get_color_3());
+    let cc = g_get_use_colors();
 
-    let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={}",
-        uc, ps, rs, c1, c2, c3);
+    let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={} use_colors={}",
+        uc, ps, rs, c1, c2, c3, cc);
 
     replace_line(0, s);
 }
@@ -2020,7 +2054,7 @@ fn change_colors()
         if ask_bool("Enable colors?", false)
         {
             g_set_use_colors(true);
-            create_menus(); refresh_page();
+            create_menus(); update_header(); refresh_page(); 
         }
 
         return
@@ -2029,10 +2063,10 @@ fn change_colors()
     if !g_get_use_colors() {return}
     p!("(1) BG | (2) FG | (3) Other | (4) All");
     p!("(d) Dark | (t) Light | (p) Purple");
-    p!("(r) Random | (v) Invert | (u) Undo");
+    p!("(x) Disable | (v) Invert | (u) Undo");
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
-    let tip = "E.g: 0,0,0 | red | darker | lighter2";
+    let tip = "E.g: 0,0,0 | red | darker | lighter2 | random";
     let prompts = ["BG Color", "FG Color", "Other Color"];
 
     match &ans[..]
@@ -2100,27 +2134,9 @@ fn change_colors()
             g_set_color_2(PURPLE_THEME_COLOR_2);
             g_set_color_3(PURPLE_THEME_COLOR_3);
         },
-        "r" =>
+        "x" =>
         {
-            p!("Apply a random color to:");
-            p!("(1) BG | (2) FG | (3) Other | (4) All");
-            let ans = ask_string("Choice", "", true);
-            if ans.is_empty() {return}
-            let n = ans.parse::<u8>().unwrap_or(0);
-
-            match n
-            {
-                1 => g_set_color_1(random_color()),
-                2 => g_set_color_2(random_color()),
-                3 => g_set_color_3(random_color()),
-                4 =>
-                {
-                    g_set_color_1(random_color());
-                    g_set_color_2(random_color());
-                    g_set_color_3(random_color());
-                },
-                _ => return
-            }
+            g_set_use_colors(false);
         },
         "v" =>
         {
