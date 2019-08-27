@@ -161,7 +161,7 @@ fn check_arguments()
 
     if print_mode == "print" || print_mode == "print2"
     {
-        let lines = get_notes_vec();
+        let lines = g_get_notes_vec();
         if lines.is_empty() {exit()}
 
         for (i, line) in lines.iter().enumerate()
@@ -826,7 +826,8 @@ fn get_seed_array(source: &[u8]) -> [u8; 32]
     array.copy_from_slice(items); array
 }
 
-// Gets the notes form the global variable or reads them from the file
+// Gets the notes form the global variable 
+// or reads them from the file
 fn get_notes(update: bool) -> String
 {
     let notes = g_get_notes();
@@ -836,16 +837,10 @@ fn get_notes(update: bool) -> String
     else {notes}
 }
 
-// Returns the notes in a vector
-fn get_notes_vec() -> Vec<String>
-{
-    get_notes(false).lines().map(|s| s!(s)).collect()
-}
-
 // Returns the file's header
 fn get_header() -> String
 {
-    s!(get_notes(false).lines().nth(0).unwrap())
+    g_get_notes_vec_item(0)
 }
 
 // Encrypts and saves the updated notes to the file
@@ -882,8 +877,10 @@ fn update_file(text: String)
 // Updates the notes and notes length global variables
 fn update_notes_statics(text: String) -> String
 {
-    g_set_notes_length(text.lines().count() - 1);
-    g_set_notes(text); g_get_notes()
+    let length = text.lines().count();
+    g_set_notes_vec(text.lines().map(|s| s!(s)).collect());
+    g_set_notes(text); g_set_notes_length(length - 1); 
+    g_get_notes()
 }
 
 // Gets settings from the header
@@ -1086,7 +1083,7 @@ fn reset_settings()
 // Gets a specific line from the notes
 fn get_line(n: usize) -> String
 {
-    let lines = get_notes_vec();
+    let lines = g_get_notes_vec();
     if n >= lines.len() {return s!()}
     lines[n].to_string()
 }
@@ -1094,7 +1091,7 @@ fn get_line(n: usize) -> String
 // Replaces a line from the notes with a new line
 fn replace_line(n: usize, new_text: String)
 {
-    let mut lines = get_notes_vec();
+    let mut lines = g_get_notes_vec();
     lines[n] = new_text;
     update_file(lines.join("\n"));
 }
@@ -1102,7 +1099,7 @@ fn replace_line(n: usize, new_text: String)
 // Swaps two lines from the notes
 fn swap_lines(n1: usize, n2: usize)
 {
-    let mut lines = get_notes_vec();
+    let mut lines = g_get_notes_vec();
     lines.swap(n1, n2);
     update_file(lines.join("\n"));
 }
@@ -1110,7 +1107,7 @@ fn swap_lines(n1: usize, n2: usize)
 // Moves a range of lines to another index
 fn move_lines(n1: usize, n2: usize, dest: usize)
 {
-    let mut left = get_notes_vec();
+    let mut left = g_get_notes_vec();
     let mut joined: Vec<String> = vec![];
     let mut moved = left.split_off(n1);
     let mut right = moved.split_off(n2 - n1 + 1);
@@ -1123,7 +1120,7 @@ fn move_lines(n1: usize, n2: usize, dest: usize)
 // Deletes a line from the notes then updates the file
 fn delete_lines(numbers: Vec<usize>)
 {
-    let lines = get_notes_vec();
+    let lines = g_get_notes_vec();
     let mut new_lines: Vec<&str> = vec![];
 
     for (i, line) in lines.iter().enumerate()
@@ -1158,7 +1155,7 @@ fn add_note(prepend: bool)
 
     if prepend
     {
-        let mut notes = get_notes_vec();
+        let mut notes = g_get_notes_vec();
         let rest = notes.split_off(1);
         new_text = format!("{}\n{}\n{}", notes[0], note, rest.join("\n"));
         update_file(new_text);
@@ -1219,7 +1216,7 @@ fn find_notes(suggest: bool)
     {
         if let Ok(re) = Regex::new(format!("(?i){}", filter.replacen("re:", "", 1)).trim())
         {
-            for (i, line) in get_notes_vec().iter().enumerate()
+            for (i, line) in g_get_notes_vec().iter().enumerate()
             {
                 if i == 0 {continue}
                 if re.is_match(line) {found.push((i, s!(line)))}
@@ -1236,7 +1233,7 @@ fn find_notes(suggest: bool)
     {
         let ifilter = filter.to_lowercase();
 
-        for (i, line) in get_notes_vec().iter().enumerate()
+        for (i, line) in g_get_notes_vec().iter().enumerate()
         {
             if i == 0 {continue}
             if line.to_lowercase().contains(&ifilter) {found.push((i, s!(line)))}
@@ -1295,7 +1292,7 @@ fn delete_notes()
     {
         if let Ok(re) = Regex::new(format!("(?i){}", ans.replacen("re:", "", 1)).trim())
         {
-            for (i, line) in get_notes_vec().iter().enumerate()
+            for (i, line) in g_get_notes_vec().iter().enumerate()
             {
                 if i == 0 {continue}
                 if re.is_match(line) {numbers.push(i)}
@@ -1458,7 +1455,7 @@ fn check_page_number(page: usize, allow_zero: bool) -> usize
 fn get_page_notes(page: usize) -> Vec<(usize, String)>
 {
     let mut result: Vec<(usize, String)> = vec![];
-    let lines = get_notes_vec();
+    let lines = g_get_notes_vec();
     if lines.is_empty() {return result}
     let page_size = g_get_page_size();
     let a = if page > 1 {((page - 1) * page_size) + 1} else {1};
@@ -1554,7 +1551,7 @@ fn show_all_notes()
 
     let mut notes: Vec<(usize, String)> = vec![];
 
-    for (i, line) in get_notes_vec().iter().enumerate()
+    for (i, line) in g_get_notes_vec().iter().enumerate()
     {
         if i == 0 {continue}
         notes.push((i, s!(line)));
@@ -1750,7 +1747,7 @@ fn handle_source()
 {
     let source = g_get_source();
     if source.is_empty() {return}
-    let mut notes = get_notes_vec();
+    let mut notes = g_get_notes_vec();
     let started = g_get_started();
 
     // If there are no notes just fill it with source

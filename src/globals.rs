@@ -44,6 +44,7 @@ lazy_static!
     static ref MODE: Mutex<String> = Mutex::new(s!());
     static ref LAST_PATH: Mutex<String> = Mutex::new(s!());
     static ref MENUS: Mutex<Vec<String>> = Mutex::new(vec![]);
+    static ref NOTES_VEC: Mutex<Vec<String>> = Mutex::new(vec![]);
     static ref FOUND: Mutex<VecDeque<(usize, String)>> = Mutex::new(VecDeque::new());
     static ref NOTES_LENGTH: AtomicUsize = AtomicUsize::new(0);
     static ref PAGE: AtomicUsize = AtomicUsize::new(1);
@@ -261,6 +262,24 @@ pub fn g_set_found(v: Vec<(usize, String)>)
 {
     FOUND_LENGTH.store(v.len(), Ordering::SeqCst);
     *FOUND.lock().unwrap() = VecDeque::from(v);
+}
+
+// Returns the notes vec global
+pub fn g_get_notes_vec() -> Vec<String>
+{
+    NOTES_VEC.lock().unwrap().clone()
+}
+
+// Returns an item from the notes vec global
+pub fn g_get_notes_vec_item(i: usize) -> String
+{
+    s!(NOTES_VEC.lock().unwrap()[i])
+}
+
+// Sets the note _vec global value
+pub fn g_set_notes_vec(v: Vec<String>)
+{
+    *NOTES_VEC.lock().unwrap() = v;
 }
 
 
