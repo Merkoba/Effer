@@ -1816,7 +1816,7 @@ fn handle_source()
 // Uses a source from within the program
 fn fetch_source()
 {
-    p!("Add notes from a plain text file");
+    p!("Add notes from a plain text file.");
     let ans = ask_string("Path", &g_get_last_path(), true);
     if ans.is_empty() {return}
     let path = shell_expand(&ans);
@@ -1828,7 +1828,7 @@ fn fetch_source()
 // Changes the current notes file with another one
 fn open_from_path()
 {
-    p!("Open and switch to other encrypted file");
+    p!("Open and switch to other encrypted file.");
     let ans = ask_string("Path", &g_get_last_path(), true);
     if ans.is_empty() {return}; 
     let path = shell_expand(&ans);
