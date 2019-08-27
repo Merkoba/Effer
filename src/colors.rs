@@ -2,7 +2,7 @@ use rand::Rng;
 use colorsys::{Rgb, Hsl};
 
 // Gets an RGB tuple from a color name
-fn get_color_name_rgb(name: &str) -> (u8, u8, u8)
+fn get_color_name_rgb(name: &str, fallback: (u8, u8, u8)) -> (u8, u8, u8)
 {
     match name
     {
@@ -150,7 +150,7 @@ fn get_color_name_rgb(name: &str) -> (u8, u8, u8)
         "gainsboro" => (220,220,220),
         "whitesmoke" => (245,245,245),
         "white" => (255,255,255),
-        _ => (50, 50, 50)
+        _ => fallback
     }
 }
 
@@ -182,22 +182,30 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
 {
     let ans = ans.trim().to_lowercase();
 
-    if ans == "darker" {make_color_darker(reference, 15.0)}
-    
-    else if ans == "lighter" {make_color_lighter(reference, 15.0)}
-
-    else if ans.contains(',')
+    match &ans[..]
     {
-        let v: Vec<u8> = ans.split(',')
-            .map(|s| s.trim())
-            .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
+        "darker" | "darker1" => make_color_darker(reference, 10.0),
+        "darker2" => make_color_darker(reference, 20.0),
+        "darker3" => make_color_darker(reference, 30.0),
+        "lighter" | "lighter1" => make_color_lighter(reference, 10.0),
+        "lighter2" => make_color_lighter(reference, 20.0),
+        "lighter3" => make_color_lighter(reference, 30.0),
+        _ => 
+        {
+            if ans.contains(',')
+            {
+                let v: Vec<u8> = ans.split(',')
+                    .map(|s| s.trim())
+                    .map(|n| n.parse::<u8>().unwrap_or(0)).collect();
 
-        if v.len() != 3 {return (50, 50, 50)} (v[0], v[1], v[2])
-    }
+                if v.len() != 3 {return (50, 50, 50)} (v[0], v[1], v[2])
+            }
 
-    else
-    {
-        get_color_name_rgb(&ans)
+            else
+            {
+                get_color_name_rgb(&ans, reference)
+            }
+        }
     }
 }
 

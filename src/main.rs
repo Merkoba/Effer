@@ -1985,7 +1985,7 @@ fn change_colors()
     p!("(r) Random | (v) Invert | (u) Undo");
     let ans = ask_string("Choice", "", true);
     if ans.is_empty() {return};
-    let tip = "Example Keywords: 'red', 'darker', 'lighter'";
+    let tip = "E.g: 0,0,0 | red | darker | lighter2";
     let prompts = ["BG Color", "FG Color", "Other Color"];
 
     match &ans[..]
@@ -2002,7 +2002,7 @@ fn change_colors()
                 _ => (0, 0, 0)
             };
 
-            let prompt = format!("{} (r,g,b)", prompts[n as usize - 1]);
+            let prompt = format!("{}", prompts[n as usize - 1]);
             let suggestion = color_to_string(c); p!(tip);
             let ans = ask_string(&prompt, &suggestion, true);
             if ans.is_empty() {return}
