@@ -1,6 +1,12 @@
 use rand::Rng;
 use colorsys::{Rgb, Hsl};
 
+// These are the degrees used to
+// make colors darker or lighter
+const DEGREES_1: f64 = 15.0;
+const DEGREES_2: f64 = 30.0;
+const DEGREES_3: f64 = 45.0;
+
 // Gets an RGB tuple from a color name
 fn get_color_name_rgb(name: &str, fallback: (u8, u8, u8)) -> (u8, u8, u8)
 {
@@ -185,12 +191,12 @@ pub fn parse_color(ans: &str, reference: (u8, u8, u8)) -> (u8, u8, u8)
     match &ans[..]
     {
         // Check if color should be darker or lighter
-        "darker" | "darker1" => make_color_darker(reference, 10.0),
-        "darker2" => make_color_darker(reference, 20.0),
-        "darker3" => make_color_darker(reference, 30.0),
-        "lighter" | "lighter1" => make_color_lighter(reference, 10.0),
-        "lighter2" => make_color_lighter(reference, 20.0),
-        "lighter3" => make_color_lighter(reference, 30.0),
+        "darker" | "darker1" => make_color_darker(reference, DEGREES_1),
+        "darker2" => make_color_darker(reference, DEGREES_2),
+        "darker3" => make_color_darker(reference, DEGREES_3),
+        "lighter" | "lighter1" => make_color_lighter(reference, DEGREES_1),
+        "lighter2" => make_color_lighter(reference, DEGREES_2),
+        "lighter3" => make_color_lighter(reference, DEGREES_3),
         _ => 
         {
             // If not then check if it's an RGB value
