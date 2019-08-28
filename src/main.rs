@@ -231,31 +231,31 @@ fn check_arguments()
             },
             "fprint" => 
             {
-                p!(notes.lines().skip(1).enumerate()
-                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
-                .collect::<Vec<String>>()
-                .join("\n"));
+                p!(notes.lines().skip(1).enumerate().skip(1)
+                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
+                    .collect::<Vec<String>>()
+                    .join("\n"));
             },
             "fprint2" =>
             {
-                p!(notes.lines().skip(1).enumerate()
-                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
-                .collect::<Vec<String>>()
-                .join("\n\n"));
+                p!(notes.lines().skip(1).enumerate().skip(1)
+                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
+                    .collect::<Vec<String>>()
+                    .join("\n\n"));
             }
             "fprint3" =>
             {
-                p!(notes.lines().skip(1).enumerate()
-                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
-                .collect::<Vec<String>>()
-                .join("\n"));
+                p!(notes.lines().skip(1).enumerate().skip(1)
+                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
+                    .collect::<Vec<String>>()
+                    .join("\n"));
             },
             "fprint4" =>
             {
-                p!(notes.lines().skip(1).enumerate()
-                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
-                .collect::<Vec<String>>()
-                .join("\n\n"));
+                p!(notes.lines().skip(1).enumerate().skip(1)
+                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
+                    .collect::<Vec<String>>()
+                    .join("\n\n"));
             }
             _ => {}
         }
@@ -2505,7 +2505,7 @@ fn next_found()
     let info = format!("{}{}{}{} >",
         get_color(3), g_get_last_find(), get_color(2), tip);
 
-    let diff = len - remaining;
+    let diff = len - remaining; 
     let mut message;
 
     if len == 1
