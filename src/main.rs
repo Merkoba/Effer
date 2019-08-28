@@ -1451,8 +1451,15 @@ fn format_note(note: &(usize, String), colors: bool, padding: usize) -> String
         }
     }
 
+    let mut space = s!();
+
+    for _ in 0..(note.0.to_string().len() + pad.len() + 3)
+    {
+        space += " ";
+    }
+
     let n = termion::terminal_size().unwrap().0 as usize - note.0.to_string().len() - pad.len() - 5;
-    let text = textwrap::fill(&note.1, min(55, n));
+    let txt = textwrap::fill(&note.1, min(50, n)); let text = s!(textwrap::indent(&txt, &space).trim());
 
     if colors
     {
