@@ -16,7 +16,7 @@ use std::
 };
 
 // Constants
-pub const VERSION: &str = "v1.10.0";
+pub const VERSION: &str = "v1.10.1";
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const MAX_PAGE_SIZE: usize = 100;
@@ -291,6 +291,12 @@ pub fn g_get_notes_vec() -> Vec<String>
 pub fn g_get_notes_vec_item(i: usize) -> String
 {
     s!(NOTES_VEC.lock().unwrap()[i])
+}
+
+// Returns a range from the notes vec global
+pub fn g_get_notes_vec_range(a: usize, b:usize) -> Vec<String>
+{
+    NOTES_VEC.lock().unwrap()[a..=b].iter().map(|x| s!(x)).collect()
 }
 
 // Sets the note _vec global value

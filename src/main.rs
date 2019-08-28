@@ -1141,9 +1141,8 @@ fn reset_settings()
 // Gets a specific line from the notes
 fn get_line(n: usize) -> String
 {
-    let lines = g_get_notes_vec();
-    if n >= lines.len() {return s!()}
-    lines[n].to_string()
+    if n > g_get_notes_length() {return s!()}
+    g_get_notes_vec_item(n)
 }
 
 // Replaces a line from the notes with a new line
@@ -1512,14 +1511,17 @@ fn check_page_number(page: usize, allow_zero: bool) -> usize
 // Gets notes that belong to a certain page
 fn get_page_notes(page: usize) -> Vec<(usize, String)>
 {
-    let mut result: Vec<(usize, String)> = vec![];
-    let lines = g_get_notes_vec();
-    if lines.is_empty() {return result}
+    let notes_length = g_get_notes_length();
+    if notes_length == 0 {return vec![]}
     let page_size = g_get_page_size();
-    let a = if page > 1 {((page - 1) * page_size) + 1} else {1};
-    let b = min(page * page_size, lines.len() - 1);
-    result = (a..).zip(lines[a..=b].iter().map(|x| s!(x))).collect();
-    result
+
+    let a = if page > 1 {((page - 1) * page_size) + 1} 
+        else {1};
+
+    let b = min(page * page_size, notes_length);
+
+    (a..).zip(g_get_notes_vec_range(a, b))
+        .collect::<Vec<(usize, String)>>()
 }
 
 // Gets the maximum number of pages
