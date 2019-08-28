@@ -95,7 +95,15 @@ fn check_arguments()
     .arg(Arg::with_name("print2")
         .long("print2")
         .multiple(false)
+        .help("Same as print but with separator newlines"))
+    .arg(Arg::with_name("fprint")
+        .long("fprint")
+        .multiple(false)
         .help("Same as print but doesn't show the numbers"))
+    .arg(Arg::with_name("fprint2")
+        .long("fprint2")
+        .multiple(false)
+        .help("Same as fprint but with separator newlines"))
     .arg(Arg::with_name("config")
         .long("config")
         .value_name("Path")
@@ -177,21 +185,46 @@ fn check_arguments()
         print_mode = "print2";
     }
 
-    if print_mode == "print" || print_mode == "print2"
+    else if matches.occurrences_of("fprint") > 0
     {
-        let lines = g_get_notes_vec();
-        if lines.is_empty() {exit()}
+        print_mode = "fprint";
+    }
 
-        for (i, line) in lines.iter().enumerate()
+    else if matches.occurrences_of("fprint2") > 0
+    {
+        print_mode = "fprint2";
+    }
+
+    if print_mode == "print" || print_mode == "print2"
+    || print_mode == "fprint" || print_mode == "fprint2"
+    {
+        let notes = get_notes(false);
+
+        match print_mode
         {
-            if i == 0 {continue}; let s = s!(line);
-
-            match print_mode
+            "print" => 
             {
-                "print" => p!(format_note(&(i, s), false, 0)),
-                "print2" => p!(s),
-                _ => {}
+                p!(notes.lines().collect::<Vec<&str>>().join("\n"));
+            },
+            "print2" =>
+            {
+                p!(notes.lines().collect::<Vec<&str>>().join("\n\n"));
+            },
+            "fprint" => 
+            {
+                p!(notes.lines().skip(1).enumerate()
+                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0))
+                .collect::<Vec<String>>()
+                .join("\n"));
+            },
+            "fprint2" =>
+            {
+                p!(notes.lines().skip(1).enumerate()
+                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0))
+                .collect::<Vec<String>>()
+                .join("\n\n"));
             }
+            _ => {}
         }
 
         exit();
