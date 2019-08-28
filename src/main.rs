@@ -1772,9 +1772,6 @@ fn goto_page()
 }
 
 // Changes how many items appear per page
-// It increases or decreases by 5
-// Maximum number is 100
-// Minimum number is 5
 fn change_page_size(increase: bool)
 {
     let max_page = get_max_page_number();
@@ -1782,12 +1779,12 @@ fn change_page_size(increase: bool)
 
     if increase
     {
-        if page_size < MAX_PAGE_SIZE && max_page > 1 {g_set_page_size(page_size + 5)} else {return}
+        if page_size < MAX_PAGE_SIZE && max_page > 1 {g_set_page_size(page_size + PAGE_SIZE_DIFF)} else {return}
     }
 
     else
     {
-        if page_size >= 10 {g_set_page_size(page_size - 5)} else {return}
+        if page_size >= (PAGE_SIZE_DIFF * 2) {g_set_page_size(page_size - PAGE_SIZE_DIFF)} else {return}
     }
 
     update_header();
@@ -2494,7 +2491,7 @@ fn mode_action()
 // Attemps to show the next found notes
 fn next_found()
 {
-    let found = g_get_found_next(g_get_page_size());
+    let found = g_get_found_next(5);
     let remaining = g_get_found_remaining();
 
     if found.is_empty()

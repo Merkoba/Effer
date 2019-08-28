@@ -20,6 +20,7 @@ pub const VERSION: &str = "v1.11.0";
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const MAX_PAGE_SIZE: usize = 100;
+pub const PAGE_SIZE_DIFF: usize = 1;
 pub const DEFAULT_ROW_SPACE: bool = true;
 pub const DEFAULT_USE_COLORS: bool = true;
 
