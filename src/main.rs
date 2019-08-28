@@ -618,7 +618,7 @@ fn create_menus()
             menu_item("R", "Reset File", true, true, true),
             menu_item("P", "Change Password", true, false, false),
             menu_item("$", "Change Colors", true, true, true),
-            menu_item(":", "Screen Saver", true, false, false)
+            menu_item("U", "Undo Last Edit", true, false, false)
         ].concat(),
         [
             menu_item("^", "Change Row Spacing", true, true, true),
@@ -697,11 +697,12 @@ fn menu_input() -> (MenuAnswer, usize)
                         'T' => MenuAnswer::ShowStats,
                         '?' => MenuAnswer::ShowAbout,
                         'O' => MenuAnswer::OpenFromPath,
-                        'U' => MenuAnswer::FetchSource,
+                        'N' => MenuAnswer::FetchSource,
                         'Q' => MenuAnswer::Exit,
                         '+' => MenuAnswer::IncreasePageSize,
                         '-' => MenuAnswer::DecreasePageSize,
                         ':' => MenuAnswer::ScreenSaver,
+                        'U' => MenuAnswer::Undo,
                         'X' => MenuAnswer::Destroy,
                         '\n' => MenuAnswer::ModeAction,
                         '^' => MenuAnswer::ChangeRowSpace,
@@ -780,6 +781,7 @@ fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::ChangeColors => change_colors(),
         MenuAnswer::MoveNotes => move_notes(),
         MenuAnswer::ModeAction => mode_action(),
+        MenuAnswer::Undo => undo_last_edit(),
         MenuAnswer::Exit => ask_exit(),
         MenuAnswer::Nothing => {}
     }
@@ -2234,6 +2236,7 @@ fn get_note_page(n: usize) -> usize
 // This is used when the file changes
 fn reset_state(notes: String)
 {
+    g_set_prev_notes(s!());
     update_notes_statics(notes);
     get_settings(); create_menus();
     g_set_last_edit(0);
@@ -2448,4 +2451,26 @@ fn next_found()
     }
 
     message += &info; show_notes(0, found, message);
+}
+
+// Restores the file 
+// to the previous state
+fn undo_last_edit()
+{
+    let notes = g_get_notes();
+    let prev_notes = g_get_prev_notes();
+
+    if prev_notes == notes
+    {
+        return show_message("< Nothing To Undo >");
+    }
+
+    p!("This will undo notes to the previous state.");
+    p!("Multiple undos in a row can't be performed.");
+
+    if ask_bool("Undo?", true)
+    {
+        update_file(prev_notes);
+        refresh_page();
+    }
 }

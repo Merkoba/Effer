@@ -40,6 +40,7 @@ lazy_static!
     static ref PATH: Mutex<String> = Mutex::new(s!());
     static ref PASSWORD: Mutex<String> = Mutex::new(s!());
     static ref NOTES: Mutex<String> = Mutex::new(s!());
+    static ref PREV_NOTES: Mutex<String> = Mutex::new(s!());
     static ref SOURCE: Mutex<String> = Mutex::new(s!());
     static ref LAST_FIND: Mutex<String> = Mutex::new(s!());
     static ref MODE: Mutex<String> = Mutex::new(s!());
@@ -91,7 +92,32 @@ pub fn g_get_notes() -> String
 // Sets the notes global value
 pub fn g_set_notes(s: String)
 {
-    *NOTES.lock().unwrap() = s;
+    let mut notes = NOTES.lock().unwrap();
+    let mut prev_notes = PREV_NOTES.lock().unwrap();
+
+    if prev_notes.is_empty()
+    {
+        *prev_notes = s!(s);
+    }
+
+    else
+    {
+        *prev_notes = s!(notes); 
+    }
+
+    *notes = s;
+}
+
+// Returns the prev notes global value
+pub fn g_get_prev_notes() -> String
+{
+    s!(PREV_NOTES.lock().unwrap())
+}
+
+// Sets the prev notes global value
+pub fn g_set_prev_notes(s: String)
+{
+    *PREV_NOTES.lock().unwrap() = s;
 }
 
 // Returns the path global value
