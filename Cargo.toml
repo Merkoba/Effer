@@ -26,3 +26,4 @@ shellexpand = "1.0.0"
 toml = "0.5.3"
 serde = { version = "1.0.99", features = ["derive"] }
 colorsys = "0.5.3"
+textwrap = "0.11.0"

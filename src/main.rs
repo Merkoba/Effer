@@ -1449,14 +1449,17 @@ fn format_note(note: &(usize, String), colors: bool, padding: usize) -> String
         }
     }
 
+    let n = termion::terminal_size().unwrap().0 as usize - note.0.to_string().len() - pad.len() - 5;
+    let text = textwrap::fill(&note.1, min(55, n));
+
     if colors
     {
-        format!("{}({}) {}{}{}", get_color(3), note.0, pad, get_color(2), note.1)
+        format!("{}({}) {}{}{}", get_color(3), note.0, pad, get_color(2), text)
     }
 
     else
     {
-        format!("({}) {}{}", note.0, pad, note.1)
+        format!("({}) {}{}", note.0, pad, text)
     }
 }
 
