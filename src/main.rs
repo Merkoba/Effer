@@ -1208,7 +1208,7 @@ fn add_note(prepend: bool)
     }
     
     let note = ask_string(prompt, "", false);
-    if note.is_empty() {return} let new_text;
+    if note.trim().is_empty() {return} let new_text;
 
     if prepend
     {
