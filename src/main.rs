@@ -104,6 +104,14 @@ fn check_arguments()
         .long("fprint2")
         .multiple(false)
         .help("Same as fprint but with separator newlines"))
+    .arg(Arg::with_name("fprint3")
+        .long("fprint3")
+        .multiple(false)
+        .help("Same as fprint but it disables indentation"))
+    .arg(Arg::with_name("fprint4")
+        .long("fprint4")
+        .multiple(false)
+        .help("Same as fprint3 but with separator newlines"))
     .arg(Arg::with_name("config")
         .long("config")
         .value_name("Path")
@@ -195,8 +203,19 @@ fn check_arguments()
         print_mode = "fprint2";
     }
 
+    else if matches.occurrences_of("fprint3") > 0
+    {
+        print_mode = "fprint3";
+    }
+
+    else if matches.occurrences_of("fprint4") > 0
+    {
+        print_mode = "fprint4";
+    }
+
     if print_mode == "print" || print_mode == "print2"
     || print_mode == "fprint" || print_mode == "fprint2"
+    || print_mode == "fprint3" || print_mode == "fprint4"
     {
         let notes = get_notes(false);
 
@@ -213,14 +232,28 @@ fn check_arguments()
             "fprint" => 
             {
                 p!(notes.lines().skip(1).enumerate()
-                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0))
+                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
                 .collect::<Vec<String>>()
                 .join("\n"));
             },
             "fprint2" =>
             {
                 p!(notes.lines().skip(1).enumerate()
-                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0))
+                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
+                .collect::<Vec<String>>()
+                .join("\n\n"));
+            }
+            "fprint3" =>
+            {
+                p!(notes.lines().skip(1).enumerate()
+                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
+                .collect::<Vec<String>>()
+                .join("\n"));
+            },
+            "fprint4" =>
+            {
+                p!(notes.lines().skip(1).enumerate()
+                .skip(1).map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
                 .collect::<Vec<String>>()
                 .join("\n\n"));
             }
@@ -867,7 +900,7 @@ fn print_notes(notes: &[(usize, String)])
     for note in notes.iter()
     {
         if space {p!("")}
-        p!(format_note(note, true, padding));
+        p!(format_note(note, true, padding, true));
     }
 }
 
@@ -1467,7 +1500,7 @@ fn refresh_page()
 }
 
 // Generic format for note items
-fn format_note(note: &(usize, String), colors: bool, padding: usize) -> String
+fn format_note(note: &(usize, String), colors: bool, padding: usize, indent: bool) -> String
 {
     let mut pad = s!();
 
@@ -1486,9 +1519,12 @@ fn format_note(note: &(usize, String), colors: bool, padding: usize) -> String
 
     let mut space = s!();
 
-    for _ in 0..(note.0.to_string().len() + pad.len() + 3)
+    if indent
     {
-        space += " ";
+        for _ in 0..(note.0.to_string().len() + pad.len() + 3)
+        {
+            space += " ";
+        }
     }
 
     let n = termion::terminal_size().unwrap().0 as usize - note.0.to_string().len() - pad.len() - 5;
