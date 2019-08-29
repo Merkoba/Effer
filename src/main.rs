@@ -15,6 +15,10 @@ mod encryption;
 mod modes;
 mod other;
 
+use globals::
+{
+    g_set_started
+};
 use arguments::
 {
     check_arguments
@@ -35,10 +39,6 @@ use notes::
 use settings::
 {
     get_settings
-};
-use globals::
-{
-    g_set_started
 };
 use menu::
 {
