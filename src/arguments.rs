@@ -192,28 +192,28 @@ pub fn check_arguments()
             "fprint" => 
             {
                 p!(notes.lines().skip(1).enumerate().skip(1)
-                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
+                    .map(|(i, n)| format_note(&(i, s!(n)), false, 0, true))
                     .collect::<Vec<String>>()
                     .join("\n"));
             },
             "fprint2" =>
             {
                 p!(notes.lines().skip(1).enumerate().skip(1)
-                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, true))
+                    .map(|(i, n)| format_note(&(i, s!(n)), false, 0, true))
                     .collect::<Vec<String>>()
                     .join("\n\n"));
             }
             "fprint3" =>
             {
                 p!(notes.lines().skip(1).enumerate().skip(1)
-                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
+                    .map(|(i, n)| format_note(&(i, s!(n)), false, 0, false))
                     .collect::<Vec<String>>()
                     .join("\n"));
             },
             "fprint4" =>
             {
                 p!(notes.lines().skip(1).enumerate().skip(1)
-                    .map(|(n, i)| format_note(&(n, s!(i)), false, 0, false))
+                    .map(|(i, n)| format_note(&(i, s!(n)), false, 0, false))
                     .collect::<Vec<String>>()
                     .join("\n\n"));
             }
