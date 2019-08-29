@@ -1,68 +1,68 @@
-use crate::s;
-use crate::p;
-use crate::e;
-
-use crate::globals::
+use crate::
 {
-    UNLOCK_CHECK,
-    g_get_notes_length,
-    g_get_notes_vec_item,
-    g_get_notes_vec,
-    g_get_path,
-    g_set_path,
-    g_get_page_size,
-    g_get_row_space,
-    g_get_color_1,
-    g_get_color_2,
-    g_get_color_3,
-    g_get_use_colors,
-    g_set_source,
-    g_get_source,
-    g_get_started,
-    g_set_last_edit,
-    g_get_last_path,
-    g_set_last_path,
-    g_get_password,
-    g_set_password
-};
-use crate::notes::
-{
-    get_notes,
-    update_notes_statics,
-    goto_last_page,
-    goto_first_page
-};
-use crate::other::
-{
-    reset_state,
-    show_message,
-    exit, gibberish
-};
-use crate::input::
-{
-    ask_bool,
-    ask_string
-};
-use crate::encryption::
-{
-    encrypt_text,
-    get_password
-};
-use crate::structs::
-{
-    FilePathCheckResult
-};
-use crate::settings::
-{
-    reset_settings
-};
-use crate::menu::
-{
-    create_menus
-};
-use crate::colors::
-{
-    color_to_string
+    s, p, e,
+    globals::
+    {
+        UNLOCK_CHECK,
+        g_get_notes_length,
+        g_get_notes_vec_item,
+        g_get_notes_vec,
+        g_get_path,
+        g_set_path,
+        g_get_page_size,
+        g_get_row_space,
+        g_get_color_1,
+        g_get_color_2,
+        g_get_color_3,
+        g_get_use_colors,
+        g_set_source,
+        g_get_source,
+        g_get_started,
+        g_set_last_edit,
+        g_get_last_path,
+        g_set_last_path,
+        g_get_password,
+        g_set_password
+    },
+    notes::
+    {
+        get_notes,
+        update_notes_statics,
+        goto_last_page,
+        goto_first_page
+    },
+    other::
+    {
+        reset_state,
+        show_message,
+        exit, gibberish
+    },
+    input::
+    {
+        ask_bool,
+        ask_string
+    },
+    encryption::
+    {
+        encrypt_text,
+        get_password
+    },
+    structs::
+    {
+        FilePathCheckResult
+    },
+    settings::
+    {
+        reset_settings
+    },
+    menu::
+    {
+        create_menus
+    },
+    colors::
+    {
+        color_to_string
+    }
 };
 
 use std::

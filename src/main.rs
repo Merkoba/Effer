@@ -15,43 +15,46 @@ mod encryption;
 mod modes;
 mod other;
 
-use globals::
+use crate::
 {
-    g_set_started
-};
-use arguments::
-{
-    check_arguments
-};
-use file::
-{
-    get_file_path,
-    file_path_check,
-    handle_file_path_check,
-    handle_source
-};
-use notes::
-{
-    get_notes,
-    update_notes_statics,
-    goto_last_page
-};
-use settings::
-{
-    get_settings
-};
-use menu::
-{
-    create_menus
-};
-use encryption::
-{
-    get_password
-};
-use other::
-{
-    exit,
-    change_screen
+    globals::
+    {
+        g_set_started
+    },
+    arguments::
+    {
+        check_arguments
+    },
+    file::
+    {
+        get_file_path,
+        file_path_check,
+        handle_file_path_check,
+        handle_source
+    },
+    notes::
+    {
+        get_notes,
+        update_notes_statics,
+        goto_last_page
+    },
+    settings::
+    {
+        get_settings
+    },
+    menu::
+    {
+        create_menus
+    },
+    encryption::
+    {
+        get_password
+    },
+    other::
+    {
+        exit,
+        change_screen
+    }
 };
 
 // First function to execute

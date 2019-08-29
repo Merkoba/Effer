@@ -1,31 +1,33 @@
-use crate::s;
-
-use crate::globals::
+use crate::
 {
-    MAX_PAGE_SIZE,
-    DEFAULT_PAGE_SIZE,
-    DEFAULT_ROW_SPACE,
-    DEFAULT_USE_COLORS,
-    DARK_THEME_COLOR_1,
-    DARK_THEME_COLOR_2,
-    DARK_THEME_COLOR_3,
-    g_get_arg_page_size,
-    g_get_arg_row_space,
-    g_get_arg_color_1,
-    g_get_arg_color_2,
-    g_get_arg_color_3,
-    g_get_arg_use_colors,
-    g_set_page_size,
-    g_set_row_space,
-    g_set_color_1,
-    g_set_color_2,
-    g_set_color_3,
-    g_set_use_colors
-};
-use crate::file::
-{
-    update_header,
-    get_header
+    s,
+    globals::
+    {
+        MAX_PAGE_SIZE,
+        DEFAULT_PAGE_SIZE,
+        DEFAULT_ROW_SPACE,
+        DEFAULT_USE_COLORS,
+        DARK_THEME_COLOR_1,
+        DARK_THEME_COLOR_2,
+        DARK_THEME_COLOR_3,
+        g_get_arg_page_size,
+        g_get_arg_row_space,
+        g_get_arg_color_1,
+        g_get_arg_color_2,
+        g_get_arg_color_3,
+        g_get_arg_use_colors,
+        g_set_page_size,
+        g_set_row_space,
+        g_set_color_1,
+        g_set_color_2,
+        g_set_color_3,
+        g_set_use_colors
+    },
+    file::
+    {
+        update_header,
+        get_header
+    }
 };
 
 use std::

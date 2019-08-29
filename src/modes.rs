@@ -1,31 +1,33 @@
-use crate::s;
-
-use crate::globals::
+use crate::
 {
-    VERSION,
-    g_get_mode,
-    g_set_mode,
-    g_get_notes_length,
-    g_get_path
-};
-use crate::notes::
-{
-    get_notes,
-    refresh_page,
-    next_found
-};
-use crate::other::
-{
-    show_message
-};
-use crate::colors::
-{
-    get_color
-};
-use crate::file::
-{
-    get_file_text,
-    shell_contract
+    s,
+    globals::
+    {
+        VERSION,
+        g_get_mode,
+        g_set_mode,
+        g_get_notes_length,
+        g_get_path
+    },
+    notes::
+    {
+        get_notes,
+        refresh_page,
+        next_found
+    },
+    other::
+    {
+        show_message
+    },
+    colors::
+    {
+        get_color
+    },
+    file::
+    {
+        get_file_text,
+        shell_contract
+    }
 };
 
 // Show some statistics

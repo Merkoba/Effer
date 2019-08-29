@@ -1,69 +1,69 @@
-use crate::s;
-use crate::p;
-use crate::pp;
-
-use crate::globals::
+use crate::
 {
-    MAX_PAGE_SIZE,
-    PAGE_SIZE_DIFF,
-    g_get_notes,
-    g_set_notes,
-    g_get_notes_vec,
-    g_set_notes_vec,
-    g_get_notes_length,
-    g_set_notes_length,
-    g_set_last_edit,
-    g_get_last_edit,
-    g_get_last_find,
-    g_set_last_find,
-    g_set_found,
-    g_set_mode,
-    g_get_mode,
-    g_get_page,
-    g_set_page,
-    g_get_page_size,
-    g_set_page_size,
-    g_get_row_space,
-    g_set_row_space,
-    g_get_prev_notes,
-    g_get_found_next,
-    g_get_notes_vec_range,
-    g_get_found_remaining,
-    g_get_found_length,
-    g_get_path
-};
-use crate::file::
-{
-    update_file,
-    replace_line,
-    move_lines,
-    swap_lines,
-    update_header,
-    get_file_text,
-    shell_contract,
-    delete_lines,
-    get_line
-};
-use crate::encryption::
-{
-    decrypt_text
-};
-use crate::colors::
-{
-    get_color
-};
-use crate::input::
-{
-    ask_bool,
-    ask_string
-};
-use crate::menu::
-{
-    show_menu
-};
-use crate::other::
-{
-    show_message
+    s, p, pp,
+    globals::
+    {
+        MAX_PAGE_SIZE,
+        PAGE_SIZE_DIFF,
+        g_get_notes,
+        g_set_notes,
+        g_get_notes_vec,
+        g_set_notes_vec,
+        g_get_notes_length,
+        g_set_notes_length,
+        g_set_last_edit,
+        g_get_last_edit,
+        g_get_last_find,
+        g_set_last_find,
+        g_set_found,
+        g_set_mode,
+        g_get_mode,
+        g_get_page,
+        g_set_page,
+        g_get_page_size,
+        g_set_page_size,
+        g_get_row_space,
+        g_set_row_space,
+        g_get_prev_notes,
+        g_get_found_next,
+        g_get_notes_vec_range,
+        g_get_found_remaining,
+        g_get_found_length,
+        g_get_path
+    },
+    file::
+    {
+        update_file,
+        replace_line,
+        move_lines,
+        swap_lines,
+        update_header,
+        get_file_text,
+        shell_contract,
+        delete_lines,
+        get_line
+    },
+    encryption::
+    {
+        decrypt_text
+    },
+    colors::
+    {
+        get_color
+    },
+    input::
+    {
+        ask_bool,
+        ask_string
+    },
+    menu::
+    {
+        show_menu
+    },
+    other::
+    {
+        show_message
+    }
 };
 
 use std::

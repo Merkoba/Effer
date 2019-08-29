@@ -1,29 +1,30 @@
-use crate::s;
-use crate::p;
-
-use crate::globals::
+use crate::
 {
-    g_get_altscreen,
-    g_set_altscreen,
-    g_set_prev_notes,
-    g_set_last_edit
-};
-use crate::input::
-{
-    ask_bool
-};
-use crate::settings::
-{
-    get_settings
-};
-use crate::notes::
-{
-    update_notes_statics,
-    show_notes
-};
-use crate::menu::
-{
-    create_menus
+    s, p,
+    globals::
+    {
+        g_get_altscreen,
+        g_set_altscreen,
+        g_set_prev_notes,
+        g_set_last_edit
+    },
+    input::
+    {
+        ask_bool
+    },
+    settings::
+    {
+        get_settings
+    },
+    notes::
+    {
+        update_notes_statics,
+        show_notes
+    },
+    menu::
+    {
+        create_menus
+    }
 };
 
 use std::

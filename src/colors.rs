@@ -1,45 +1,46 @@
-use crate::s;
-use crate::p;
-
-use crate::globals::
+use crate::
 {
-    DARK_THEME_COLOR_1,
-    DARK_THEME_COLOR_2,
-    DARK_THEME_COLOR_3,
-    LIGHT_THEME_COLOR_1,
-    LIGHT_THEME_COLOR_2,
-    LIGHT_THEME_COLOR_3,
-    PURPLE_THEME_COLOR_1,
-    PURPLE_THEME_COLOR_2,
-    PURPLE_THEME_COLOR_3,
-    g_get_use_colors,
-    g_set_use_colors,
-    g_get_color_1,
-    g_get_color_2,
-    g_get_color_3,
-    g_set_color_1,
-    g_set_color_2,
-    g_set_color_3,
-    g_get_prev_color_1,
-    g_get_prev_color_2,
-    g_get_prev_color_3
-};
-use crate::menu::
-{
-    create_menus
-};
-use crate::file::
-{
-    update_header
-};
-use crate::notes::
-{
-    refresh_page
-};
-use crate::input::
-{
-    ask_bool,
-    ask_string
+    s, p,
+    globals::
+    {
+        DARK_THEME_COLOR_1,
+        DARK_THEME_COLOR_2,
+        DARK_THEME_COLOR_3,
+        LIGHT_THEME_COLOR_1,
+        LIGHT_THEME_COLOR_2,
+        LIGHT_THEME_COLOR_3,
+        PURPLE_THEME_COLOR_1,
+        PURPLE_THEME_COLOR_2,
+        PURPLE_THEME_COLOR_3,
+        g_get_use_colors,
+        g_set_use_colors,
+        g_get_color_1,
+        g_get_color_2,
+        g_get_color_3,
+        g_set_color_1,
+        g_set_color_2,
+        g_set_color_3,
+        g_get_prev_color_1,
+        g_get_prev_color_2,
+        g_get_prev_color_3
+    },
+    menu::
+    {
+        create_menus
+    },
+    file::
+    {
+        update_header
+    },
+    notes::
+    {
+        refresh_page
+    },
+    input::
+    {
+        ask_bool,
+        ask_string
+    }
 };
 
 use rand::Rng;

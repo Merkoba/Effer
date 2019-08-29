@@ -1,9 +1,10 @@
-use crate::s;
-use crate::ee;
-
-use crate::structs::
-{
-    RustyHelper
+use crate::
+{   
+    s, ee,
+    structs::
+    {
+        RustyHelper
+    }
 };
 
 use rustyline::

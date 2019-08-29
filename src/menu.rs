@@ -1,67 +1,66 @@
-use crate::p;
-
-use crate::globals::
+use crate::
 {
-    g_set_menus,
-    g_get_menus_length,
-    g_get_current_menu,
-    g_set_current_menu,
-    g_get_menus_item
-};
-use crate::notes::
-{
-    refresh_page,
-    goto_last_page,
-    change_page_size,
-    goto_page,
-    add_note,
-    edit_note,
-    swap_notes,
-    move_notes,
-    find_notes,
-    delete_notes,
-    undo_last_edit,
-    cycle_left,
-    cycle_right,
-    show_page,
-    show_all_notes,
-    edit_last_note,
-    change_row_space,
-    goto_first_page
-};
-use crate::colors::
-{
-    get_color
-};
-use crate::structs::
-{
-    MenuAnswer
-};
-use crate::file::
-{
-    open_from_path,
-    fetch_source,
-    destroy,
-    reset_file
-};
-use crate::modes::
-{
-    show_about,
-    show_stats,
-    show_screensaver,
-    mode_action
-};
-use crate::other::
-{
-    ask_exit
-};
-use crate::encryption::
-{
-    change_password
-};
-use crate::colors::
-{
-    change_colors
+    p,
+    globals::
+    {
+        g_set_menus,
+        g_get_menus_length,
+        g_get_current_menu,
+        g_set_current_menu,
+        g_get_menus_item
+    },
+    notes::
+    {
+        refresh_page,
+        goto_last_page,
+        change_page_size,
+        goto_page,
+        add_note,
+        edit_note,
+        swap_notes,
+        move_notes,
+        find_notes,
+        delete_notes,
+        undo_last_edit,
+        cycle_left,
+        cycle_right,
+        show_page,
+        show_all_notes,
+        edit_last_note,
+        change_row_space,
+        goto_first_page
+    },
+    structs::
+    {
+        MenuAnswer
+    },
+    file::
+    {
+        open_from_path,
+        fetch_source,
+        destroy,
+        reset_file
+    },
+    modes::
+    {
+        show_about,
+        show_stats,
+        show_screensaver,
+        mode_action
+    },
+    other::
+    {
+        ask_exit
+    },
+    encryption::
+    {
+        change_password
+    },
+    colors::
+    {
+        get_color,
+        change_colors
+    }
 };
 
 use std::

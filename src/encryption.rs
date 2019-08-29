@@ -1,24 +1,24 @@
-use crate::s;
-use crate::p;
-use crate::e;
-
-use crate::globals::
+use crate::
 {
-    UNLOCK_CHECK,
-    g_get_password,
-    g_set_password
-};
-use crate::file::
-{
-    update_file
-};
-use crate::notes::
-{
-    get_notes
-};
-use crate::input::
-{
-    get_input
+    s, p, e,
+    globals::
+    {
+        UNLOCK_CHECK,
+        g_get_password,
+        g_set_password
+    },
+    file::
+    {
+        update_file
+    },
+    notes::
+    {
+        get_notes
+    },
+    input::
+    {
+        get_input
+    }
 };
 
 use rand::

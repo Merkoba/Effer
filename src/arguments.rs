@@ -1,39 +1,37 @@
-use crate::s; 
-use crate::p;
-
-use crate::globals::
+use crate::
 {
-    VERSION,
-    g_set_path,
-    g_set_arg_page_size,
-    g_set_arg_row_space,
-    g_set_arg_color_1,
-    g_set_arg_color_2,
-    g_set_arg_color_3,
-    g_set_arg_use_colors
-};
-use crate::file::
-{
-    get_source_content,
-    get_default_file_path,
-    shell_expand
-};
-use crate::structs::
-{
-    SettingsArgs
-};
-use crate::other::
-{
-    exit
-};
-use crate::notes::
-{
-    format_note,
-    get_notes
-};
-use crate::file::
-{
-    read_file
+    s, p,
+    globals::
+    {
+        VERSION,
+        g_set_path,
+        g_set_arg_page_size,
+        g_set_arg_row_space,
+        g_set_arg_color_1,
+        g_set_arg_color_2,
+        g_set_arg_color_3,
+        g_set_arg_use_colors
+    },
+    file::
+    {
+        read_file,
+        get_source_content,
+        get_default_file_path,
+        shell_expand
+    },
+    structs::
+    {
+        SettingsArgs
+    },
+    other::
+    {
+        exit
+    },
+    notes::
+    {
+        format_note,
+        get_notes
+    }
 };
 
 use clap::{App, Arg};
