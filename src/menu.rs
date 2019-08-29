@@ -68,7 +68,6 @@ use std::
     io::{stdin, stdout, Write},
     cmp::max
 };
-
 use termion::
 {
     event::
