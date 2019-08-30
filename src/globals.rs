@@ -20,7 +20,7 @@ use std::
 };
 
 // Constants
-pub const VERSION: &str = "v1.12.0";
+pub const VERSION: &str = "v1.13.0";
 pub const UNLOCK_CHECK: &str = "<Notes Unlocked>";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const MAX_PAGE_SIZE: usize = 100;

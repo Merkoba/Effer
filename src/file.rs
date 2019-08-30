@@ -58,10 +58,6 @@ use crate::
     menu::
     {
         create_menus
-    },
-    colors::
-    {
-        color_to_string
     }
 };
 
@@ -70,6 +66,11 @@ use std::
     thread, time, fs,
     path::{Path, PathBuf},
     io::{self, Write}
+};
+
+use colorskill::
+{
+    color_to_string
 };
 
 // Gets a specific line from the notes
