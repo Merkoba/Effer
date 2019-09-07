@@ -120,7 +120,7 @@ pub fn create_menus()
             menu_item("S", "Swap", true, false, false),
             menu_item("O", "Open Encrypted File", true, true, true),
             menu_item("T", "Stats", true, false, false),
-            menu_item("U", "Add From Source File", true, true, true),
+            menu_item("N", "Add From Source File", true, true, true),
             menu_item("X", "Destroy", true, false, false)
         ].concat()
     ]);
