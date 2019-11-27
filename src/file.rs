@@ -278,7 +278,7 @@ pub fn reset_file()
 pub fn create_file() -> bool
 {
     if get_password(true).is_empty() {return false}
-    let encrypted = encrypt_text(&s!(UNLOCK_CHECK));
+    let encrypted = encrypt_text(UNLOCK_CHECK);
 
     match fs::create_dir_all(get_file_parent_path())
     {
@@ -304,8 +304,8 @@ pub fn get_header() -> String
     g_get_notes_vec_item(0)
 }
 
-// Modifies the header (first line) with new settings
-pub fn update_header()
+// Generates a header line
+pub fn format_header() -> String
 {
     let uc = UNLOCK_CHECK;
     let ps = g_get_page_size();
@@ -315,10 +315,14 @@ pub fn update_header()
     let c3 = color_to_string(g_get_color_3());
     let cc = g_get_use_colors();
 
-    let s = format!("{} page_size={} row_space={} color_1={} color_2={} color_3={} use_colors={}",
-        uc, ps, rs, c1, c2, c3, cc);
+    format!("{}, page_size={} row_space={} color_1={} color_2={} color_3={} use_colors={}",
+        uc, ps, rs, c1, c2, c3, cc)
+}
 
-    replace_line(0, s);
+// Modifies the header (first line) with new settings
+pub fn update_header()
+{
+    replace_line(0, format_header());
 }
 
 // Tries to get the content of a source path

@@ -21,22 +21,12 @@ use crate::
     }
 };
 
-use rand::
-{
-    Rng, prelude::*
-};
-use sha3::
-{
-    Sha3_256, Digest
-};
-use block_modes::
-{
-    BlockMode, Cbc,
-    block_padding::Pkcs7
-};
+use sodiumoxide::crypto::secretbox;
+use sodiumoxide::crypto::pwhash;
+use sodiumoxide::crypto::pwhash::scryptsalsa208sha256::Salt;
 
-use aes_soft::Aes256;
-type Aes256Cbc = Cbc<Aes256, Pkcs7>;
+use aes_gcm::Aes256Gcm;
+use aead::{Aead, NewAead, generic_array::GenericArray};
 
 // Changes the password and updates the file with it
 pub fn change_password()
@@ -82,41 +72,69 @@ pub fn get_password(change: bool) -> String
 // Turns the encrypted data into hex
 pub fn encrypt_text(plain_text: &str) -> String
 {
-    let mut hasher = Sha3_256::new();
-    hasher.input(get_password(false).as_bytes());
-    let key = hasher.result();
-    let iv = generate_iv(&key);
+    let salt = pwhash::gen_salt();
 
-    let cipher = match Aes256Cbc::new_var(&key, &iv)
+    let mut key = secretbox::Key([0; secretbox::KEYBYTES]);
     {
-        Ok(cip) => cip, Err(_) => {e!("Can't init the encrypt cipher."); return s!()}
+        let secretbox::Key(ref mut kb) = key;
+        pwhash::derive_key(kb, get_password(false).as_bytes(), &salt,
+            pwhash::OPSLIMIT_INTERACTIVE,
+            pwhash::MEMLIMIT_INTERACTIVE).unwrap();
+    }
+
+    let arkey = GenericArray::clone_from_slice(key.as_ref());
+    let aead = Aes256Gcm::new(arkey);
+    let nonce = GenericArray::from_slice(b"unique nonce"); 
+
+    let ciphertext = match aead.encrypt(nonce, plain_text.as_ref())
+    {
+        Ok(ct) => ct, Err(_) => {e!("Encryption failed."); return s!()}
     };
 
-    let encrypted = cipher.encrypt_vec(plain_text.as_bytes()); hex::encode(&encrypted)
+    format!("{}-;-{}", base64::encode(&salt), hex::encode(&ciphertext))
 }
 
 // Decodes the hex data and decrypts it
 pub fn decrypt_text(encrypted_text: &str) -> String
 {
     if encrypted_text.trim().is_empty() {return s!()}
-    let mut hasher = Sha3_256::new();
-    hasher.input(get_password(false).as_bytes());
-    let key = hasher.result();
-    let iv = generate_iv(&key);
+    
+    let mut xalt = "";
+    let mut clines: Vec<&str> = vec![];
+    
+    for (i, line) in encrypted_text.lines().enumerate()
+    {
+        if i == 0
+        {
+            let split = line.split("-;-").collect::<Vec<&str>>();
+            xalt = split[0];
+            clines.push(split[1]);
+        } else {clines.push(line)}
+    }
 
-    let ciphertext = match hex::decode(encrypted_text)
+    let enctext = clines.join("\n");
+    let salt = base64::decode(xalt).unwrap();
+
+    let mut key = secretbox::Key([0; secretbox::KEYBYTES]);
+    {
+        let secretbox::Key(ref mut kb) = key;
+        pwhash::derive_key(kb, get_password(false).as_bytes(), &Salt::from_slice(&salt).unwrap(),
+            pwhash::OPSLIMIT_INTERACTIVE,
+            pwhash::MEMLIMIT_INTERACTIVE).unwrap();
+    }
+
+    let arkey = GenericArray::clone_from_slice(key.as_ref());
+    let aead = Aes256Gcm::new(arkey);
+    let nonce = GenericArray::from_slice(b"unique nonce");
+
+    let ciphertext = match hex::decode(enctext)
     {
         Ok(ct) => ct, Err(_) => {e!("Can't decode the hex text to decrypt."); return s!()}
     };
 
-    let cipher = match Aes256Cbc::new_var(&key, &iv)
+    let decrypted = match aead.decrypt(nonce, ciphertext.as_ref())
     {
-        Ok(cip) => cip, Err(_) => {e!("Can't init the decrypt cipher."); return s!()}
-    };
-
-    let decrypted = match cipher.decrypt_vec(&ciphertext)
-    {
-        Ok(dec) => dec, Err(_) => {e!("Wrong password."); return s!()}
+        Ok(txt) => txt, Err(_) => {e!("Decryption failed."); return s!()}
     };
 
     let text = match String::from_utf8(decrypted)
@@ -135,37 +153,4 @@ pub fn decrypt_text(encrypted_text: &str) -> String
     }
 
     text
-}
-
-// <Alipha> madprops: an IV is an Initialization Vector and (generally) must be randomly-generated
-// and different each and every time you encrypt using the same key. Not using a different,
-// random IV means someone will be able to decrypt your ciphertext
-
-// <Alipha> madprops: AES-CBC works by xor'ing the previous block with the current block.
-// So for the first block, there's no previous block. So the IV is used as the previous block.
-// <Alipha> madprops: also, for your encryption scheme to be secure, you need to authenticate your
-// ciphertext to make sure it hasn't been maliciously modified. This can be done with HMAC, poly1305
-// or other algorithms. Or, you can use AES-GCM instead of AES-CBC, which authenticates the ciphertext for you.
-
-// Generates the IV used to encrypt and decrypt the file
-pub fn generate_iv(key: &[u8]) -> Vec<u8>
-{
-    let hex_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
-    let mut chars: Vec<char> = vec![];
-    let mut rng: StdRng = SeedableRng::from_seed(get_seed_array(key));
-
-    for _ in 0..key.len()
-    {
-        chars.push(hex_chars[((rng.gen::<u8>()) % 16) as usize]);
-    }
-
-    hex::decode(chars.iter().collect::<String>()).unwrap()
-}
-
-// Fills and array based on the key to generate the IV
-pub fn get_seed_array(source: &[u8]) -> [u8; 32]
-{
-    let mut array = [0; 32];
-    let items = &source[..array.len()];
-    array.copy_from_slice(items); array
 }

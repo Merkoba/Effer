@@ -2,7 +2,7 @@
 
 [package]
 name = "effer"
-version = "0.1.0"
+version = "2.0.0"
 authors = ["madprops <idk@ehhh.com>"]
 edition = "2018"
 
@@ -10,8 +10,6 @@ edition = "2018"
 
 [dependencies]
 dirs = "2.0.2"
-block-modes = "0.3.3"
-aes-soft = "0.3.3"
 rand = "0.7.0"
 hex = "0.3.2"
 sha3 = "0.8.2"
@@ -28,3 +26,7 @@ serde = { version = "1.0.99", features = ["derive"] }
 colorsys = "0.5.3"
 textwrap = "0.11.0"
 colorskill = "1.1.3"
+sodiumoxide = "0.2.5"
+base64 = "0.11.0"
+aes-gcm = "0.3.0"
+aead = "0.2.0"
