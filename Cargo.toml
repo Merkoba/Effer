@@ -2,7 +2,7 @@
 
 [package]
 name = "effer"
-version = "2.0.0"
+version = "1.9.999"
 authors = ["madprops <idk@ehhh.com>"]
 edition = "2018"
 
