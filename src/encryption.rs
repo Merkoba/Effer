@@ -3,7 +3,6 @@ use crate::
     s, p, e,
     globals::
     {
-        UNLOCK_CHECK,
         g_get_password,
         g_set_password
     },
@@ -21,16 +20,11 @@ use crate::
     }
 };
 
-use std::iter;
-use rand::{Rng, thread_rng};
-use rand::distributions::Alphanumeric;
+use std::io;
+use std::io::Write;
 
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::crypto::pwhash;
-use sodiumoxide::crypto::pwhash::scryptsalsa208sha256::Salt;
-
-use aes_gcm::Aes256Gcm;
-use aead::{Aead, NewAead, generic_array::GenericArray};
 
 // Changes the password and updates the file with it
 pub fn change_password()
@@ -72,104 +66,80 @@ pub fn get_password(change: bool) -> String
     pw
 }
 
-// Encrypts the notes using Aes256
-// Turns the encrypted data into hex
-pub fn encrypt_text(plain_text: &str) -> String
-{
-    let salt = pwhash::gen_salt();
 
+fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<secretbox::Key, ()> {
     let mut key = secretbox::Key([0; secretbox::KEYBYTES]);
-    {
-        let secretbox::Key(ref mut kb) = key;
-        pwhash::derive_key(kb, get_password(false).as_bytes(), &salt,
-            pwhash::OPSLIMIT_INTERACTIVE,
-            pwhash::MEMLIMIT_INTERACTIVE).unwrap();
+    pwhash::derive_key_interactive(&mut key.0, password.as_bytes(), &salt)?;
+    Ok(key)
+}
+
+struct EncryptedData {
+    salt: pwhash::Salt,
+    nonce: secretbox::Nonce,
+    ciphertext: Vec<u8>,
+}
+
+impl EncryptedData {
+    fn new(plaintext: &str, password: &str) -> Result<Self, ()> {
+        let salt = pwhash::gen_salt();
+        let nonce = secretbox::gen_nonce();
+        let key = key_from_pw(password, salt)?;
+
+        let ciphertext = secretbox::seal(plaintext.as_bytes(), &nonce, &key);
+
+        Ok(EncryptedData { salt, nonce, ciphertext })
     }
 
-    let arkey = GenericArray::clone_from_slice(key.as_ref());
-    let aead = Aes256Gcm::new(arkey);
-    let nonce = generate_nonce();
-    let arnonce = GenericArray::clone_from_slice(nonce.as_bytes());
+    fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> {
+        let key = key_from_pw(password, self.salt)?;
+        secretbox::open(&self.ciphertext, &self.nonce, &key)
+    }
 
-    let ciphertext = match aead.encrypt(&arnonce, plain_text.as_ref())
-    {
-        Ok(ct) => ct, Err(_) => {e!("Encryption failed."); return s!()}
-    };
+    fn to_string(&self) -> Result<String, io::Error> {
+        let mut bytes = Vec::new();
 
-    format!("{}-;-{}-;-{}", base64::encode(&salt), nonce, hex::encode(&ciphertext))
+        {
+            let mut encoder = base64::write::EncoderWriter::new(&mut bytes,
+                                                                base64::STANDARD);
+            encoder.write_all(&self.salt.0)?;
+            encoder.write_all(&self.nonce.0)?;
+            encoder.write_all(&self.ciphertext)?;
+            encoder.finish()?;
+        }
+
+        // This needlessly checks that the base64 encoding is valid UTF-8.
+        // It all could be made much faster and more compact with a binary format.
+        Ok(String::from_utf8(bytes).unwrap())
+    }
+
+    fn from_string(text: &str) -> Result<Self, base64::DecodeError> {
+        let mut bytes = base64::decode(text)?;
+        // TODO: Could avoid a bunch of copying; again, this would be faster
+        // and more efficient for a binary format anyhow
+        let ciphertext = bytes.split_off(pwhash::SALTBYTES + secretbox::NONCEBYTES);
+        let salt  =     pwhash::Salt::from_slice(&bytes[..pwhash::SALTBYTES]).unwrap();
+        let nonce = secretbox::Nonce::from_slice(&bytes[pwhash::SALTBYTES..]).unwrap();
+
+        Ok(EncryptedData { salt, nonce, ciphertext })
+    }
+
+}
+
+
+// Encrypts the notes using Aes256
+// Turns the encrypted data into hex
+pub fn encrypt_text(plaintext: &str) -> String
+{
+    let password = get_password(false);
+    let ciphertext = EncryptedData::new(plaintext, &password).unwrap();
+    ciphertext.to_string().unwrap()
 }
 
 // Decodes the hex data and decrypts it
 pub fn decrypt_text(encrypted_text: &str) -> String
 {
-    if encrypted_text.trim().is_empty() {return s!()}
-    
-    let mut xalt = "";
-    let mut nonx = "";
-    let mut clines: Vec<&str> = vec![];
-    
-    for (i, line) in encrypted_text.lines().enumerate()
-    {
-        if i == 0
-        {
-            let split = line.split("-;-").collect::<Vec<&str>>();
-            xalt = split[0];
-            nonx = split[1];
-            clines.push(split[2]);
-        } else {clines.push(line)}
-    }
-
-    let enctext = clines.join("\n");
-    let salt = Salt::from_slice(base64::decode(xalt).unwrap().as_ref()).unwrap();
-    let nonce = GenericArray::clone_from_slice(nonx.as_bytes());
-
-    let mut key = secretbox::Key([0; secretbox::KEYBYTES]);
-    {
-        let secretbox::Key(ref mut kb) = key;
-        pwhash::derive_key(kb, get_password(false).as_bytes(), &salt,
-            pwhash::OPSLIMIT_INTERACTIVE,
-            pwhash::MEMLIMIT_INTERACTIVE).unwrap();
-    }
-
-    let arkey = GenericArray::clone_from_slice(key.as_ref());
-    let aead = Aes256Gcm::new(arkey);
-
-    let ciphertext = match hex::decode(enctext)
-    {
-        Ok(ct) => ct, Err(_) => {e!("Can't decode the hex text to decrypt."); return s!()}
-    };
-
-    let decrypted = match aead.decrypt(&nonce, ciphertext.as_ref())
-    {
-        Ok(txt) => txt, Err(_) => {e!("Decryption failed."); return s!()}
-    };
-
-    let text = match String::from_utf8(decrypted)
-    {
-        Ok(txt) => txt, Err(_) => {e!("Can't turn the decrypted data into a string."); return s!()}
-    };
-
-    let header = match text.lines().nth(0)
-    {
-        Some(hd) => hd, None => {e!("Can't read the header."); return s!()}
-    };
-
-    if !header.starts_with(UNLOCK_CHECK)
-    {
-        e!("Wrong password."); return s!();
-    }
-
-    text
-}
-
-pub fn generate_nonce() -> String
-{
-    let mut rng = thread_rng();
-
-    let chars: String = iter::repeat(())
-        .map(|()| rng.sample(Alphanumeric))
-        .take(12)
-        .collect();
-
-    chars
+    let ciphertext = EncryptedData::from_string(encrypted_text).unwrap();
+    let password = get_password(false);
+    let plaintext = ciphertext.decrypt(&password).unwrap();
+    String::from_utf8(plaintext).unwrap()
 }
