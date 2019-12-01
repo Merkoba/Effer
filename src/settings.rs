@@ -66,8 +66,8 @@ pub fn get_settings()
         };
 
         let num = argx.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
-        let mut mult = 5.0 * (num as f64 / 5.0).round();
-        if mult <= 0.0 {mult = 5.0}; let mut value = mult as usize;
+        let mut value = num;
+        if value <= 0 {value = DEFAULT_PAGE_SIZE}
         if value > MAX_PAGE_SIZE {value = MAX_PAGE_SIZE};
         g_set_page_size(value);
     }

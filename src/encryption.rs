@@ -21,6 +21,10 @@ use crate::
     }
 };
 
+use std::iter;
+use rand::{Rng, thread_rng};
+use rand::distributions::Alphanumeric;
+
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::crypto::pwhash;
 use sodiumoxide::crypto::pwhash::scryptsalsa208sha256::Salt;
@@ -84,14 +88,15 @@ pub fn encrypt_text(plain_text: &str) -> String
 
     let arkey = GenericArray::clone_from_slice(key.as_ref());
     let aead = Aes256Gcm::new(arkey);
-    let nonce = GenericArray::from_slice(b"unique nonce"); 
+    let nonce = generate_nonce();
+    let arnonce = GenericArray::clone_from_slice(nonce.as_bytes());
 
-    let ciphertext = match aead.encrypt(nonce, plain_text.as_ref())
+    let ciphertext = match aead.encrypt(&arnonce, plain_text.as_ref())
     {
         Ok(ct) => ct, Err(_) => {e!("Encryption failed."); return s!()}
     };
 
-    format!("{}-;-{}", base64::encode(&salt), hex::encode(&ciphertext))
+    format!("{}-;-{}-;-{}", base64::encode(&salt), nonce, hex::encode(&ciphertext))
 }
 
 // Decodes the hex data and decrypts it
@@ -100,6 +105,7 @@ pub fn decrypt_text(encrypted_text: &str) -> String
     if encrypted_text.trim().is_empty() {return s!()}
     
     let mut xalt = "";
+    let mut nonx = "";
     let mut clines: Vec<&str> = vec![];
     
     for (i, line) in encrypted_text.lines().enumerate()
@@ -108,31 +114,32 @@ pub fn decrypt_text(encrypted_text: &str) -> String
         {
             let split = line.split("-;-").collect::<Vec<&str>>();
             xalt = split[0];
-            clines.push(split[1]);
+            nonx = split[1];
+            clines.push(split[2]);
         } else {clines.push(line)}
     }
 
     let enctext = clines.join("\n");
-    let salt = base64::decode(xalt).unwrap();
+    let salt = Salt::from_slice(base64::decode(xalt).unwrap().as_ref()).unwrap();
+    let nonce = GenericArray::clone_from_slice(nonx.as_bytes());
 
     let mut key = secretbox::Key([0; secretbox::KEYBYTES]);
     {
         let secretbox::Key(ref mut kb) = key;
-        pwhash::derive_key(kb, get_password(false).as_bytes(), &Salt::from_slice(&salt).unwrap(),
+        pwhash::derive_key(kb, get_password(false).as_bytes(), &salt,
             pwhash::OPSLIMIT_INTERACTIVE,
             pwhash::MEMLIMIT_INTERACTIVE).unwrap();
     }
 
     let arkey = GenericArray::clone_from_slice(key.as_ref());
     let aead = Aes256Gcm::new(arkey);
-    let nonce = GenericArray::from_slice(b"unique nonce");
 
     let ciphertext = match hex::decode(enctext)
     {
         Ok(ct) => ct, Err(_) => {e!("Can't decode the hex text to decrypt."); return s!()}
     };
 
-    let decrypted = match aead.decrypt(nonce, ciphertext.as_ref())
+    let decrypted = match aead.decrypt(&nonce, ciphertext.as_ref())
     {
         Ok(txt) => txt, Err(_) => {e!("Decryption failed."); return s!()}
     };
@@ -153,4 +160,16 @@ pub fn decrypt_text(encrypted_text: &str) -> String
     }
 
     text
+}
+
+pub fn generate_nonce() -> String
+{
+    let mut rng = thread_rng();
+
+    let chars: String = iter::repeat(())
+        .map(|()| rng.sample(Alphanumeric))
+        .take(12)
+        .collect();
+
+    chars
 }
