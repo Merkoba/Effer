@@ -126,8 +126,8 @@ impl EncryptedData {
 }
 
 
-// Encrypts the notes using Aes256
-// Turns the encrypted data into hex
+// Encrypts the notes using sodiumoxyde::secretbox and sodiumoxyde::pwhash
+// Turns the encrypted data into base64
 pub fn encrypt_text(plaintext: &str) -> String
 {
     let password = get_password(false);
@@ -135,7 +135,7 @@ pub fn encrypt_text(plaintext: &str) -> String
     ciphertext.to_string().unwrap()
 }
 
-// Decodes the hex data and decrypts it
+// Decodes the base64 data and decrypts it
 pub fn decrypt_text(encrypted_text: &str) -> String
 {
     let ciphertext = EncryptedData::from_string(encrypted_text).unwrap();
