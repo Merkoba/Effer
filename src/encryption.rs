@@ -23,7 +23,7 @@ use crate::
 use std::io;
 use std::io::Write;
 
-use sodiumoxide::crypto::secretbox;
+use sodiumoxide::crypto::aead;
 use sodiumoxide::crypto::pwhash;
 
 // Changes the password and updates the file with it
@@ -67,32 +67,32 @@ pub fn get_password(change: bool) -> String
 }
 
 
-fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<secretbox::Key, ()> {
-    let mut key = secretbox::Key([0; secretbox::KEYBYTES]);
+fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<aead::Key, ()> {
+    let mut key = aead::Key([0; aead::KEYBYTES]);
     pwhash::derive_key_interactive(&mut key.0, password.as_bytes(), &salt)?;
     Ok(key)
 }
 
 struct EncryptedData {
     salt: pwhash::Salt,
-    nonce: secretbox::Nonce,
+    nonce: aead::Nonce,
     ciphertext: Vec<u8>,
 }
 
 impl EncryptedData {
     fn new(plaintext: &str, password: &str) -> Result<Self, ()> {
         let salt = pwhash::gen_salt();
-        let nonce = secretbox::gen_nonce();
+        let nonce = aead::gen_nonce();
         let key = key_from_pw(password, salt)?;
 
-        let ciphertext = secretbox::seal(plaintext.as_bytes(), &nonce, &key);
+        let ciphertext = aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key);
 
         Ok(EncryptedData { salt, nonce, ciphertext })
     }
 
     fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> {
         let key = key_from_pw(password, self.salt)?;
-        secretbox::open(&self.ciphertext, &self.nonce, &key)
+        aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
     }
 
     fn to_string(&self) -> Result<String, io::Error> {
@@ -116,9 +116,9 @@ impl EncryptedData {
         let mut bytes = base64::decode(text)?;
         // TODO: Could avoid a bunch of copying; again, this would be faster
         // and more efficient for a binary format anyhow
-        let ciphertext = bytes.split_off(pwhash::SALTBYTES + secretbox::NONCEBYTES);
+        let ciphertext = bytes.split_off(pwhash::SALTBYTES + aead::NONCEBYTES);
         let salt  =     pwhash::Salt::from_slice(&bytes[..pwhash::SALTBYTES]).unwrap();
-        let nonce = secretbox::Nonce::from_slice(&bytes[pwhash::SALTBYTES..]).unwrap();
+        let nonce = aead::Nonce::from_slice(&bytes[pwhash::SALTBYTES..]).unwrap();
 
         Ok(EncryptedData { salt, nonce, ciphertext })
     }
@@ -126,7 +126,7 @@ impl EncryptedData {
 }
 
 
-// Encrypts the notes using sodiumoxyde::secretbox and sodiumoxyde::pwhash
+// Encrypts the notes using sodiumoxyde::aead and sodiumoxyde::pwhash
 // Turns the encrypted data into base64
 pub fn encrypt_text(plaintext: &str) -> String
 {
