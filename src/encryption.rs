@@ -17,6 +17,10 @@ use crate::
     input::
     {
         get_input
+    },
+    other::
+    {
+        exit
     }
 };
 
@@ -142,6 +146,12 @@ pub fn decrypt_text(encrypted_text: &str) -> String
 {
     let ciphertext = EncryptedData::from_string(encrypted_text).unwrap();
     let password = get_password(false);
-    let plaintext = ciphertext.decrypt(&password).unwrap();
+
+    let plaintext = match ciphertext.decrypt(&password)
+    {
+        Ok(text) => text,
+        Err(_) => {e!("Can't decrypt the file."); exit()}
+    };
+
     String::from_utf8(plaintext).unwrap()
 }
