@@ -67,35 +67,39 @@ pub fn get_password(change: bool) -> String
 }
 
 
-fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<aead::Key, ()> {
+fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<aead::Key, ()> 
+{
     let mut key = aead::Key([0; aead::KEYBYTES]);
     pwhash::derive_key_interactive(&mut key.0, password.as_bytes(), &salt)?;
     Ok(key)
 }
 
-struct EncryptedData {
+struct EncryptedData 
+{
     salt: pwhash::Salt,
     nonce: aead::Nonce,
     ciphertext: Vec<u8>,
 }
 
-impl EncryptedData {
-    fn new(plaintext: &str, password: &str) -> Result<Self, ()> {
+impl EncryptedData 
+{
+    fn new(plaintext: &str, password: &str) -> Result<Self, ()> 
+    {
         let salt = pwhash::gen_salt();
         let nonce = aead::gen_nonce();
         let key = key_from_pw(password, salt)?;
-
         let ciphertext = aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key);
-
         Ok(EncryptedData { salt, nonce, ciphertext })
     }
 
-    fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> {
+    fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> 
+    {
         let key = key_from_pw(password, self.salt)?;
         aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
     }
 
-    fn to_string(&self) -> Result<String, io::Error> {
+    fn to_string(&self) -> Result<String, io::Error> 
+    {
         let mut bytes = Vec::new();
 
         {
@@ -112,19 +116,17 @@ impl EncryptedData {
         Ok(String::from_utf8(bytes).unwrap())
     }
 
-    fn from_string(text: &str) -> Result<Self, base64::DecodeError> {
+    fn from_string(text: &str) -> Result<Self, base64::DecodeError> 
+    {
         let mut bytes = base64::decode(text)?;
         // TODO: Could avoid a bunch of copying; again, this would be faster
         // and more efficient for a binary format anyhow
         let ciphertext = bytes.split_off(pwhash::SALTBYTES + aead::NONCEBYTES);
-        let salt  =     pwhash::Salt::from_slice(&bytes[..pwhash::SALTBYTES]).unwrap();
+        let salt = pwhash::Salt::from_slice(&bytes[..pwhash::SALTBYTES]).unwrap();
         let nonce = aead::Nonce::from_slice(&bytes[pwhash::SALTBYTES..]).unwrap();
-
         Ok(EncryptedData { salt, nonce, ciphertext })
     }
-
 }
-
 
 // Encrypts the notes using sodiumoxyde::aead and sodiumoxyde::pwhash
 // Turns the encrypted data into base64
