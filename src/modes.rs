@@ -25,7 +25,7 @@ use crate::
     },
     file::
     {
-        get_file_text,
+        get_file_bytes,
         shell_contract
     }
 };
@@ -55,7 +55,7 @@ pub fn show_stats()
         lcount += line.chars().filter(|c| *c != ' ').count();
     }
 
-    let enc_size = get_file_text().as_bytes().len();
+    let enc_size = get_file_bytes().len();
     let dec_size = notes.as_bytes().len();
     let path = shell_contract(&g_get_path().to_string());
 

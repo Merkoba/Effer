@@ -24,9 +24,6 @@ use crate::
     }
 };
 
-use std::io;
-use std::io::Write;
-
 use sodiumoxide::crypto::aead;
 use sodiumoxide::crypto::pwhash;
 
@@ -80,6 +77,7 @@ fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<aead::Key, ()>
 
 struct EncryptedData 
 {
+    version: u8,
     salt: pwhash::Salt,
     nonce: aead::Nonce,
     ciphertext: Vec<u8>,
@@ -89,11 +87,12 @@ impl EncryptedData
 {
     fn new(plaintext: &str, password: &str) -> Result<Self, ()> 
     {
+        let version = 2;
         let salt = pwhash::gen_salt();
         let nonce = aead::gen_nonce();
         let key = key_from_pw(password, salt)?;
         let ciphertext = aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key);
-        Ok(EncryptedData { salt, nonce, ciphertext })
+        Ok(EncryptedData { version, salt, nonce, ciphertext })
     }
 
     fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> 
@@ -102,49 +101,41 @@ impl EncryptedData
         aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
     }
 
-    fn to_string(&self) -> Result<String, io::Error> 
+    fn to_bytes(&self) -> Vec<u8>
     {
-        let mut bytes = Vec::new();
-
-        {
-            let mut encoder = base64::write::EncoderWriter::new(&mut bytes,
-                                                                base64::STANDARD);
-            encoder.write_all(&self.salt.0)?;
-            encoder.write_all(&self.nonce.0)?;
-            encoder.write_all(&self.ciphertext)?;
-            encoder.finish()?;
-        }
-
-        // This needlessly checks that the base64 encoding is valid UTF-8.
-        // It all could be made much faster and more compact with a binary format.
-        Ok(String::from_utf8(bytes).unwrap())
+        let mut bytes: Vec<u8> = vec![self.version];
+        bytes.extend(self.salt.0.iter());
+        bytes.extend(self.nonce.0.iter());
+        bytes.extend(self.ciphertext.iter());
+        return bytes
     }
 
-    fn from_string(text: &str) -> Result<Self, base64::DecodeError> 
+    fn from_bytes(bytes: &Vec<u8>) -> Result<Self, base64::DecodeError> 
     {
-        let mut bytes = base64::decode(text)?;
-        // TODO: Could avoid a bunch of copying; again, this would be faster
-        // and more efficient for a binary format anyhow
-        let ciphertext = bytes.split_off(pwhash::SALTBYTES + aead::NONCEBYTES);
-        let salt = pwhash::Salt::from_slice(&bytes[..pwhash::SALTBYTES]).unwrap();
-        let nonce = aead::Nonce::from_slice(&bytes[pwhash::SALTBYTES..]).unwrap();
-        Ok(EncryptedData { salt, nonce, ciphertext })
+        let sbytes = pwhash::SALTBYTES;
+        let nbytes = aead::NONCEBYTES;
+        let ciphertext: Vec<u8> = bytes[(1 + sbytes + nbytes)..]
+                                .iter().map(|x| x.to_owned()).collect();
+        let version = bytes[0];
+        let salt = pwhash::Salt::from_slice(&bytes[1..(1 + sbytes)]).unwrap();
+        let nonce = aead::Nonce::from_slice(&bytes[(1 + sbytes)..(1 + sbytes + nbytes)]).unwrap();
+        Ok(EncryptedData { version, salt, nonce, ciphertext })
     }
 }
 
 // Encrypts the notes using sodiumoxyde::aead and sodiumoxyde::pwhash
 // Turns the encrypted data into base64
-pub fn encrypt_text(plaintext: &str) -> String
+pub fn encrypt_bytes(plaintext: &str) -> Vec<u8>
 {
     let password = get_password(false);
     let ciphertext = EncryptedData::new(plaintext, &password).unwrap();
-    ciphertext.to_string().unwrap()
+    ciphertext.to_bytes()
 }
 
 // Decodes the base64 data and decrypts it
-pub fn decrypt_text(encrypted_text: &str) -> String
+pub fn decrypt_bytes(bytes: &Vec<u8>) -> String
 {
-    let ciphertext = EncryptedData::from_string(encrypted_text).unwrap();
+    let ciphertext = EncryptedData::from_bytes(bytes).unwrap();
     let password = get_password(false);
 
     let plaintext = match ciphertext.decrypt(&password)

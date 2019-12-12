@@ -63,7 +63,7 @@ fn main()
     check_arguments(); // <-- It might exit here
     handle_file_path_check(file_path_check(get_file_path()));
     if get_password(false).is_empty() {exit()};
-    let notes = get_notes(false); if notes.is_empty() {exit()}
+    let notes = get_notes(false);
     update_notes_statics(notes); 
     handle_source(); 
     get_settings(); 

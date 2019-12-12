@@ -3,7 +3,6 @@ use crate::
     s, p, e,
     globals::
     {
-        UNLOCK_CHECK,
         g_get_notes_length,
         g_get_notes_vec_item,
         g_get_notes_vec,
@@ -44,7 +43,7 @@ use crate::
     },
     encryption::
     {
-        encrypt_text,
+        encrypt_bytes,
         get_password
     },
     structs::
@@ -65,7 +64,7 @@ use std::
 {
     thread, time, fs,
     path::{Path, PathBuf},
-    io::{self, Write}
+    io::{self, Read}
 };
 
 use colorskill::
@@ -201,12 +200,17 @@ pub fn handle_file_path_check(result: FilePathCheckResult)
 }
 
 // Reads the file
-pub fn get_file_text() -> String
+pub fn get_file_bytes() -> Vec<u8>
 {
-    match read_file(get_file_path().to_str().unwrap())
+    let mut bytes: Vec<u8> = vec![];
+
+    let mut file = match fs::File::open(get_file_path())
     {
-        Ok(text) => text, Err(_) => {p!("Can't read file content."); return s!()}
-    }
+        Ok(fil) => fil, Err(_) => {p!("Can't open the file."); return bytes}
+    };
+
+    file.read_to_end(&mut bytes).unwrap();
+    return bytes
 }
 
 // Generic function to read text from files
@@ -272,30 +276,46 @@ pub fn reset_file()
     }
 }
 
+// Does the write operation to a file
+pub fn do_file_write(encrypted: Vec<u8>)
+{
+    match fs::write(get_file_path(), encrypted)
+    {
+        Ok(_) => {},
+        Err(_) =>
+        {
+            if g_get_started()
+            {
+                show_message("< Can't Write To File >");
+            }
+
+            else
+            {
+                e!("Unable to write text to file."); exit();
+            }
+        }
+    }
+}
+
 // Attempts to create the file
 // It adds a default header as its only initial content
 // The content is encrypted using the password
 pub fn create_file() -> bool
 {
     if get_password(true).is_empty() {return false}
-    let encrypted = encrypt_text(UNLOCK_CHECK);
+    let encrypted = encrypt_bytes("Dummy Space");
 
     match fs::create_dir_all(get_file_parent_path())
     {
         Ok(_) => {}, Err(_) => {e!("Can't create parent directories."); return false}
     }
 
-    let mut file = match fs::File::create(get_file_path())
+    match fs::File::create(get_file_path())
     {
         Ok(f) => f, Err(_) => {e!("Error creating the file."); return false}
     };
 
-    match file.write_all(encrypted.as_bytes())
-    {
-        Ok(_) => {}, Err(_) => {e!("Unable to write initial text to file."); return false}
-    }
-
-    true
+    do_file_write(encrypted); true
 }
 
 // Returns the file's header
@@ -307,7 +327,6 @@ pub fn get_header() -> String
 // Generates a header line
 pub fn format_header() -> String
 {
-    let uc = UNLOCK_CHECK;
     let ps = g_get_page_size();
     let rs = g_get_row_space();
     let c1 = color_to_string(g_get_color_1());
@@ -315,8 +334,8 @@ pub fn format_header() -> String
     let c3 = color_to_string(g_get_color_3());
     let cc = g_get_use_colors();
 
-    format!("{}, page_size={} row_space={} color_1={} color_2={} color_3={} use_colors={}",
-        uc, ps, rs, c1, c2, c3, cc)
+    format!("page_size={} row_space={} color_1={} color_2={} color_3={} use_colors={}",
+        ps, rs, c1, c2, c3, cc)
 }
 
 // Modifies the header (first line) with new settings
@@ -541,7 +560,7 @@ pub fn destroy()
 // Encrypts and saves the updated notes to the file
 pub fn update_file(text: String)
 {
-    let encrypted = encrypt_text(&text);
+    let encrypted = encrypt_bytes(&text);
 
     if encrypted.is_empty()
     {
@@ -550,21 +569,5 @@ pub fn update_file(text: String)
     }
 
     update_notes_statics(text);
-
-    match fs::write(get_file_path(), encrypted.as_bytes())
-    {
-        Ok(_) => {},
-        Err(_) =>
-        {
-            if g_get_started()
-            {
-                show_message("< Can't Write To File >");
-            }
-
-            else
-            {
-                e!("Unable to write text to file."); exit();
-            }
-        }
-    }
+    do_file_write(encrypted);
 }

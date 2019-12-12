@@ -38,14 +38,14 @@ use crate::
         move_lines,
         swap_lines,
         update_header,
-        get_file_text,
+        get_file_bytes,
         shell_contract,
         delete_lines,
         get_line
     },
     encryption::
     {
-        decrypt_text
+        decrypt_bytes
     },
     colors::
     {
@@ -799,7 +799,7 @@ pub fn get_notes(update: bool) -> String
     let notes = g_get_notes();
 
     if notes.is_empty() || update 
-        {decrypt_text(&get_file_text())} 
+        {decrypt_bytes(&get_file_bytes())}
     else {notes}
 }
 
