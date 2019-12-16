@@ -67,7 +67,6 @@ pub fn get_password(change: bool) -> String
     pw
 }
 
-
 fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<aead::Key, ()> 
 {
     let mut key = aead::Key([0; aead::KEYBYTES]);
@@ -123,8 +122,6 @@ impl EncryptedData
     }
 }
 
-// Encrypts the notes using sodiumoxyde::aead and sodiumoxyde::pwhash
-// Turns the encrypted data into base64
 pub fn encrypt_bytes(plaintext: &str) -> Vec<u8>
 {
     let password = get_password(false);
@@ -132,7 +129,6 @@ pub fn encrypt_bytes(plaintext: &str) -> Vec<u8>
     ciphertext.to_bytes()
 }
 
-// Decodes the base64 data and decrypts it
 pub fn decrypt_bytes(bytes: &Vec<u8>) -> String
 {
     let ciphertext = EncryptedData::from_bytes(bytes).unwrap();
