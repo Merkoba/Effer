@@ -6,8 +6,7 @@ use crate::
         g_get_password,
         g_set_password,
         g_get_derivation,
-        g_set_derivation,
-        g_get_notes
+        g_set_derivation
     },
     file::
     {
@@ -52,8 +51,14 @@ pub fn change_security()
 // Change key derivation method
 pub fn change_key_derivation()
 {
+    let og_deriv = g_get_derivation();
     p!("This will change the file's key derivation method");
-    get_key_derivation()
+    get_key_derivation();
+
+    if og_deriv == 0 && g_get_derivation() != 0
+    {
+        change_password();
+    }
 }
 
 // Lets the user decide between fast or secure derivation
