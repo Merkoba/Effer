@@ -6,7 +6,8 @@ use crate::
         g_get_password,
         g_set_password,
         g_get_derivation,
-        g_set_derivation
+        g_set_derivation,
+        g_get_notes
     },
     file::
     {
@@ -18,7 +19,8 @@ use crate::
     },
     input::
     {
-        get_input
+        get_input,
+        ask_string
     },
     other::
     {
@@ -28,6 +30,50 @@ use crate::
 
 use sodiumoxide::crypto::aead;
 use sodiumoxide::crypto::pwhash;
+
+// Lets the user change password or derivation
+pub fn change_security()
+{
+    p!("1) Change Password");
+    p!("2) Change Key Derivation");
+    let ans = ask_string("Choice", "", true);
+    let mut save = true;
+
+    match &ans[..]
+    {
+        "1" => change_password(),
+        "2" => change_key_derivation(),
+        _ => save = false
+    };
+
+    if save {update_file(get_notes(false))}
+}
+
+// Change key derivation method
+pub fn change_key_derivation()
+{
+    p!("This will change the file's key derivation method");
+    get_key_derivation()
+}
+
+// Lets the user decide between fast or secure derivation
+pub fn get_key_derivation()
+{
+    loop
+    {
+        p!("Key Derivation:");
+        p!("1) Interactive (Faster)");
+        p!("2) Sensitive (More Secure)");
+        p!("0) Plain (No Encryption)");
+        let derivation = ask_string("Choice", "", true);
+        
+        if derivation == "1" || derivation == "2" || derivation == "0"
+        {
+            g_set_derivation(derivation.parse::<usize>().unwrap());
+            break;
+        }
+    }
+}
 
 // Changes the password and updates the file with it
 pub fn change_password()

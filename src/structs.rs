@@ -32,7 +32,7 @@ pub enum MenuAnswer
 {
     Nothing, AddNote, EditNote, EditLastNote,
     FindNotes, SwapNotes, DeleteNotes, ResetFile,
-    ChangePassword, CycleLeft, CycleRight, FirstPage,
+    ChangeSecurity, CycleLeft, CycleRight, FirstPage,
     LastPage, RefreshPage, PageNumber, ChangeMenu,
     ShowAllNotes, ShowAbout, GotoPage, Exit,
     IncreasePageSize, DecreasePageSize, ShowStats, ScreenSaver,

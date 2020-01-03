@@ -54,7 +54,7 @@ use crate::
     },
     encryption::
     {
-        change_password
+        change_security
     },
     colors::
     {
@@ -111,7 +111,7 @@ pub fn create_menus()
             menu_item("+/-", "Change Page Size", true, true, true),
             menu_item("G", "Goto", true, false, false),
             menu_item("R", "Reset File", true, true, true),
-            menu_item("P", "Change Password", true, false, false),
+            menu_item("P", "Change Security", true, false, false),
             menu_item("$", "Change Colors", true, true, true),
             menu_item("U", "Undo Last Edit", true, false, false)
         ].concat(),
@@ -187,7 +187,7 @@ pub fn menu_input() -> (MenuAnswer, usize)
                         'S' => MenuAnswer::SwapNotes,
                         'G' => MenuAnswer::GotoPage,
                         'R' => MenuAnswer::ResetFile,
-                        'P' => MenuAnswer::ChangePassword,
+                        'P' => MenuAnswer::ChangeSecurity,
                         'H' => MenuAnswer::ShowAllNotes,
                         'T' => MenuAnswer::ShowStats,
                         '?' => MenuAnswer::ShowAbout,
@@ -253,7 +253,7 @@ pub fn menu_action(ans: (MenuAnswer, usize))
         MenuAnswer::SwapNotes => swap_notes(),
         MenuAnswer::DeleteNotes => delete_notes(),
         MenuAnswer::ResetFile => reset_file(),
-        MenuAnswer::ChangePassword => change_password(),
+        MenuAnswer::ChangeSecurity => change_security(),
         MenuAnswer::CycleLeft => cycle_left(),
         MenuAnswer::CycleRight => cycle_right(),
         MenuAnswer::FirstPage => goto_first_page(),
