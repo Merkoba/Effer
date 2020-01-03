@@ -4,7 +4,9 @@ use crate::
     globals::
     {
         g_get_password,
-        g_set_password
+        g_set_password,
+        g_get_derivation,
+        g_set_derivation
     },
     file::
     {
@@ -39,6 +41,11 @@ pub fn change_password()
 // Or changes the file's password
 pub fn get_password(change: bool) -> String
 {
+    if g_get_derivation() == 0
+    {
+        return s!("none");
+    }
+
     let mut pw = g_get_password();
 
     if pw.is_empty() || change
@@ -67,42 +74,66 @@ pub fn get_password(change: bool) -> String
     pw
 }
 
-fn key_from_pw(password: &str, salt: pwhash::Salt) -> Result<aead::Key, ()> 
+// Get a key from the password
+fn key_from_pw(password: &str, salt: pwhash::Salt, derivation: u8) -> Result<aead::Key, ()> 
 {
     let mut key = aead::Key([0; aead::KEYBYTES]);
-    pwhash::derive_key_interactive(&mut key.0, password.as_bytes(), &salt)?;
+    
+    match derivation
+    {
+        0 => {return Ok(key)},
+        1 => pwhash::derive_key_interactive(&mut key.0, password.as_bytes(), &salt)?,
+        2 => pwhash::derive_key_sensitive(&mut key.0, password.as_bytes(), &salt)?,
+        _ => {e!("Wrong key derivation."); exit()}
+    };
+
     Ok(key)
 }
 
+// Struct for encrypted data
 struct EncryptedData 
 {
     version: u8,
+    derivation: u8,
     salt: pwhash::Salt,
     nonce: aead::Nonce,
     ciphertext: Vec<u8>,
 }
 
+// Implement the encryption struct
 impl EncryptedData 
 {
     fn new(plaintext: &str, password: &str) -> Result<Self, ()> 
     {
         let version = 2;
+        let derivation = g_get_derivation() as u8;
         let salt = pwhash::gen_salt();
         let nonce = aead::gen_nonce();
-        let key = key_from_pw(password, salt)?;
-        let ciphertext = aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key);
-        Ok(EncryptedData { version, salt, nonce, ciphertext })
+        let key = key_from_pw(password, salt, derivation)?;
+
+        let ciphertext = if derivation == 0 {plaintext.as_bytes().to_vec()}
+        else {aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key)};
+
+        Ok(EncryptedData {version, derivation, salt, nonce, ciphertext})
     }
 
     fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> 
     {
-        let key = key_from_pw(password, self.salt)?;
-        aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
+        if self.derivation == 0
+        {
+            return Ok(self.ciphertext.clone())
+        }
+
+        else
+        {
+            let key = key_from_pw(password, self.salt, self.derivation)?;
+            aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
+        }
     }
 
     fn to_bytes(&self) -> Vec<u8>
     {
-        let mut bytes: Vec<u8> = vec![self.version];
+        let mut bytes: Vec<u8> = vec![self.version, self.derivation];
         bytes.extend(self.salt.0.iter());
         bytes.extend(self.nonce.0.iter());
         bytes.extend(self.ciphertext.iter());
@@ -111,24 +142,29 @@ impl EncryptedData
 
     fn from_bytes(bytes: &Vec<u8>) -> Result<Self, base64::DecodeError> 
     {
+        let n = 2;
         let sbytes = pwhash::SALTBYTES;
         let nbytes = aead::NONCEBYTES;
-        let ciphertext: Vec<u8> = bytes[(1 + sbytes + nbytes)..]
+        let ciphertext: Vec<u8> = bytes[(n + sbytes + nbytes)..]
                                 .iter().map(|x| x.to_owned()).collect();
         let version = bytes[0];
-        let salt = pwhash::Salt::from_slice(&bytes[1..(1 + sbytes)]).unwrap();
-        let nonce = aead::Nonce::from_slice(&bytes[(1 + sbytes)..(1 + sbytes + nbytes)]).unwrap();
-        Ok(EncryptedData { version, salt, nonce, ciphertext })
+        let derivation = bytes[1];
+        let salt = pwhash::Salt::from_slice(&bytes[n..(n + sbytes)]).unwrap();
+        let nonce = aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
+        g_set_derivation(derivation as usize);
+        Ok(EncryptedData { version, derivation, salt, nonce, ciphertext })
     }
 }
 
-pub fn encrypt_bytes(plaintext: &str) -> Vec<u8>
+// Encrypt the notes text
+pub fn encrypt_text(plaintext: &str) -> Vec<u8>
 {
     let password = get_password(false);
     let ciphertext = EncryptedData::new(plaintext, &password).unwrap();
     ciphertext.to_bytes()
 }
 
+// Decrypt the file's bytes
 pub fn decrypt_bytes(bytes: &Vec<u8>) -> String
 {
     let ciphertext = EncryptedData::from_bytes(bytes).unwrap();

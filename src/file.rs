@@ -21,7 +21,8 @@ use crate::
         g_get_last_path,
         g_set_last_path,
         g_get_password,
-        g_set_password
+        g_set_password,
+        g_set_derivation
     },
     notes::
     {
@@ -43,7 +44,7 @@ use crate::
     },
     encryption::
     {
-        encrypt_bytes,
+        encrypt_text,
         get_password
     },
     structs::
@@ -297,13 +298,33 @@ pub fn do_file_write(encrypted: Vec<u8>)
     }
 }
 
+// Lets the user decide between fast or secure derivation
+pub fn get_derivation()
+{
+    loop
+    {
+        p!("Key Derivation:");
+        p!("1) Interactive (Faster)");
+        p!("2) Sensitive (More Secure)");
+        p!("0) Plain (No Encryption)");
+        let derivation = ask_string("Choice", "", true);
+        
+        if derivation == "1" || derivation == "2" || derivation == "0"
+        {
+            g_set_derivation(derivation.parse::<usize>().unwrap());
+            break;
+        }
+    }
+}
+
 // Attempts to create the file
 // It adds a default header as its only initial content
 // The content is encrypted using the password
 pub fn create_file() -> bool
 {
+    get_derivation();
     if get_password(true).is_empty() {return false}
-    let encrypted = encrypt_bytes("Dummy Space");
+    let encrypted = encrypt_text("Dummy Space");
 
     match fs::create_dir_all(get_file_parent_path())
     {
@@ -560,7 +581,7 @@ pub fn destroy()
 // Encrypts and saves the updated notes to the file
 pub fn update_file(text: String)
 {
-    let encrypted = encrypt_bytes(&text);
+    let encrypted = encrypt_text(&text);
 
     if encrypted.is_empty()
     {

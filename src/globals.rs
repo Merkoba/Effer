@@ -57,6 +57,7 @@ lazy_static!
     static ref CURRENT_MENU: AtomicUsize = AtomicUsize::new(0);
     static ref LAST_EDIT: AtomicUsize = AtomicUsize::new(0);
     static ref FOUND_LENGTH: AtomicUsize = AtomicUsize::new(0);
+    static ref DERIVATION: AtomicUsize = AtomicUsize::new(0);
     static ref STARTED: AtomicBool = AtomicBool::new(false);
     static ref ALTSCREEN: AtomicBool = AtomicBool::new(false);
 }
@@ -467,6 +468,18 @@ pub fn g_set_page_size(n: usize)
 pub fn g_get_found_length() -> usize
 {
     FOUND_LENGTH.load(Ordering::SeqCst)
+}
+
+// Sets the derivation global value
+pub fn g_set_derivation(n: usize)
+{
+    DERIVATION.store(n, Ordering::SeqCst);
+}
+
+// Returns the derivation global value
+pub fn g_get_derivation() -> usize
+{
+    DERIVATION.load(Ordering::SeqCst)
 }
 
 
