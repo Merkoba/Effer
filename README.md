@@ -18,8 +18,6 @@ It can move 1 or several items at a time to a new index or by steps (up/down).
 
 The file can be remade (replaced with an empty one).
 
-The password can be changed.
-
 Instead of displaying all notes at once there are pages of 20 notes.
 
 Pages can be changed using arrows, home/end, or numbers.
@@ -60,6 +58,11 @@ all colors at once, use the dark/light theme or get a random theme.
 
 Settings can be imported with a TOML config file.
 
+Key derivation can be set to be 'interactive', 'sensitive', or 'plain'.
+Which means: fast, more secure, or not encrypted.
+
+The password and key derivation can be changed.
+
 # About Security
 
 This is not to be taken as a real security tool. The encryption is relatively weak.
@@ -85,11 +88,13 @@ There's a simple bash script to move the release binary to /bin
 The version in Cargo.toml doesn't reflect the program's version.
 
 # Arguments
+
 Check --help to find out about arguments that can be used.
 
 If running the program with cargo, use `cargo run -- --help`.
 
 # Contributing
+
 Contributions are welcome. Making it more secure can be a way to improve it.
 The only restriction to the encryption algorithm is that it can't use multiple files,
 for instance to save salts or IV's. The idea is to make it easy to move files around,
@@ -97,5 +102,5 @@ and open them in other machines where the user might have this program. Also sin
 note files are saved locally it would be easy anyway to gather those other extra files
 if access to the file system is possible.
 If the encryption method changes, the program gets a new major release.
-Major-release-jumps (like 1.0.0 to 2.0.0) mean that files created in one can't
-be opened in the other.
+Major-release-jumps (like 2.0.0 to 3.0.0) might keep backwards compatibility 
+since a version byte is specified in the files.
