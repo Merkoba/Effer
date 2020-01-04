@@ -33,8 +33,8 @@ use sodiumoxide::crypto::pwhash;
 // Lets the user change password or derivation
 pub fn change_security()
 {
-    p!("1) Change Password");
-    p!("2) Change Key Derivation");
+    p!("(1) Change Password");
+    p!("(2) Change Key Derivation");
     let ans = ask_string("Choice", "", true);
     let mut save = true;
 

@@ -122,7 +122,7 @@ r#"
 
     let tips =
     [
-        make_tip("Different major versions are not compatible"),
+        make_tip("Different major versions may not be compatible"),
         make_tip("You can use 'first' and 'last' as note numbers"),
         make_tip("1-9 can be used to navigate the first 9 pages"),
         make_tip("Start the program with --help to check arguments")
