@@ -58,7 +58,7 @@ all colors at once, use the dark/light theme or get a random theme.
 
 Settings can be imported with a TOML config file.
 
-Key derivation can be set to be 'interactive', 'sensitive', or 'plain'.
+Key derivation can be set to 'interactive', 'sensitive', or 'plain'.
 Which means: fast, more secure, or not encrypted.
 
 The password and key derivation can be changed.
