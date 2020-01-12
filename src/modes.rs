@@ -1,45 +1,17 @@
-use crate::
-{
+use crate::{
+    colors::get_color,
+    file::{get_file_bytes, shell_contract},
+    globals::{g_get_mode, g_get_notes_length, g_get_path, g_set_mode, VERSION},
+    notes::{get_notes, next_found, refresh_page},
+    other::show_message,
     s,
-    globals::
-    {
-        VERSION,
-        g_get_mode,
-        g_set_mode,
-        g_get_notes_length,
-        g_get_path
-    },
-    notes::
-    {
-        get_notes,
-        refresh_page,
-        next_found
-    },
-    other::
-    {
-        show_message
-    },
-    colors::
-    {
-        get_color
-    },
-    file::
-    {
-        get_file_bytes,
-        shell_contract
-    }
 };
 
 // Show some statistics
-pub fn show_stats()
-{
-    if g_get_mode() == "stats"
-    {
+pub fn show_stats() {
+    if g_get_mode() == "stats" {
         return refresh_page();
-    }
-
-    else
-    {
+    } else {
         g_set_mode(s!("stats"));
     }
 
@@ -48,9 +20,10 @@ pub fn show_stats()
     let mut wcount = 0;
     let mut lcount = 0;
 
-    for (i, line) in notes.lines().enumerate()
-    {
-        if i == 0 {continue}
+    for (i, line) in notes.lines().enumerate() {
+        if i == 0 {
+            continue;
+        }
         wcount += line.split_whitespace().count();
         lcount += line.chars().filter(|c| *c != ' ').count();
     }
@@ -66,22 +39,16 @@ pub fn show_stats()
 }
 
 // Hides notes from the screen with some characters
-pub fn show_screensaver()
-{
-    if g_get_mode() == "screen_saver"
-    {
+pub fn show_screensaver() {
+    if g_get_mode() == "screen_saver" {
         return refresh_page();
-    }
-
-    else
-    {
+    } else {
         g_set_mode(s!("screen_saver"));
     }
 
     let mut lines: Vec<String> = vec![];
 
-    for _ in 0..7
-    {
+    for _ in 0..7 {
         lines.push(s!(("😎 ".repeat(14)).trim()));
     }
 
@@ -90,20 +57,14 @@ pub fn show_screensaver()
 }
 
 // Information about the program
-pub fn show_about()
-{
-    if g_get_mode() == "about"
-    {
+pub fn show_about() {
+    if g_get_mode() == "about" {
         return refresh_page();
-    }
-
-    else
-    {
+    } else {
         g_set_mode(s!("about"));
     }
 
-    let art =
-r#"
+    let art = r#"
 8888888888  .d888  .d888
 888        d88P"  d88P"
 888        888    888
@@ -115,30 +76,34 @@ r#"
 
     let name = format!("Effer {} | Encrypted Notepad", VERSION);
 
-    pub fn make_tip(s: &str) -> String
-    {
+    pub fn make_tip(s: &str) -> String {
         format!("{}Tip:{} {}", get_color(3), get_color(2), s)
     }
 
-    let tips =
-    [
+    let tips = [
         make_tip("Different major versions may not be compatible"),
         make_tip("You can use 'first' and 'last' as note numbers"),
         make_tip("1-9 can be used to navigate the first 9 pages"),
-        make_tip("Start the program with --help to check arguments")
-    ].join("\n");
+        make_tip("Start the program with --help to check arguments"),
+    ]
+    .join("\n");
 
-    let s = format!("{}{}{}\n\n{}\n\n{}", get_color(3), art, get_color(2), name, tips);
+    let s = format!(
+        "{}{}{}\n\n{}\n\n{}",
+        get_color(3),
+        art,
+        get_color(2),
+        name,
+        tips
+    );
 
     show_message(&s);
 }
 
 // Performs actions based on current mode
-pub fn mode_action()
-{
-    match &g_get_mode()[..]
-    {
+pub fn mode_action() {
+    match &g_get_mode()[..] {
         "found" => next_found(),
-        _ => refresh_page()
+        _ => refresh_page(),
     }
 }

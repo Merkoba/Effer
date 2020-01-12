@@ -1,74 +1,44 @@
 #![allow(clippy::suspicious_else_formatting)]
 #![allow(clippy::collapsible_if)]
 
-mod macros;
-mod structs;
-mod globals;
 mod arguments;
 mod colors;
-mod menu;
-mod input;
-mod settings;
-mod notes;
-mod file;
 mod encryption;
+mod file;
+mod globals;
+mod input;
+mod macros;
+mod menu;
 mod modes;
+mod notes;
 mod other;
+mod settings;
+mod structs;
 
-use crate::
-{
-    globals::
-    {
-        g_set_started
-    },
-    arguments::
-    {
-        check_arguments
-    },
-    file::
-    {
-        get_file_path,
-        file_path_check,
-        handle_file_path_check,
-        handle_source
-    },
-    notes::
-    {
-        get_notes,
-        update_notes_statics,
-        goto_last_page
-    },
-    settings::
-    {
-        get_settings
-    },
-    menu::
-    {
-        create_menus
-    },
-    encryption::
-    {
-        get_password
-    },
-    other::
-    {
-        exit,
-        change_screen
-    }
+use crate::{
+    arguments::check_arguments,
+    encryption::get_password,
+    file::{file_path_check, get_file_path, handle_file_path_check, handle_source},
+    globals::g_set_started,
+    menu::create_menus,
+    notes::{get_notes, goto_last_page, update_notes_statics},
+    other::{change_screen, exit},
+    settings::get_settings,
 };
 
 // First function to execute
-fn main()
-{
+fn main() {
     check_arguments(); // <-- It might exit here
     handle_file_path_check(file_path_check(get_file_path()));
-    if get_password(false).is_empty() {exit()};
+    if get_password(false).is_empty() {
+        exit()
+    };
     let notes = get_notes(false);
-    update_notes_statics(notes); 
-    handle_source(); 
-    get_settings(); 
+    update_notes_statics(notes);
+    handle_source();
+    get_settings();
     create_menus();
-    change_screen(); 
+    change_screen();
     g_set_started(true);
 
     // Start loop
