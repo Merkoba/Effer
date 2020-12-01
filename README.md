@@ -1,4 +1,11 @@
-![](https://i.imgur.com/lTuxphK.png)
+![](https://i.imgur.com/EpE9eBD.jpg)
+
+## Press space to see more options:
+![](https://i.imgur.com/0rpVpDX.jpg)
+![](https://i.imgur.com/Z0BtMWw.jpg)
+
+## Color theme can be changed:
+![](https://i.imgur.com/8TZPHuT.jpg)
 
 This is a small CLI program to store notes that will be saved to a text file in gibberish hex format.
 
