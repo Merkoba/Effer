@@ -158,7 +158,7 @@ pub fn get_file_bytes() -> Vec<u8> {
     };
 
     file.read_to_end(&mut bytes).unwrap();
-    return bytes;
+    bytes
 }
 
 // Generic function to read text from files
@@ -435,13 +435,11 @@ pub fn do_open_path(pth: String, create: bool) {
     opath = path;
     g_set_path(pth);
 
-    if create {
-        if !create_file() {
-            g_set_password(opassword);
-            g_set_path(opath);
-            show_message("< Can't Create File >");
-            return;
-        }
+    if create && !create_file() {
+        g_set_password(opassword);
+        g_set_path(opath);
+        show_message("< Can't Create File >");
+        return;
     }
 
     let notes = get_notes(true);

@@ -1,6 +1,3 @@
-#![allow(clippy::suspicious_else_formatting)]
-#![allow(clippy::collapsible_if)]
-
 mod arguments;
 mod colors;
 mod encryption;

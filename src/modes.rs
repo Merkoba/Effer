@@ -30,7 +30,7 @@ pub fn show_stats() {
 
     let enc_size = get_file_bytes().len();
     let dec_size = notes.as_bytes().len();
-    let path = shell_contract(&g_get_path().to_string());
+    let path = shell_contract(&g_get_path());
 
     let s = format!("Stats For: {}\n\nNotes: {}\nWords: {}\nLetters: {}\nEncrypted Size: {} Bytes\nDecrypted Size: {} Bytes",
         path, len, wcount, lcount, enc_size, dec_size);

@@ -26,8 +26,8 @@ pub fn get_settings() {
     let arg_empty = arg.is_empty();
 
     if cap.is_some() || !arg_empty {
-        let stored_value = if cap.is_some() {
-            s!(cap.unwrap()["page_size"])
+        let stored_value = if let Some(c) = cap {
+            s!(c["page_size"])
         } else {
             s!()
         };
@@ -41,7 +41,7 @@ pub fn get_settings() {
 
         let num = argx.parse::<usize>().unwrap_or(DEFAULT_PAGE_SIZE);
         let mut value = num;
-        if value <= 0 {
+        if value == 0 {
             value = DEFAULT_PAGE_SIZE
         }
         if value > MAX_PAGE_SIZE {
@@ -58,8 +58,8 @@ pub fn get_settings() {
     let arg_empty = arg.is_empty();
 
     if cap.is_some() || !arg_empty {
-        let stored_value = if cap.is_some() {
-            s!(cap.unwrap()["row_space"])
+        let stored_value = if let Some(c) = cap {
+            s!(c["row_space"])
         } else {
             s!()
         };
@@ -83,8 +83,8 @@ pub fn get_settings() {
     let arg_empty = arg.is_empty();
 
     if cap.is_some() || !arg_empty {
-        let stored_value = if cap.is_some() {
-            s!(cap.unwrap()["color_1"])
+        let stored_value = if let Some(c) = cap {
+            s!(c["color_1"])
         } else {
             s!()
         };
@@ -119,8 +119,8 @@ pub fn get_settings() {
     let arg_empty = arg.is_empty();
 
     if cap.is_some() || !arg_empty {
-        let stored_value = if cap.is_some() {
-            s!(cap.unwrap()["color_2"])
+        let stored_value = if let Some(c) = cap {
+            s!(c["color_2"])
         } else {
             s!()
         };
@@ -155,8 +155,8 @@ pub fn get_settings() {
     let arg_empty = arg.is_empty();
 
     if cap.is_some() || !arg_empty {
-        let stored_value = if cap.is_some() {
-            s!(cap.unwrap()["color_3"])
+        let stored_value = if let Some(c) = cap {
+            s!(c["color_3"])
         } else {
             s!()
         };
@@ -191,8 +191,8 @@ pub fn get_settings() {
     let arg_empty = arg.is_empty();
 
     if cap.is_some() || !arg_empty {
-        let stored_value = if cap.is_some() {
-            s!(cap.unwrap()["use_colors"])
+        let stored_value = if let Some(c) = cap {
+            s!(c["use_colors"])
         } else {
             s!()
         };

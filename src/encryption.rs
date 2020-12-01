@@ -153,7 +153,7 @@ impl EncryptedData {
 
     fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> {
         if self.derivation == 0 {
-            return Ok(self.ciphertext.clone());
+            Ok(self.ciphertext.clone())
         } else {
             let key = key_from_pw(password, self.salt, self.derivation)?;
             aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
@@ -165,10 +165,10 @@ impl EncryptedData {
         bytes.extend(self.salt.0.iter());
         bytes.extend(self.nonce.0.iter());
         bytes.extend(self.ciphertext.iter());
-        return bytes;
+        bytes
     }
 
-    fn from_bytes(bytes: &Vec<u8>) -> Result<Self, base64::DecodeError> {
+    fn from_bytes(bytes: &[u8]) -> Result<Self, base64::DecodeError> {
         let n = 2;
         let sbytes = pwhash::SALTBYTES;
         let nbytes = aead::NONCEBYTES;
@@ -199,7 +199,7 @@ pub fn encrypt_text(plaintext: &str) -> Vec<u8> {
 }
 
 // Decrypt the file's bytes
-pub fn decrypt_bytes(bytes: &Vec<u8>) -> String {
+pub fn decrypt_bytes(bytes: &[u8]) -> String {
     let ciphertext = EncryptedData::from_bytes(bytes).unwrap();
     let password = get_password(false);
 

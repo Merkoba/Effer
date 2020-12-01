@@ -81,12 +81,6 @@ To check using a debug version:
 To build an optimized binary
 >cargo build --release
 
-Or just use the binary provided in the latest release.
-
-There's a simple bash script to move the release binary to /bin
-
-The version in Cargo.toml doesn't reflect the program's version.
-
 # Arguments
 
 Check --help to find out about arguments that can be used.

@@ -20,6 +20,7 @@ use crate::{
 };
 
 use std::cmp::{max, min};
+use std::fs;
 
 use regex::Regex;
 
@@ -234,10 +235,8 @@ pub fn delete_notes() {
 
     let length = numbers.len();
 
-    if length >= 5 {
-        if !ask_bool(&format!("Delete {} notes?", length), true) {
-            return;
-        }
+    if length >= 5 && !ask_bool(&format!("Delete {} notes?", length), true) {
+        return;
     }
 
     if numbers.is_empty() {
@@ -568,7 +567,7 @@ pub fn show_page_indicator(page: usize) {
         "\n< Page {} of {} >\n{}",
         page,
         get_max_page_number(),
-        shell_contract(&g_get_path().to_string())
+        shell_contract(fs::canonicalize(&g_get_path()).unwrap().to_str().unwrap())
     ));
 }
 
@@ -716,12 +715,10 @@ pub fn change_page_size(increase: bool) {
         } else {
             return;
         }
+    } else if page_size >= (PAGE_SIZE_DIFF * 2) {
+        g_set_page_size(page_size - PAGE_SIZE_DIFF)
     } else {
-        if page_size >= (PAGE_SIZE_DIFF * 2) {
-            g_set_page_size(page_size - PAGE_SIZE_DIFF)
-        } else {
-            return;
-        }
+        return;
     }
 
     update_header();
