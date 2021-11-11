@@ -251,6 +251,7 @@ pub fn delete_notes() {
     }
 
     delete_lines(numbers);
+    refresh_page();
 }
 
 // Updates the notes and notes length global variables
