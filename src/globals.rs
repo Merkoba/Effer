@@ -16,7 +16,7 @@ pub const VERSION: &str = "v2.0.2";
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const MAX_PAGE_SIZE: usize = 100;
 pub const PAGE_SIZE_DIFF: usize = 1;
-pub const DEFAULT_ROW_SPACE: bool = true;
+pub const DEFAULT_ROW_SPACE: bool = false;
 pub const DEFAULT_USE_COLORS: bool = true;
 
 // Color Constants
