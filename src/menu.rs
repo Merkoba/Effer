@@ -11,7 +11,7 @@ use crate::{
         edit_last_note, edit_note, find_notes, goto_first_page, goto_last_page, goto_page,
         move_notes, refresh_page, show_all_notes, show_page, swap_notes, undo_last_edit,
     },
-    other::ask_exit,
+    other::exit,
     p,
     structs::MenuAnswer,
 };
@@ -212,7 +212,7 @@ pub fn menu_action(ans: (MenuAnswer, usize)) {
         MenuAnswer::MoveNotes => move_notes(),
         MenuAnswer::ModeAction => mode_action(),
         MenuAnswer::Undo => undo_last_edit(),
-        MenuAnswer::Exit => ask_exit(),
+        MenuAnswer::Exit => exit(),
         MenuAnswer::Nothing => {}
     }
 }

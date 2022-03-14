@@ -11,11 +11,11 @@ macro_rules! hashmap
 #[macro_export]
 macro_rules! p {
     ($left:expr, $right:expr) => {
-        println!($left, $right);
+        println!($left, $right)
     };
 
     ($left:expr) => {
-        println!("{}", $left);
+        println!("{}", $left)
     };
 }
 
@@ -33,22 +33,22 @@ macro_rules! pp {
 #[macro_export]
 macro_rules! e {
     ($left:expr, $right:expr) => {
-        eprintln!($left, $right);
+        eprintln!($left, $right)
     };
 
     ($left:expr) => {
-        eprintln!("{}", $left);
+        eprintln!("{}", $left)
     };
 }
 
 #[macro_export]
 macro_rules! ee {
     ($left:expr, $right:expr) => {
-        eprint!($left, $right);
+        eprint!($left, $right)
     };
 
     ($left:expr) => {
-        eprint!("{}", $left);
+        eprint!("{}", $left)
     };
 }
 
@@ -66,6 +66,6 @@ macro_rules! s {
 #[macro_export]
 macro_rules! d {
     ($left:expr) => {
-        dbg!($left);
+        dbg!($left)
     };
 }

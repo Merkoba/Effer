@@ -1,6 +1,5 @@
 use crate::{
     globals::{g_get_altscreen, g_set_altscreen, g_set_last_edit, g_set_prev_notes},
-    input::ask_bool,
     menu::create_menus,
     notes::{show_notes, update_notes_statics},
     p, s,
@@ -32,13 +31,6 @@ pub fn exit() -> ! {
     }
 
     process::exit(0)
-}
-
-// Asks before exit
-pub fn ask_exit() {
-    if ask_bool("Exit?", false) {
-        exit();
-    }
 }
 
 // Generic function to show a message instead of notes
