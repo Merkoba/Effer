@@ -1,3 +1,5 @@
+![](effer.jpg)
+
 ![](https://i.imgur.com/EpE9eBD.jpg)
 
 ## Press space to see more options:
@@ -54,7 +56,7 @@ Can change to other encrypted files within the program.
 
 Destroy function which overwrites the file several times and exits the program.
 
-Path autocompletion with Tab. 
+Path autocompletion with Tab.
 
 ~ (Home) and environment variables expansion.
 
@@ -75,7 +77,7 @@ The password and key derivation can be changed.
 This is not to be taken as a real security tool. The encryption is relatively weak.
 Somebody that knows what they're doing might be able to decrypt it without much trouble.
 But still it's an upgrade from saving notes in plain text.
-No other files are created for decryption. This means the note files are portable and 
+No other files are created for decryption. This means the note files are portable and
 should be able to be opened with the same program on another machine using the same password.
 
 # Installation
@@ -93,15 +95,3 @@ To build an optimized binary
 Check --help to find out about arguments that can be used.
 
 If running the program with cargo, use `cargo run -- --help`.
-
-# Contributing
-
-Contributions are welcome. Making it more secure can be a way to improve it.
-The only restriction to the encryption algorithm is that it can't use multiple files,
-for instance to save salts or IV's. The idea is to make it easy to move files around,
-and open them in other machines where the user might have this program. Also since the 
-note files are saved locally it would be easy anyway to gather those other extra files
-if access to the file system is possible.
-If the encryption method changes, the program gets a new major release.
-Major-release-jumps (like 2.0.0 to 3.0.0) might keep backwards compatibility 
-since a version byte is specified in the files.
