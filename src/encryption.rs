@@ -9,6 +9,7 @@ use crate::{
 };
 
 use sodiumoxide::crypto::aead;
+use sodiumoxide::crypto::aead::chacha20poly1305_ietf as aead_v2;
 use sodiumoxide::crypto::pwhash;
 
 // Lets the user change password or derivation
@@ -122,12 +123,27 @@ fn key_from_pw(password: &str, salt: pwhash::Salt, derivation: u8) -> Result<aea
     Ok(key)
 }
 
+// Enum for nonce types (v2 uses 12-byte, v3+ uses 24-byte)
+enum NonceType {
+    V2(aead_v2::Nonce),
+    V3(aead::Nonce),
+}
+
+impl NonceType {
+    fn as_bytes(&self) -> &[u8] {
+        match self {
+            NonceType::V2(n) => &n.0,
+            NonceType::V3(n) => &n.0,
+        }
+    }
+}
+
 // Struct for encrypted data
 struct EncryptedData {
     version: u8,
     derivation: u8,
     salt: pwhash::Salt,
-    nonce: aead::Nonce,
+    nonce: NonceType,
     ciphertext: Vec<u8>,
 }
 
@@ -142,7 +158,9 @@ impl EncryptedData {
 
         let ciphertext = if derivation == 0 {
             plaintext.as_bytes().to_vec()
-        } else if Self::use_authenticated_header(version) {
+        }
+
+        else if Self::use_authenticated_header(version) {
             let header_ad = Self::associated_data(version, derivation, &salt, &nonce);
 
             aead::seal(
@@ -151,7 +169,8 @@ impl EncryptedData {
                 &nonce,
                 &key,
             )
-        } else {
+        }
+        else {
             aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key)
         };
 
@@ -159,7 +178,7 @@ impl EncryptedData {
             version,
             derivation,
             salt,
-            nonce,
+            nonce: NonceType::V3(nonce),
             ciphertext,
         })
     }
@@ -170,17 +189,26 @@ impl EncryptedData {
         } else {
             let key = key_from_pw(password, self.salt, self.derivation)?;
 
-            if Self::use_authenticated_header(self.version) {
-                let header_ad =
-                    Self::associated_data(self.version, self.derivation, &self.salt, &self.nonce);
-                aead::open(
-                    &self.ciphertext,
-                    Some(header_ad.as_slice()),
-                    &self.nonce,
-                    &key,
-                )
-            } else {
-                aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
+            match &self.nonce {
+                NonceType::V2(nonce) => {
+                    let key_v2 = aead_v2::Key(key.0);
+                    aead_v2::open(&self.ciphertext, Some(&self.salt.0), nonce, &key_v2)
+                }
+                NonceType::V3(nonce) => {
+                    if Self::use_authenticated_header(self.version) {
+                        let header_ad =
+                            Self::associated_data(self.version, self.derivation, &self.salt, nonce);
+                        aead::open(
+                            &self.ciphertext,
+                            Some(header_ad.as_slice()),
+                            nonce,
+                            &key,
+                        )
+                    }
+                    else {
+                        aead::open(&self.ciphertext, Some(&self.salt.0), nonce, &key)
+                    }
+                }
             }
         }
     }
@@ -204,7 +232,7 @@ impl EncryptedData {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = vec![self.version, self.derivation];
         bytes.extend(self.salt.0.iter());
-        bytes.extend(self.nonce.0.iter());
+        bytes.extend(self.nonce.as_bytes().iter());
         bytes.extend(self.ciphertext.iter());
         bytes
     }
@@ -212,21 +240,37 @@ impl EncryptedData {
     fn from_bytes(bytes: &[u8]) -> Result<Self, base64::DecodeError> {
         let n = 2;
         let sbytes = pwhash::SALTBYTES;
-        let nbytes = aead::NONCEBYTES;
+        let version = bytes[0];
+        let derivation = bytes[1];
 
-        if bytes.len() < (n + sbytes + nbytes) {
-            return Err(base64::DecodeError::InvalidLength);
-        }
+        // v2 used chacha20poly1305_ietf (12-byte nonce)
+        // v3+ uses xchacha20poly1305_ietf (24-byte nonce)
+        let (nonce, nbytes) = if version < 3 {
+            let nbytes = aead_v2::NONCEBYTES;
+
+            if bytes.len() < (n + sbytes + nbytes) {
+                return Err(base64::DecodeError::InvalidLength);
+            }
+
+            let nonce = aead_v2::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
+            (NonceType::V2(nonce), nbytes)
+        } else {
+            let nbytes = aead::NONCEBYTES;
+
+            if bytes.len() < (n + sbytes + nbytes) {
+                return Err(base64::DecodeError::InvalidLength);
+            }
+
+            let nonce = aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
+            (NonceType::V3(nonce), nbytes)
+        };
 
         let ciphertext: Vec<u8> = bytes[(n + sbytes + nbytes)..]
             .iter()
             .map(|x| x.to_owned())
             .collect();
 
-        let version = bytes[0];
-        let derivation = bytes[1];
         let salt = pwhash::Salt::from_slice(&bytes[n..(n + sbytes)]).unwrap();
-        let nonce = aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
 
         Ok(EncryptedData {
             version,
