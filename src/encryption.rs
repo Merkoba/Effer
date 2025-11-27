@@ -158,9 +158,7 @@ impl EncryptedData {
 
         let ciphertext = if derivation == 0 {
             plaintext.as_bytes().to_vec()
-        }
-
-        else if Self::use_authenticated_header(version) {
+        } else if Self::use_authenticated_header(version) {
             let header_ad = Self::associated_data(version, derivation, &salt, &nonce);
 
             aead::seal(
@@ -169,8 +167,7 @@ impl EncryptedData {
                 &nonce,
                 &key,
             )
-        }
-        else {
+        } else {
             aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key)
         };
 
@@ -198,14 +195,8 @@ impl EncryptedData {
                     if Self::use_authenticated_header(self.version) {
                         let header_ad =
                             Self::associated_data(self.version, self.derivation, &self.salt, nonce);
-                        aead::open(
-                            &self.ciphertext,
-                            Some(header_ad.as_slice()),
-                            nonce,
-                            &key,
-                        )
-                    }
-                    else {
+                        aead::open(&self.ciphertext, Some(header_ad.as_slice()), nonce, &key)
+                    } else {
                         aead::open(&self.ciphertext, Some(&self.salt.0), nonce, &key)
                     }
                 }
@@ -252,7 +243,8 @@ impl EncryptedData {
                 return Err(base64::DecodeError::InvalidLength);
             }
 
-            let nonce = aead_v2::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
+            let nonce =
+                aead_v2::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
             (NonceType::V2(nonce), nbytes)
         } else {
             let nbytes = aead::NONCEBYTES;
@@ -261,7 +253,8 @@ impl EncryptedData {
                 return Err(base64::DecodeError::InvalidLength);
             }
 
-            let nonce = aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
+            let nonce =
+                aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
             (NonceType::V3(nonce), nbytes)
         };
 
