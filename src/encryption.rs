@@ -59,6 +59,7 @@ pub fn get_key_derivation() {
 // Changes the password and updates the file with it
 pub fn change_password() {
     p!("This will change the file's password.");
+
     if !get_password(true).is_empty() {
         update_file(get_notes(false))
     };
@@ -80,10 +81,13 @@ pub fn get_password(change: bool) -> String {
         if change {
             loop {
                 password = get_input("New Password", "", true);
+
                 if password.is_empty() {
                     return s!();
                 }
+
                 let confirmation = get_input("Confirm Password", "", true);
+
                 if password != confirmation {
                     e!("Error: Passwords Don't Match.")
                 } else {
@@ -209,15 +213,18 @@ impl EncryptedData {
         let n = 2;
         let sbytes = pwhash::SALTBYTES;
         let nbytes = aead::NONCEBYTES;
+
         let ciphertext: Vec<u8> = bytes[(n + sbytes + nbytes)..]
             .iter()
             .map(|x| x.to_owned())
             .collect();
+
         let version = bytes[0];
         let derivation = bytes[1];
         let salt = pwhash::Salt::from_slice(&bytes[n..(n + sbytes)]).unwrap();
         let nonce = aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
         g_set_derivation(derivation as usize);
+
         Ok(EncryptedData {
             version,
             derivation,

@@ -30,6 +30,7 @@ pub fn get_line(n: usize) -> String {
     if n > g_get_notes_length() {
         return s!();
     }
+
     g_get_notes_vec_item(n)
 }
 
@@ -53,11 +54,13 @@ pub fn move_lines(n1: usize, n2: usize, dest: usize) {
     let mut joined: Vec<String> = vec![];
     let mut moved = left.split_off(n1);
     let mut right = moved.split_off(n2 - n1 + 1);
+
     let nto = if dest < n1 {
         dest
     } else {
         dest - moved.len() + 1
     };
+
     joined.append(&mut left);
     joined.append(&mut right);
     joined.splice(nto..nto, moved.iter().cloned());
@@ -234,9 +237,11 @@ pub fn do_file_write(encrypted: Vec<u8>) {
 // The content is encrypted using the password
 pub fn create_file() -> bool {
     get_key_derivation();
+
     if get_password(true).is_empty() {
         return false;
     }
+
     let encrypted = encrypt_text("Dummy Space");
 
     match fs::create_dir_all(get_file_parent_path()) {
@@ -307,9 +312,11 @@ pub fn get_source_content(path: &str) {
 // using the source file lines
 pub fn handle_source() {
     let source = g_get_source();
+
     if source.is_empty() {
         return;
     }
+
     let mut notes = g_get_notes_vec();
     let started = g_get_started();
 
@@ -318,6 +325,7 @@ pub fn handle_source() {
         let mut lines: Vec<&str> = vec![&notes[0]];
         lines.extend(source.lines().filter(|s| !s.trim().is_empty()));
         update_file(lines.join("\n"));
+
         if started {
             goto_last_page()
         }
@@ -362,15 +370,18 @@ pub fn handle_source() {
                 let mut lines: Vec<String> = vec![];
                 let mut notes2 = notes.split_off(1);
                 lines.append(&mut notes);
+
                 let mut new_lines: Vec<String> = source
                     .lines()
                     .filter(|s| !s.trim().is_empty())
                     .map(|s| s!(s))
                     .collect();
+
                 lines.append(&mut new_lines);
                 lines.append(&mut notes2);
                 update_file(lines.join("\n"));
                 g_set_last_edit(0);
+
                 if started {
                     goto_first_page()
                 }
@@ -386,9 +397,11 @@ pub fn handle_source() {
 pub fn fetch_source() {
     p!("Add notes from a plain text file.");
     let ans = ask_string("Path", &g_get_last_path(), true);
+
     if ans.is_empty() {
         return;
     }
+
     let path = shell_expand(&ans);
     g_set_last_path(s!(path));
     get_source_content(&path);
@@ -399,9 +412,11 @@ pub fn fetch_source() {
 pub fn open_from_path() {
     p!("Open and switch to other encrypted file.");
     let ans = ask_string("Path", &g_get_last_path(), true);
+
     if ans.is_empty() {
         return;
     };
+
     let path = shell_expand(&ans);
     g_set_last_path(s!(path));
 
@@ -409,6 +424,7 @@ pub fn open_from_path() {
         FilePathCheckResult::Exists => {
             do_open_path(path, false);
         }
+
         FilePathCheckResult::DoesNotExist => {
             e!("File doesn't exist.");
 
@@ -416,6 +432,7 @@ pub fn open_from_path() {
                 do_open_path(path, true)
             }
         }
+
         FilePathCheckResult::NotAFile => {
             show_message("< Path Is Not A File >");
         }
