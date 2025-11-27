@@ -214,6 +214,10 @@ impl EncryptedData {
         let sbytes = pwhash::SALTBYTES;
         let nbytes = aead::NONCEBYTES;
 
+        if bytes.len() < (n + sbytes + nbytes) {
+            return Err(base64::DecodeError::InvalidLength);
+        }
+
         let ciphertext: Vec<u8> = bytes[(n + sbytes + nbytes)..]
             .iter()
             .map(|x| x.to_owned())
@@ -223,7 +227,6 @@ impl EncryptedData {
         let derivation = bytes[1];
         let salt = pwhash::Salt::from_slice(&bytes[n..(n + sbytes)]).unwrap();
         let nonce = aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
-        g_set_derivation(derivation as usize);
 
         Ok(EncryptedData {
             version,
@@ -245,6 +248,7 @@ pub fn encrypt_text(plaintext: &str) -> Vec<u8> {
 // Decrypt the file's bytes
 pub fn decrypt_bytes(bytes: &[u8]) -> String {
     let ciphertext = EncryptedData::from_bytes(bytes).unwrap();
+    g_set_derivation(ciphertext.derivation as usize);
     let password = get_password(false);
 
     let plaintext = match ciphertext.decrypt(&password) {
