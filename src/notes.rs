@@ -36,9 +36,11 @@ pub fn add_note(prepend: bool) {
     }
 
     let note = ask_string(prompt, "", false);
+
     if note.trim().is_empty() {
         return;
     }
+
     let new_text;
 
     if prepend {
@@ -61,21 +63,26 @@ pub fn add_note(prepend: bool) {
 pub fn edit_note(mut n: usize) {
     if n == 0 {
         let last_edit = g_get_last_edit();
+
         let suggestion = if last_edit == 0 {
             s!()
         } else {
             expand_note_number(last_edit)
         };
+
         n = parse_note_ans(&ask_string("Edit #", &(suggestion), true));
     }
 
     if !check_line_exists(n) {
         return;
     }
+
     let edited = ask_string("Edit Note", &get_line(n), false);
+
     if edited.is_empty() {
         return;
     }
+
     g_set_last_edit(n);
     replace_line(n, edited);
     show_page(get_note_page(n));
@@ -93,16 +100,20 @@ pub fn find_notes(suggest: bool) {
     }
 
     let last_find = g_get_last_find();
+
     let suggestion = if suggest && !last_find.is_empty() {
         &last_find
     } else {
         ""
     };
+
     let filter = ask_string("Find", suggestion, true).to_lowercase();
     let mut found: Vec<(usize, String)> = vec![];
+
     if filter.is_empty() {
         return;
     }
+
     let info = format!("{}{}{} >", get_color(3), filter, get_color(2));
 
     if filter.starts_with("re:") {
@@ -125,6 +136,7 @@ pub fn find_notes(suggest: bool) {
             if i == 0 {
                 continue;
             }
+
             if line.to_lowercase().contains(&ifilter) {
                 found.push((i, s!(line)))
             }
@@ -144,12 +156,15 @@ pub fn find_notes(suggest: bool) {
 // Swaps 2 notes specified by 2 numbers separated by whitespace (1 10)
 pub fn swap_notes() {
     let ans = ask_string("Swap (n1 n2)", "", true);
+
     if ans.is_empty() {
         return;
     }
+
     let mut split = ans.split_whitespace().map(|s| s.trim());
     let n1 = parse_note_ans(split.next().unwrap_or("0"));
     let n2 = parse_note_ans(split.next().unwrap_or("0"));
+
     if !check_line_exists(n1) || !check_line_exists(n2) {
         return;
     }
@@ -157,6 +172,7 @@ pub fn swap_notes() {
     // If one of the two items is the last edited note
     // Swap it so it points to the correct one
     let last_edit = g_get_last_edit();
+
     if last_edit == n1 {
         g_set_last_edit(n2)
     } else if last_edit == n2 {
@@ -177,9 +193,11 @@ pub fn delete_notes() {
     p!("Or Regex (re:\\d+)");
 
     let ans = ask_string("Delete", "", true);
+
     if ans.is_empty() {
         return;
     }
+
     let mut numbers: Vec<usize> = vec![];
 
     pub fn nope() {
@@ -192,6 +210,7 @@ pub fn delete_notes() {
                 if i == 0 {
                     continue;
                 }
+
                 if re.is_match(line) {
                     numbers.push(i)
                 }
@@ -209,19 +228,24 @@ pub fn delete_notes() {
         if ans.matches('-').count() > 1 {
             return nope();
         }
+
         let note_length = g_get_notes_length();
         let mut split = ans.split('-').map(|n| n.trim());
         let num1 = parse_note_ans(split.next().unwrap_or("0"));
         let mut num2 = parse_note_ans(split.next().unwrap_or("0"));
+
         if num1 == 0 || num2 == 0 {
             return nope();
         }
+
         if num2 > note_length {
             num2 = note_length
         }
+
         if num1 >= num2 {
             return nope();
         }
+
         numbers.extend(num1..=num2);
     } else {
         numbers.push(parse_note_ans(&ans));
@@ -246,6 +270,7 @@ pub fn delete_notes() {
     // If the deleted not is the last edit
     // reset last edit since it's now invalid
     let last_edit = g_get_last_edit();
+
     if numbers.contains(&last_edit) {
         g_set_last_edit(0)
     }
@@ -308,15 +333,18 @@ pub fn check_page_number(page: usize, allow_zero: bool) -> usize {
     if allow_zero && page == 0 {
         return 0;
     }
+
     max(1, min(page, get_max_page_number()))
 }
 
 // Gets notes that belong to a certain page
 pub fn get_page_notes(page: usize) -> Vec<(usize, String)> {
     let notes_length = g_get_notes_length();
+
     if notes_length == 0 {
         return vec![];
     }
+
     let page_size = g_get_page_size();
 
     let a = if page > 1 {
@@ -342,9 +370,11 @@ pub fn get_max_page_number() -> usize {
 // Goes to the previous page
 pub fn cycle_left() {
     let page = g_get_page();
+
     if page == 1 {
         return;
     }
+
     show_page(page - 1);
 }
 
@@ -352,9 +382,11 @@ pub fn cycle_left() {
 pub fn cycle_right() {
     let page = g_get_page();
     let max_page = get_max_page_number();
+
     if page == max_page {
         return;
     }
+
     show_page(page + 1);
 }
 
@@ -444,9 +476,11 @@ pub fn move_notes() {
     p!("Or Down (4 down 2)");
 
     let ans = ask_string("Move", "", true);
+
     if ans.is_empty() {
         return;
     }
+
     let n1;
     let mut n2;
     let max = g_get_notes_length();
@@ -456,29 +490,36 @@ pub fn move_notes() {
         if ans.matches('-').count() > 1 {
             return;
         }
+
         let mut split = ans.split('-').map(|n| n.trim());
         n1 = parse_note_ans(split.next().unwrap_or("0"));
         let right_side = split.next().unwrap_or("nothing");
         let mut split_right = right_side.split_whitespace().map(|n| n.trim());
         n2 = parse_note_ans(split_right.next().unwrap_or("0"));
+
         if n1 == 0 || n2 == 0 {
             return;
         }
+
         if n2 > max {
             n2 = max
         }
+
         if n1 >= n2 {
             return;
         }
     } else {
         let mut split = ans.split_whitespace().map(|n| n.trim());
         n1 = parse_note_ans(split.next().unwrap_or("0"));
+
         if n1 == 0 {
             return;
         }
+
         if !check_line_exists(n1) {
             return;
         }
+
         n2 = n1;
     }
 
@@ -495,9 +536,11 @@ pub fn move_notes() {
         if steps == 0 {
             return;
         }
+
         if (n1 as isize - steps as isize) < 1 {
             return;
         }
+
         n1 - steps
     } else if ans.contains("down") {
         let steps = ans
@@ -511,9 +554,11 @@ pub fn move_notes() {
         if steps == 0 {
             return;
         }
+
         if n2 + steps > max {
             return;
         }
+
         n2 + steps
     } else {
         let split = ans.split_whitespace().map(|n| n.trim());
@@ -523,9 +568,11 @@ pub fn move_notes() {
     if !check_line_exists(dest) {
         return;
     }
+
     if dest >= n1 && dest <= n2 {
         return;
     }
+
     if n1 == dest {
         return;
     }
@@ -680,6 +727,7 @@ pub fn get_note_page(n: usize) -> usize {
 // Go to a page or note's page
 pub fn goto_page() {
     let ans = ask_string("(p) Page | (n) Note", "", true);
+
     if ans.is_empty() {
         return;
     }

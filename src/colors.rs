@@ -33,13 +33,16 @@ pub fn change_colors() {
     if !g_get_use_colors() {
         return;
     }
+
     p!("(1) BG | (2) FG | (3) Other | (4) All");
     p!("(d) Dark | (t) Light | (p) Purple");
     p!("(x) Disable | (v) Invert | (u) Undo");
     let ans = ask_string("Choice", "", true);
+
     if ans.is_empty() {
         return;
     };
+
     let tip = "E.g: 0,0,0 | red | darker | lighter2 | random";
     let prompts = ["BG Color", "FG Color", "Other Color"];
 
@@ -58,9 +61,11 @@ pub fn change_colors() {
             let suggestion = color_to_string(c);
             p!(tip);
             let ans = ask_string(&prompt, &suggestion, true);
+
             if ans.is_empty() {
                 return;
             }
+
             let nc = parse_color(&ans, c);
 
             match n {
@@ -81,9 +86,11 @@ pub fn change_colors() {
             p!(tip);
 
             let ans = ask_string("All Colors", &suggestion, false);
+
             if ans.is_empty() {
                 return;
             }
+
             let mut split = ans.split('-').map(|s| s.trim());
 
             g_set_color_1(parse_color(split.next().unwrap_or("0"), c1));
@@ -118,9 +125,11 @@ pub fn change_colors() {
             p!("Restore the previous color of:");
             p!("(1) BG | (2) FG | (3) Other | (4) All");
             let ans = ask_string("Choice", "", true);
+
             if ans.is_empty() {
                 return;
             }
+
             let n = ans.parse::<u8>().unwrap_or(0);
 
             match n {

@@ -29,9 +29,11 @@ fn main() {
     let fpath = get_file_path();
     p!("Using file: {}", fpath.to_str().unwrap());
     handle_file_path_check(file_path_check(fpath));
+
     if get_password(false).is_empty() {
         exit()
     };
+
     let notes = get_notes(false);
     update_notes_statics(notes);
     handle_source();
