@@ -130,7 +130,7 @@ struct EncryptedData {
 // Implement the encryption struct
 impl EncryptedData {
     fn new(plaintext: &str, password: &str) -> Result<Self, ()> {
-        let version = 2;
+        let version = 3;
         let derivation = g_get_derivation() as u8;
         let salt = pwhash::gen_salt();
         let nonce = aead::gen_nonce();
@@ -138,6 +138,15 @@ impl EncryptedData {
 
         let ciphertext = if derivation == 0 {
             plaintext.as_bytes().to_vec()
+        } else if Self::use_authenticated_header(version) {
+            let header_ad = Self::associated_data(version, derivation, &salt, &nonce);
+
+            aead::seal(
+                plaintext.as_bytes(),
+                Some(header_ad.as_slice()),
+                &nonce,
+                &key,
+            )
         } else {
             aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key)
         };
@@ -156,8 +165,36 @@ impl EncryptedData {
             Ok(self.ciphertext.clone())
         } else {
             let key = key_from_pw(password, self.salt, self.derivation)?;
-            aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
+
+            if Self::use_authenticated_header(self.version) {
+                let header_ad =
+                    Self::associated_data(self.version, self.derivation, &self.salt, &self.nonce);
+                aead::open(
+                    &self.ciphertext,
+                    Some(header_ad.as_slice()),
+                    &self.nonce,
+                    &key,
+                )
+            } else {
+                aead::open(&self.ciphertext, Some(&self.salt.0), &self.nonce, &key)
+            }
         }
+    }
+
+    fn use_authenticated_header(version: u8) -> bool {
+        version >= 3
+    }
+
+    fn associated_data(
+        version: u8,
+        derivation: u8,
+        salt: &pwhash::Salt,
+        nonce: &aead::Nonce,
+    ) -> Vec<u8> {
+        let mut data = vec![version, derivation];
+        data.extend_from_slice(&salt.0);
+        data.extend_from_slice(&nonce.0);
+        data
     }
 
     fn to_bytes(&self) -> Vec<u8> {

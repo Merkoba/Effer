@@ -2,7 +2,7 @@
 
 [package]
 name = "effer"
-version = "2.0.3"
+version = "3.0.0"
 authors = ["madprops <idk@ehhh.com>"]
 edition = "2018"
 
@@ -20,9 +20,12 @@ regex = "1.2.1"
 clap = "2.33.0"
 shellexpand = "1.0.0"
 toml = "0.5.3"
-serde = { version = "1.0.99", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 colorsys = "0.5.3"
 textwrap = "0.11.0"
 colorskill = "1.1.3"
-sodiumoxide = "0.2.5"
+sodiumoxide = "0.2.7"
 base64 = "0.11.0"
+
+[features]
+cargo-clippy = []

@@ -12,7 +12,7 @@ use std::{
 };
 
 // Constants
-pub const VERSION: &str = "v2.0.3";
+pub const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 pub const DEFAULT_PAGE_SIZE: usize = 10;
 pub const MAX_PAGE_SIZE: usize = 100;
 pub const PAGE_SIZE_DIFF: usize = 1;

@@ -17,10 +17,12 @@ pub fn get_input(message: &str, initial: &str, mask: bool) -> String {
         masking: mask,
         completer: FilenameCompleter::new(),
     };
+
     let mut editor = Editor::with_config(config);
     editor.set_helper(Some(h));
     editor.bind_sequence(KeyPress::Esc, Cmd::Interrupt);
     let prompt = format!("{}: ", message);
+
     if mask {
         ee!("{}", termion::cursor::Hide)
     }
@@ -33,23 +35,24 @@ pub fn get_input(message: &str, initial: &str, mask: bool) -> String {
     if mask {
         ee!("{}", termion::cursor::Show)
     }
+
     ans
 }
 
 // Asks the user for a yes/no answer
 pub fn ask_bool(message: &str, critical: bool) -> bool {
-    let prompt = if critical { " (Y, n)" } else { " (y, n)" };
+    let prompt = if critical { " (yes, n)" } else { " (y, n)" };
 
     loop {
         let ans = get_input(&[message, prompt].concat(), "", false);
 
         match ans.trim() {
-            "y" => {
+            "y" | "Y" => {
                 if !critical {
                     return true;
                 }
             }
-            "Y" => return true,
+            "yes" => return true,
             "n" | "N" => return false,
             "" => return false,
             _ => {}
@@ -60,6 +63,7 @@ pub fn ask_bool(message: &str, critical: bool) -> bool {
 // Asks the user to input a string
 pub fn ask_string(message: &str, initial: &str, trim: bool) -> String {
     let ans = get_input(message, initial, false);
+
     if trim {
         s!(ans.trim())
     } else {
