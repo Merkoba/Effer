@@ -8,9 +8,14 @@ use crate::{
     p, s,
 };
 
-use sodiumoxide::crypto::aead;
-use sodiumoxide::crypto::aead::chacha20poly1305_ietf as aead_v2;
-use sodiumoxide::crypto::pwhash;
+use argon2::{Algorithm, Argon2, Params, Version};
+
+use chacha20poly1305::{
+    aead::{Aead, Payload},
+    ChaCha20Poly1305, KeyInit, XChaCha20Poly1305,
+};
+
+use rand::{rngs::OsRng, RngCore};
 
 // Lets the user change password or derivation
 pub fn change_security() {
@@ -107,13 +112,21 @@ pub fn get_password(change: bool) -> String {
 }
 
 // Get a key from the password
-fn key_from_pw(password: &str, salt: pwhash::Salt, derivation: u8) -> Result<aead::Key, ()> {
-    let mut key = aead::Key([0; aead::KEYBYTES]);
+fn key_from_pw(password: &str, salt: &[u8], derivation: u8) -> Result<[u8; 32], ()> {
+    let mut key = [0u8; 32];
 
     match derivation {
         0 => return Ok(key),
-        1 => pwhash::derive_key_interactive(&mut key.0, password.as_bytes(), &salt)?,
-        2 => pwhash::derive_key_sensitive(&mut key.0, password.as_bytes(), &salt)?,
+        1 => {
+            let params = Params::new(65536, 2, 1, Some(32)).map_err(|_| ())?;
+            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+            argon2.hash_password_into(password.as_bytes(), salt, &mut key).map_err(|_| ())?;
+        }
+        2 => {
+            let params = Params::new(262144, 8, 1, Some(32)).map_err(|_| ())?;
+            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+            argon2.hash_password_into(password.as_bytes(), salt, &mut key).map_err(|_| ())?;
+        }
         _ => {
             e!("Wrong key derivation.");
             exit()
@@ -125,15 +138,15 @@ fn key_from_pw(password: &str, salt: pwhash::Salt, derivation: u8) -> Result<aea
 
 // Enum for nonce types (v2 uses 12-byte, v3+ uses 24-byte)
 enum NonceType {
-    V2(aead_v2::Nonce),
-    V3(aead::Nonce),
+    V2([u8; 12]),
+    V3([u8; 24]),
 }
 
 impl NonceType {
     fn as_bytes(&self) -> &[u8] {
         match self {
-            NonceType::V2(n) => &n.0,
-            NonceType::V3(n) => &n.0,
+            NonceType::V2(n) => n,
+            NonceType::V3(n) => n,
         }
     }
 }
@@ -142,7 +155,7 @@ impl NonceType {
 struct EncryptedData {
     version: u8,
     derivation: u8,
-    salt: pwhash::Salt,
+    salt: Vec<u8>,
     nonce: NonceType,
     ciphertext: Vec<u8>,
 }
@@ -150,56 +163,81 @@ struct EncryptedData {
 // Implement the encryption struct
 impl EncryptedData {
     fn new(plaintext: &str, password: &str) -> Result<Self, ()> {
-        let version = 3;
+        let version = 4;
         let derivation = g_get_derivation() as u8;
-        let salt = pwhash::gen_salt();
-        let nonce = aead::gen_nonce();
-        let key = key_from_pw(password, salt, derivation)?;
+
+        let mut salt = [0u8; 16];
+        OsRng.fill_bytes(&mut salt);
+
+        let mut nonce_bytes = [0u8; 24];
+        OsRng.fill_bytes(&mut nonce_bytes);
+
+        let key = key_from_pw(password, &salt, derivation)?;
 
         let ciphertext = if derivation == 0 {
             plaintext.as_bytes().to_vec()
-        } else if Self::use_authenticated_header(version) {
-            let header_ad = Self::associated_data(version, derivation, &salt, &nonce);
-
-            aead::seal(
-                plaintext.as_bytes(),
-                Some(header_ad.as_slice()),
-                &nonce,
-                &key,
-            )
         } else {
-            aead::seal(plaintext.as_bytes(), Some(&salt.0), &nonce, &key)
+            let cipher = XChaCha20Poly1305::new(&key.into());
+            let xnonce = chacha20poly1305::XNonce::from(nonce_bytes);
+
+            let header_ad = if Self::use_authenticated_header(version) {
+                Self::associated_data(version, derivation, &salt, &nonce_bytes)
+            } else {
+                salt.to_vec()
+            };
+
+            let payload = Payload {
+                msg: plaintext.as_bytes(),
+                aad: &header_ad,
+            };
+
+            cipher.encrypt(&xnonce, payload).map_err(|_| ())?
         };
 
         Ok(EncryptedData {
-            version,
-            derivation,
-            salt,
-            nonce: NonceType::V3(nonce),
-            ciphertext,
+            version: version,
+            derivation: derivation,
+            salt: salt.to_vec(),
+            nonce: NonceType::V3(nonce_bytes),
+            ciphertext: ciphertext,
         })
     }
 
     fn decrypt(&self, password: &str) -> Result<Vec<u8>, ()> {
         if self.derivation == 0 {
-            Ok(self.ciphertext.clone())
-        } else {
-            let key = key_from_pw(password, self.salt, self.derivation)?;
+            return Ok(self.ciphertext.clone());
+        }
 
-            match &self.nonce {
-                NonceType::V2(nonce) => {
-                    let key_v2 = aead_v2::Key(key.0);
-                    aead_v2::open(&self.ciphertext, Some(&self.salt.0), nonce, &key_v2)
-                }
-                NonceType::V3(nonce) => {
-                    if Self::use_authenticated_header(self.version) {
-                        let header_ad =
-                            Self::associated_data(self.version, self.derivation, &self.salt, nonce);
-                        aead::open(&self.ciphertext, Some(header_ad.as_slice()), nonce, &key)
-                    } else {
-                        aead::open(&self.ciphertext, Some(&self.salt.0), nonce, &key)
-                    }
-                }
+        let key = key_from_pw(password, &self.salt, self.derivation)?;
+
+        match &self.nonce {
+            NonceType::V2(nonce_bytes) => {
+                let cipher = ChaCha20Poly1305::new(&key.into());
+                let n = chacha20poly1305::Nonce::from_slice(nonce_bytes);
+
+                let payload = Payload {
+                    msg: &self.ciphertext,
+                    aad: &self.salt,
+                };
+
+                cipher.decrypt(n, payload).map_err(|_| ())
+            }
+            NonceType::V3(nonce_bytes) => {
+                let cipher = XChaCha20Poly1305::new(&key.into());
+                let n = chacha20poly1305::XNonce::from_slice(nonce_bytes);
+
+                let header_ad = if Self::use_authenticated_header(self.version) {
+                    Self::associated_data(self.version, self.derivation, &self.salt, nonce_bytes)
+                } else {
+                    self.salt.clone()
+                };
+
+                let payload = Payload {
+                    msg: &self.ciphertext,
+                    aad: &header_ad,
+                };
+
+                cipher.decrypt(n, payload).map_err(|_| ())
             }
         }
     }
@@ -211,18 +249,18 @@ impl EncryptedData {
     fn associated_data(
         version: u8,
         derivation: u8,
-        salt: &pwhash::Salt,
-        nonce: &aead::Nonce,
+        salt: &[u8],
+        nonce: &[u8],
     ) -> Vec<u8> {
         let mut data = vec![version, derivation];
-        data.extend_from_slice(&salt.0);
-        data.extend_from_slice(&nonce.0);
+        data.extend_from_slice(salt);
+        data.extend_from_slice(nonce);
         data
     }
 
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = vec![self.version, self.derivation];
-        bytes.extend(self.salt.0.iter());
+        bytes.extend(self.salt.iter());
         bytes.extend(self.nonce.as_bytes().iter());
         bytes.extend(self.ciphertext.iter());
         bytes
@@ -230,32 +268,32 @@ impl EncryptedData {
 
     fn from_bytes(bytes: &[u8]) -> Result<Self, base64::DecodeError> {
         let n = 2;
-        let sbytes = pwhash::SALTBYTES;
+        let sbytes = 16;
         let version = bytes[0];
         let derivation = bytes[1];
 
         // v2 used chacha20poly1305_ietf (12-byte nonce)
         // v3+ uses xchacha20poly1305_ietf (24-byte nonce)
         let (nonce, nbytes) = if version < 3 {
-            let nbytes = aead_v2::NONCEBYTES;
+            let nbytes = 12;
 
-            if bytes.len() < (n + sbytes + nbytes) {
+            if bytes.len() < n + sbytes + nbytes {
                 return Err(base64::DecodeError::InvalidLength);
             }
 
-            let nonce =
-                aead_v2::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
-            (NonceType::V2(nonce), nbytes)
+            let mut nonce_bytes = [0u8; 12];
+            nonce_bytes.copy_from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]);
+            (NonceType::V2(nonce_bytes), nbytes)
         } else {
-            let nbytes = aead::NONCEBYTES;
+            let nbytes = 24;
 
-            if bytes.len() < (n + sbytes + nbytes) {
+            if bytes.len() < n + sbytes + nbytes {
                 return Err(base64::DecodeError::InvalidLength);
             }
 
-            let nonce =
-                aead::Nonce::from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]).unwrap();
-            (NonceType::V3(nonce), nbytes)
+            let mut nonce_bytes = [0u8; 24];
+            nonce_bytes.copy_from_slice(&bytes[(n + sbytes)..(n + sbytes + nbytes)]);
+            (NonceType::V3(nonce_bytes), nbytes)
         };
 
         let ciphertext: Vec<u8> = bytes[(n + sbytes + nbytes)..]
@@ -263,14 +301,15 @@ impl EncryptedData {
             .map(|x| x.to_owned())
             .collect();
 
-        let salt = pwhash::Salt::from_slice(&bytes[n..(n + sbytes)]).unwrap();
+        let mut salt = vec![0u8; sbytes];
+        salt.copy_from_slice(&bytes[n..(n + sbytes)]);
 
         Ok(EncryptedData {
-            version,
-            derivation,
-            salt,
-            nonce,
-            ciphertext,
+            version: version,
+            derivation: derivation,
+            salt: salt,
+            nonce: nonce,
+            ciphertext: ciphertext,
         })
     }
 }
@@ -289,7 +328,9 @@ pub fn decrypt_bytes(bytes: &[u8]) -> String {
     let password = get_password(false);
 
     let plaintext = match ciphertext.decrypt(&password) {
-        Ok(text) => text,
+        Ok(text) => {
+            text
+        }
         Err(_) => {
             e!("Can't decrypt the file.");
             exit()

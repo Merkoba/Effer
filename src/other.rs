@@ -43,7 +43,7 @@ pub fn gibberish(n: usize) -> String {
     let mut rng = thread_rng();
 
     iter::repeat(())
-        .map(|()| rng.sample(Alphanumeric))
+        .map(|()| rng.sample(Alphanumeric) as char)
         .take(n)
         .collect::<String>()
 }
