@@ -9,10 +9,12 @@ use crate::{
 };
 
 use argon2::{Algorithm, Argon2, Params, Version};
+
 use chacha20poly1305::{
     aead::{Aead, Payload},
     ChaCha20Poly1305, KeyInit, XChaCha20Poly1305,
 };
+
 use rand::{rngs::OsRng, RngCore};
 
 // Lets the user change password or derivation
@@ -109,10 +111,9 @@ pub fn get_password(change: bool) -> String {
     pw
 }
 
-// Get a key from the password using exact libsodium defaults
+// Get a key from the password for V4
 fn key_from_pw(password: &str, salt: &[u8], derivation: u8) -> Result<[u8; 32], ()> {
     let mut key = [0u8; 32];
-
     match derivation {
         0 => {
             return Ok(key);
@@ -140,64 +141,46 @@ fn key_from_pw(password: &str, salt: &[u8], derivation: u8) -> Result<[u8; 32], 
     Ok(key)
 }
 
-// Fallback logic to get possible keys for older versions
-fn get_possible_keys(password: &str, salt: &[u8], derivation: u8) -> Vec<[u8; 32]> {
-    let mut keys = Vec::new();
-    let algos = [Algorithm::Argon2id, Algorithm::Argon2i];
+// Fallback logic for V2 and V3 using sodiumoxide
+fn legacy_decrypt(
+    version: u8,
+    derivation: u8,
+    salt_bytes: &[u8],
+    nonce_bytes: &[u8],
+    ciphertext: &[u8],
+    password: &str,
+) -> Result<Vec<u8>, ()> {
+    use sodiumoxide::crypto::aead;
+    use sodiumoxide::crypto::aead::chacha20poly1305_ietf as aead_v2;
+    use sodiumoxide::crypto::pwhash;
+    let salt = pwhash::Salt::from_slice(salt_bytes).ok_or(())?;
+    let mut key = aead::Key([0; aead::KEYBYTES]);
 
-    if derivation == 1 {
-        for alg in algos.iter() {
-            if let Ok(params) = Params::new(65536, 2, 1, Some(32)) {
-                let argon2 = Argon2::new(*alg, Version::V0x13, params);
-                let mut key = [0u8; 32];
-                if argon2
-                    .hash_password_into(password.as_bytes(), salt, &mut key)
-                    .is_ok()
-                {
-                    keys.push(key);
-                }
-            }
+    match derivation {
+        0 => return Ok(ciphertext.to_vec()),
+        1 => {
+            pwhash::derive_key_interactive(&mut key.0, password.as_bytes(), &salt)
+                .map_err(|_| ())?;
         }
-    } else if derivation == 2 {
-        for alg in algos.iter() {
-            if let Ok(params) = Params::new(1048576, 4, 1, Some(32)) {
-                let argon2 = Argon2::new(*alg, Version::V0x13, params);
-                let mut key = [0u8; 32];
-                if argon2
-                    .hash_password_into(password.as_bytes(), salt, &mut key)
-                    .is_ok()
-                {
-                    keys.push(key);
-                }
-            }
+        2 => {
+            pwhash::derive_key_sensitive(&mut key.0, password.as_bytes(), &salt)
+                .map_err(|_| ())?;
         }
-
-        for alg in algos.iter() {
-            if let Ok(params) = Params::new(524288, 4, 1, Some(32)) {
-                let argon2 = Argon2::new(*alg, Version::V0x13, params);
-                let mut key = [0u8; 32];
-                if argon2
-                    .hash_password_into(password.as_bytes(), salt, &mut key)
-                    .is_ok()
-                {
-                    keys.push(key);
-                }
-            }
-        }
-
-        if let Ok(params) = Params::new(262144, 8, 1, Some(32)) {
-            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
-            let mut key = [0u8; 32];
-            if argon2
-                .hash_password_into(password.as_bytes(), salt, &mut key)
-                .is_ok()
-            {
-                keys.push(key);
-            }
-        }
+        _ => return Err(()),
     }
 
-    keys
+    if version < 3 {
+        let key_v2 = aead_v2::Key(key.0);
+        let nonce = aead_v2::Nonce::from_slice(nonce_bytes).ok_or(())?;
+        aead_v2::open(ciphertext, Some(&salt.0), &nonce, &key_v2).map_err(|_| ())
+    } else {
+        let nonce = aead::Nonce::from_slice(nonce_bytes).ok_or(())?;
+        let mut header_ad = vec![version, derivation];
+        header_ad.extend_from_slice(&salt.0);
+        header_ad.extend_from_slice(&nonce.0);
+
+        aead::open(ciphertext, Some(header_ad.as_slice()), &nonce, &key).map_err(|_| ())
+    }
 }
 
 // Enum for nonce types (v2 uses 12-byte, v3+ uses 24-byte)
@@ -229,13 +212,10 @@ impl EncryptedData {
     fn new(plaintext: &str, password: &str) -> Result<Self, ()> {
         let version = 4;
         let derivation = g_get_derivation() as u8;
-
         let mut salt = [0u8; 16];
         OsRng.fill_bytes(&mut salt);
-
         let mut nonce_bytes = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_bytes);
-
         let key = key_from_pw(password, &salt, derivation)?;
 
         let ciphertext = if derivation == 0 {
@@ -272,55 +252,54 @@ impl EncryptedData {
             return Ok(self.ciphertext.clone());
         }
 
-        let keys = if self.version == 4 {
-            vec![key_from_pw(password, &self.salt, self.derivation)?]
-        } else {
-            get_possible_keys(password, &self.salt, self.derivation)
-        };
-
-        for key in keys {
-            match &self.nonce {
-                NonceType::V2(nonce_bytes) => {
-                    let cipher = ChaCha20Poly1305::new(&key.into());
-                    let n = chacha20poly1305::Nonce::from_slice(nonce_bytes);
-
-                    let payload = Payload {
-                        msg: &self.ciphertext,
-                        aad: &self.salt,
-                    };
-
-                    if let Ok(plaintext) = cipher.decrypt(n, payload) {
-                        return Ok(plaintext);
-                    }
-                }
-                NonceType::V3(nonce_bytes) => {
-                    let cipher = XChaCha20Poly1305::new(&key.into());
-                    let n = chacha20poly1305::XNonce::from_slice(nonce_bytes);
-
-                    let header_ad = if Self::use_authenticated_header(self.version) {
-                        Self::associated_data(
-                            self.version,
-                            self.derivation,
-                            &self.salt,
-                            nonce_bytes,
-                        )
-                    } else {
-                        self.salt.clone()
-                    };
-
-                    let payload = Payload {
-                        msg: &self.ciphertext,
-                        aad: &header_ad,
-                    };
-
-                    if let Ok(plaintext) = cipher.decrypt(n, payload) {
-                        return Ok(plaintext);
-                    }
-                }
-            }
+        if self.version < 4 {
+            return legacy_decrypt(
+                self.version,
+                self.derivation,
+                &self.salt,
+                self.nonce.as_bytes(),
+                &self.ciphertext,
+                password,
+            );
         }
 
-        Err(())
+        let key = key_from_pw(password, &self.salt, self.derivation)?;
+
+        match &self.nonce {
+            NonceType::V2(nonce_bytes) => {
+                let cipher = ChaCha20Poly1305::new(&key.into());
+                let n = chacha20poly1305::Nonce::from_slice(nonce_bytes);
+
+                let payload = Payload {
+                    msg: self.ciphertext.as_slice(),
+                    aad: &self.salt,
+                };
+
+                cipher.decrypt(n, payload).map_err(|_| ())
+            }
+            NonceType::V3(nonce_bytes) => {
+                let cipher = XChaCha20Poly1305::new(&key.into());
+                let n = chacha20poly1305::XNonce::from_slice(nonce_bytes);
+
+                let header_ad = if Self::use_authenticated_header(self.version) {
+                    Self::associated_data(
+                        self.version,
+                        self.derivation,
+                        &self.salt,
+                        nonce_bytes,
+                    )
+                } else {
+                    self.salt.clone()
+                };
+
+                let payload = Payload {
+                    msg: self.ciphertext.as_slice(),
+                    aad: &header_ad,
+                };
+
+                cipher.decrypt(n, payload).map_err(|_| ())
+            }
+        }
     }
 
     fn use_authenticated_header(version: u8) -> bool {
@@ -344,16 +323,19 @@ impl EncryptedData {
 
     fn from_bytes(bytes: &[u8]) -> Result<Self, base64::DecodeError> {
         let n = 2;
-        let sbytes = 16;
         let version = bytes[0];
         let derivation = bytes[1];
 
-        // v2 used chacha20poly1305_ietf (12-byte nonce)
-        // v3+ uses xchacha20poly1305_ietf (24-byte nonce)
+        let sbytes = if version < 4 {
+            sodiumoxide::crypto::pwhash::SALTBYTES
+        } else {
+            16
+        };
+
         let (nonce, nbytes) = if version < 3 {
             let nbytes = 12;
 
-            if bytes.len() < n + sbytes + nbytes {
+            if bytes.len() < (n + sbytes + nbytes) {
                 return Err(base64::DecodeError::InvalidLength);
             }
 
@@ -363,7 +345,7 @@ impl EncryptedData {
         } else {
             let nbytes = 24;
 
-            if bytes.len() < n + sbytes + nbytes {
+            if bytes.len() < (n + sbytes + nbytes) {
                 return Err(base64::DecodeError::InvalidLength);
             }
 
