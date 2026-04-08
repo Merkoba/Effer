@@ -120,12 +120,16 @@ fn key_from_pw(password: &str, salt: &[u8], derivation: u8) -> Result<[u8; 32], 
         1 => {
             let params = Params::new(65536, 2, 1, Some(32)).map_err(|_| ())?;
             let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
-            argon2.hash_password_into(password.as_bytes(), salt, &mut key).map_err(|_| ())?;
+            argon2
+                .hash_password_into(password.as_bytes(), salt, &mut key)
+                .map_err(|_| ())?;
         }
         2 => {
             let params = Params::new(262144, 8, 1, Some(32)).map_err(|_| ())?;
             let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
-            argon2.hash_password_into(password.as_bytes(), salt, &mut key).map_err(|_| ())?;
+            argon2
+                .hash_password_into(password.as_bytes(), salt, &mut key)
+                .map_err(|_| ())?;
         }
         _ => {
             e!("Wrong key derivation.");
@@ -246,12 +250,7 @@ impl EncryptedData {
         version >= 3
     }
 
-    fn associated_data(
-        version: u8,
-        derivation: u8,
-        salt: &[u8],
-        nonce: &[u8],
-    ) -> Vec<u8> {
+    fn associated_data(version: u8, derivation: u8, salt: &[u8], nonce: &[u8]) -> Vec<u8> {
         let mut data = vec![version, derivation];
         data.extend_from_slice(salt);
         data.extend_from_slice(nonce);
@@ -328,9 +327,7 @@ pub fn decrypt_bytes(bytes: &[u8]) -> String {
     let password = get_password(false);
 
     let plaintext = match ciphertext.decrypt(&password) {
-        Ok(text) => {
-            text
-        }
+        Ok(text) => text,
         Err(_) => {
             e!("Can't decrypt the file.");
             exit()
