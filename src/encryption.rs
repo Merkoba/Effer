@@ -9,12 +9,10 @@ use crate::{
 };
 
 use argon2::{Algorithm, Argon2, Params, Version};
-
 use chacha20poly1305::{
     aead::{Aead, Payload},
     ChaCha20Poly1305, KeyInit, XChaCha20Poly1305,
 };
-
 use rand::{rngs::OsRng, RngCore};
 
 // Lets the user change password or derivation
@@ -68,7 +66,7 @@ pub fn change_password() {
 
     if !get_password(true).is_empty() {
         update_file(get_notes(false))
-    };
+    }
 }
 
 // Gets the file's password saved globally
@@ -111,12 +109,14 @@ pub fn get_password(change: bool) -> String {
     pw
 }
 
-// Get a key from the password
+// Get a key from the password using exact libsodium defaults
 fn key_from_pw(password: &str, salt: &[u8], derivation: u8) -> Result<[u8; 32], ()> {
     let mut key = [0u8; 32];
 
     match derivation {
-        0 => return Ok(key),
+        0 => {
+            return Ok(key);
+        }
         1 => {
             let params = Params::new(65536, 2, 1, Some(32)).map_err(|_| ())?;
             let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
@@ -125,7 +125,7 @@ fn key_from_pw(password: &str, salt: &[u8], derivation: u8) -> Result<[u8; 32], 
                 .map_err(|_| ())?;
         }
         2 => {
-            let params = Params::new(262144, 8, 1, Some(32)).map_err(|_| ())?;
+            let params = Params::new(1048576, 4, 1, Some(32)).map_err(|_| ())?;
             let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
             argon2
                 .hash_password_into(password.as_bytes(), salt, &mut key)
@@ -138,6 +138,66 @@ fn key_from_pw(password: &str, salt: &[u8], derivation: u8) -> Result<[u8; 32], 
     };
 
     Ok(key)
+}
+
+// Fallback logic to get possible keys for older versions
+fn get_possible_keys(password: &str, salt: &[u8], derivation: u8) -> Vec<[u8; 32]> {
+    let mut keys = Vec::new();
+    let algos = [Algorithm::Argon2id, Algorithm::Argon2i];
+
+    if derivation == 1 {
+        for alg in algos.iter() {
+            if let Ok(params) = Params::new(65536, 2, 1, Some(32)) {
+                let argon2 = Argon2::new(*alg, Version::V0x13, params);
+                let mut key = [0u8; 32];
+                if argon2
+                    .hash_password_into(password.as_bytes(), salt, &mut key)
+                    .is_ok()
+                {
+                    keys.push(key);
+                }
+            }
+        }
+    } else if derivation == 2 {
+        for alg in algos.iter() {
+            if let Ok(params) = Params::new(1048576, 4, 1, Some(32)) {
+                let argon2 = Argon2::new(*alg, Version::V0x13, params);
+                let mut key = [0u8; 32];
+                if argon2
+                    .hash_password_into(password.as_bytes(), salt, &mut key)
+                    .is_ok()
+                {
+                    keys.push(key);
+                }
+            }
+        }
+
+        for alg in algos.iter() {
+            if let Ok(params) = Params::new(524288, 4, 1, Some(32)) {
+                let argon2 = Argon2::new(*alg, Version::V0x13, params);
+                let mut key = [0u8; 32];
+                if argon2
+                    .hash_password_into(password.as_bytes(), salt, &mut key)
+                    .is_ok()
+                {
+                    keys.push(key);
+                }
+            }
+        }
+
+        if let Ok(params) = Params::new(262144, 8, 1, Some(32)) {
+            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+            let mut key = [0u8; 32];
+            if argon2
+                .hash_password_into(password.as_bytes(), salt, &mut key)
+                .is_ok()
+            {
+                keys.push(key);
+            }
+        }
+    }
+
+    keys
 }
 
 // Enum for nonce types (v2 uses 12-byte, v3+ uses 24-byte)
@@ -212,38 +272,55 @@ impl EncryptedData {
             return Ok(self.ciphertext.clone());
         }
 
-        let key = key_from_pw(password, &self.salt, self.derivation)?;
+        let keys = if self.version == 4 {
+            vec![key_from_pw(password, &self.salt, self.derivation)?]
+        } else {
+            get_possible_keys(password, &self.salt, self.derivation)
+        };
 
-        match &self.nonce {
-            NonceType::V2(nonce_bytes) => {
-                let cipher = ChaCha20Poly1305::new(&key.into());
-                let n = chacha20poly1305::Nonce::from_slice(nonce_bytes);
+        for key in keys {
+            match &self.nonce {
+                NonceType::V2(nonce_bytes) => {
+                    let cipher = ChaCha20Poly1305::new(&key.into());
+                    let n = chacha20poly1305::Nonce::from_slice(nonce_bytes);
 
-                let payload = Payload {
-                    msg: &self.ciphertext,
-                    aad: &self.salt,
-                };
+                    let payload = Payload {
+                        msg: &self.ciphertext,
+                        aad: &self.salt,
+                    };
 
-                cipher.decrypt(n, payload).map_err(|_| ())
-            }
-            NonceType::V3(nonce_bytes) => {
-                let cipher = XChaCha20Poly1305::new(&key.into());
-                let n = chacha20poly1305::XNonce::from_slice(nonce_bytes);
+                    if let Ok(plaintext) = cipher.decrypt(n, payload) {
+                        return Ok(plaintext);
+                    }
+                }
+                NonceType::V3(nonce_bytes) => {
+                    let cipher = XChaCha20Poly1305::new(&key.into());
+                    let n = chacha20poly1305::XNonce::from_slice(nonce_bytes);
 
-                let header_ad = if Self::use_authenticated_header(self.version) {
-                    Self::associated_data(self.version, self.derivation, &self.salt, nonce_bytes)
-                } else {
-                    self.salt.clone()
-                };
+                    let header_ad = if Self::use_authenticated_header(self.version) {
+                        Self::associated_data(
+                            self.version,
+                            self.derivation,
+                            &self.salt,
+                            nonce_bytes,
+                        )
+                    } else {
+                        self.salt.clone()
+                    };
 
-                let payload = Payload {
-                    msg: &self.ciphertext,
-                    aad: &header_ad,
-                };
+                    let payload = Payload {
+                        msg: &self.ciphertext,
+                        aad: &header_ad,
+                    };
 
-                cipher.decrypt(n, payload).map_err(|_| ())
+                    if let Ok(plaintext) = cipher.decrypt(n, payload) {
+                        return Ok(plaintext);
+                    }
+                }
             }
         }
+
+        Err(())
     }
 
     fn use_authenticated_header(version: u8) -> bool {
